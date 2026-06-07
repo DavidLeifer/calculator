@@ -30,4 +30,8 @@ int power(int input, int powerNumber);
 
 int addition(int integerOne, int integerTwo);
 
+
+
+int interface(int arc, char argv[]);
+
 #endif
