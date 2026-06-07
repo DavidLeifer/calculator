@@ -2,62 +2,82 @@
 #include <string.h>
 #include <stdlib.h>
 #include "binaryFunctions.h"
-
-
 /*
 Notes
+
+Migrated to ~/Desktop/calculator200/
 
   Have to specify function calls in binaryFunctions.h and here besides the
   actual binaryFunctions.c file.
 
+  addition() - 1 + 3 was printed 0 since 4 is '100' and needed an extra binary digit.
+
 gcc binary.c binaryFunctions.c -o binary && ./binary
 
 */
+const char version[4] = "0.01";
+// Put the subtraction - division before the textGUI to eliminate the warnings.
+int subtraction(int integerOne, int integerTwo) {
+   printf("Difference:  %d - %d = ?\n", integerOne, integerTwo);
+  // struct threeInt ___ decimal2IntBinary(int decimal int binaryLength);
+  // char* intBinary2Char(struct threeInt intZerosBinary);
 
-int main() {
-  // int numberOne = 300;
-  // int numberTwo = 300;
-  // 1 + 3 printed 0 since 4 is '100' and needed an extra binary digit.
-  int numberOne;
-  int numberTwo;
-  char options[2];
-  printf("Text Based Calculator 1.0\n");
-  printf("Options (press enter):\n-a  Addition\n-s  Subtraction\n-m  Multiplication\n-d  Division\n");
-  scanf("%2s", options);
-  // while loop checks if the input matches operand ('+', '-', '*', 'etc').
-  int i = 1;
-  int opCheck;
-  char *additionChar = "-a";
-  char *subtractionChar = "-s";
-  while (i >= 1) {
-    if (options[i] == additionChar[i]) {
-      opCheck = 1;
-    }
-    else if (options[i] == subtractionChar[i]) {
-      opCheck = 2;
-    }
-    else {
-      opCheck = 0;
-    }
-    // printf("%c %c\n", options[i], subtractionChar[i]);
-    i--;
+  // internet says computers don't have a subtraction sign.
+  // same length
+  // invert all characters
+  // add together
+
+  // 0 - 0 = 0
+  // 1 - 0 = 1
+  // 1 - 1 = 0
+  // 0 - 1 = 1  <- borrows 1 from the next left column
+
+  // int intDecimalDiff = binarySubtraction();
+  int intDecimalDiff = 0;
+
+  return intDecimalDiff;
+}
+int multiplication(int integerOne, int integerTwo) {
+  printf("Multiplication\n");
+  return 0;
+}
+int division(int integerOne, int integerTwo) {
+  printf("Division\n");
+  return 0;
+}
+
+int main(int argc, char *argv[4]) {
+  int numberOne = 1;
+  int numberTwo = 3;
+  int division = subtraction(numberOne, numberTwo);
+
+  /*
+  // todo function
+  // The calculator text interface is shown if terminal doesn't ask for help.
+  if (argc < 2) {
+    textGUI();
+    return 1;
   }
-  if (opCheck == 0) {
-    printf("Error\n");
+  // Allows for user designated input i.e. '-help' or '-h' etc.
+  int i = 0;
+  // Find the length of the input.
+  while (argv[1][i] != '\0') {
+    i++;
+  }
+  //printf("\n%c  %d\n", argv[1][1], i);
+  if (argv[1][1] == 'h' && i == 5) {
+    printf("Text Calculator\nVersion ");
+    printf("%s Help\n\n", version);
+    printf("Features: addition.\n");
+  }
+  else if (argv[1][1] == 'h' && i == 2) {
+    printf("Text Calculator\nVersion ");
+    printf("%s Help\n\n", version);
+    printf("Features: addition.\n");
   }
   else {
-    printf("Type a number below 200 (press enter): ");
-    scanf("%d", &numberOne);
-    printf("Type a number below 200 (press enter): ");
-    scanf("%d", &numberTwo);
-    if (opCheck == 1) {
-      printf("%\n", opCheck);
-      int sum = addition(numberOne, numberTwo);
-      printf("%d + %d = %d\n", numberOne, numberTwo, sum);
-    }
-    else if (opCheck == 2) {
-      // int difference = difference(numberOne, numberTwo);
-      printf("Subtraction\n");
-    }
+    printf("Incorrect input. Exiting.\n");
   }
+  */
+  return 0;
 }

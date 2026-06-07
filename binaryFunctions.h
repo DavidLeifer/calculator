@@ -12,6 +12,8 @@ struct threeInt {
 // Define functions in header and binaryFunctions.c.
 // W3 schools wasn't specific it just said 'gaurd'.
 
+extern const char version[];
+
 struct threeInt decimal2intBinary(int decimal, int binaryLength);
 
 char* intBinary2Char(struct threeInt intZerosBinary);
