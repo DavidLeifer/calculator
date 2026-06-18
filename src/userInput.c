@@ -7,6 +7,175 @@
 #include "arithmatic.h"
 #include "userInput.h"
 
+void charUserInput(char *input) {
+  printf("Text ");
+  printf("%s\n\n", version);
+  printf("Enter two numbers less than 200\nwith arithmatic operators\n +  ,  -  ,  *  ,  /  ,  **\n\nExample: 1 + 1 (press enter):\n\n");
+  scanf("%13[^\n]", input);
+}
+
+// Splits the input by determining the airthmatic string, converts the two
+// int to char and returns both for use in 'arithmaticInput()' and 'fileLog()'.
+struct threeInt inputFormat(char input[]) {
+  // Allows inputs such as '1+1' and '1+ 1' or '100 +   10' calculated when
+  // the user presses 'enter' regardless of formating.
+  char charNumberOne[4] = {0};
+  char charNumberTwo[4] = {0};
+  // char pointerArithmatic[3] = {0};
+  char *arithmaticO = malloc(3 * sizeof(char));
+  int i = 0;
+  int j = 0;
+  int m = 0;
+  // The length of the split char[] are used to convert to int.
+  int intNumberTwoLength = 0;
+  int intNumberOneLength = 0;
+  while (input[i] != '\0') {
+    if (input[i] != ' ') {
+      // ASCii if it's an int char, set charNumberOne to those integers.
+      if ( (input[i] > 47) && (input[i] < 58) ) {
+        // charNumberTwo[] when arithmaticO[] is not empty.
+        if ( arithmaticO[0] != '\0' ) {
+          charNumberTwo[m] = input[i];
+          m++;
+          intNumberTwoLength = m;
+        }
+        // charNumberOne[] when charNumberTwo[] is still empty.
+        else if ( charNumberTwo[0] == '\0' ) {
+          charNumberOne[j] = input[i];
+          j++;
+          intNumberOneLength = j;
+        }
+      }
+      // Exponents
+      if ((input[i] == 42) && (input[i+1] == 42)) {
+        arithmaticO[0] = '*';
+        arithmaticO[1] = '*';
+        arithmaticO[2] = '\0';
+        // printf("aaaa %d  %c %c %s\n", i, input[i], input[i+1], arithmaticO);
+      }
+      // Multiplication
+      else if ( (input[i-1] != 42) && (input[i] == 42) && (input[i+1] != 42)) {
+        arithmaticO[0] = '*';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // Addition
+      else if (input[i] == 43) {
+        arithmaticO[0] = '+';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // Subtraction
+      else if (input[i] == 45) {
+        arithmaticO[0] = '-';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // Division
+      else if (input[i] == 47) {
+        arithmaticO[0] = '/';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // Didnt work after an update and then compiled with this and the last else{}
+      else {
+        int foo = 0;
+      }
+    }
+    else {
+      //printf("%d  %d  space\n", i, input[i]);
+    }
+    i++;
+  }
+  // The two numbers and arithmaticO as their own char[].
+  // printf("%s  %s  %s\n", charNumberOne, arithmaticO, charNumberTwo);
+
+  // Convert 'charNumberOne' and 'charNumberTwo' to int with function from 'binaryChar.c'.
+  // Why are these not pointers and read in the other function? arithmaticO has to be specifically defined.
+  int numberOne = charBinary2Int(charNumberOne, intNumberOneLength);
+  int numberTwo = charBinary2Int(charNumberTwo, intNumberTwoLength);
+  //printf("\n\n%d  %s  %d\n", numberTwo, arithmaticO, numberOne);
+
+  struct threeInt output;
+  output.one = numberOne;
+  output.two = numberTwo;
+  output.three = 0;
+  output.string = arithmaticO;
+
+  // printf("input format %d %s %d\n", output.one, output.string, output.two);
+
+  return output;
+}
+
+// Prints the answer to arithmatic input. Sends the answer to .log file in 'logFile.c'.
+char* inputArithmatic(struct threeInt inputFormatted) {
+
+  int numberOne = inputFormatted.one;
+  int numberTwo = inputFormatted.two;
+  int answer = 0;
+  char *arithmaticO = inputFormatted.string;
+
+  // Exponents
+  if (arithmaticO[0] == 42 && arithmaticO[1] == 42 && arithmaticO[2] == '\0') {
+    answer = exponents(numberOne, numberTwo);
+    printf("%d ** %d = %d\n", numberOne, numberTwo, answer);
+  }
+  // Multiplication
+  else if (arithmaticO[0] == 42 && arithmaticO[1] == '\0') {
+    answer = multiplication(numberOne, numberTwo);
+    // printf("%d * %d = %d\n", numberOne, numberTwo, answer);
+  }
+  // Addition
+  else if (arithmaticO[0] == 43 && arithmaticO[1] == '\0') {
+    answer = addition(numberOne, numberTwo);
+    printf("%d + %d = %d\n", numberOne, numberTwo, answer);
+  }
+  // Subtraction
+  else if (arithmaticO[0] == 45 && arithmaticO[1] == '\0') {
+    answer = subtraction(numberOne, numberTwo);
+    // printf("%d - %d = %d\n", numberOne, numberTwo, answer);
+  }
+  // Division
+  else if (arithmaticO[0] == 47 && arithmaticO[1] == '\0') {
+    answer = division(numberOne, numberTwo);
+    // printf("%d / %d = %d\n", numberOne, numberTwo, answer);
+  }
+  else {
+    printf("Error: bad input.\n");
+  }
+  // free(arithmaticO);
+  // printf("inputArithmatic:  %d %s %d = %d\n", numberOne, arithmaticO, numberTwo, answer);
+
+  // Find length of answer.
+  // todo This is the 'intLen()' function.
+  // Both 'while's are similar as two functions 'intBinary2Char' in 'charBinary.c'.
+  int answerReduce = answer;
+  int answerLength = 0;
+  while (answerReduce != 0) {
+    answerReduce /= 10;
+    answerLength++;
+  }
+
+  // int2char
+  char *output = malloc(4 * sizeof(char));
+  strcpy(output, "a");
+  int i = answerLength - 1;
+  // printf("answer %d answerLength %d  i: %d\n", answer, answerLength, i);
+
+  int intDigit = 0;
+  while (i >= 0) {
+    intDigit = answer % 10;
+    output[i] = intDigit + '0';
+    // printf("%d    output: %c\n", i, output[i]);
+    answer /= 10;
+    i--;
+  }
+  output[answerLength] = '\0';
+  //output = intBinary2Char(structAnswer);
+
+  return output;
+}
+
 // Uses 'fopen()' and 'fgets()' to parse the document in 'r' mode.
 void fileLogRead(char fileName[]) {
   FILE *fileLog;
@@ -37,27 +206,35 @@ char charAppend(char stringInput, int len, char append) {
   return stringInput, len;
 };
 */
-
-int fileLog(char userInput[9]) {
+int fileLog(char userInput[13], char answer[4]) {
+  // printf("write the append for fileLog.c\n%d  %s  %d = %s\n", userInput.one, userInput.string, userInput.two, answer);
+  // userInput.one 2 char
+  // userInput.two 2 char
   FILE *fileLog;
-  fileLog = fopen("./.calculatorLog", "r");
+  fileLog = fopen("./.log", "r");
   // Uses 'time()' and 'strftime()' from <time.h> for date and time.
   time_t now = time(NULL);
   struct tm *localTime = localtime(&now);
   char date[11];
   char time[9];
+  int userInputLength = 13;
+  // char *userInput = malloc(userInputLength * sizeof(char));
+  // strcpy(userInput, mallocInput);
   strftime(date, sizeof(date), "%d-%m-%Y", localTime);
   strftime(time, sizeof(time), "%H:%M:%S", localTime);
   // printf("Current date: %s\n", date);
   // printf("Current time: %s\n", time);
+  // printf("Input: %s\n", userInput);
+
   // Probably around 60 characters at most.
   char userInputFormatted[100];
   // If the file exists, append information to the end.
+  // printf("%s\n", userInput);
   if (fileLog != NULL) {
     fclose(fileLog);
     // printf("Exists and appending.\n");
     FILE *fileLogAppend;
-    fileLogAppend = fopen("./.calculatorLog", "a");
+    fileLogAppend = fopen("./.log", "a");
     int i = 0;
     int j = 1;
     userInputFormatted[0] = '\n';
@@ -84,10 +261,23 @@ int fileLog(char userInput[9]) {
     // Appends the information to the document.
     while (userInput[i] != '\0') {
       userInputFormatted[j] = userInput[i];
-      // printf("%c  %c\n", userInputFormatted[j], userInput[i]);
+      //printf("%d %c  %d %c\n", j, userInputFormatted[j], i, userInput[i]);
       i++;
       j++;
     }
+    // Include the answer.
+    userInputFormatted[j] = ' ';
+    userInputFormatted[j+1] = '=';
+    userInputFormatted[j+2] = ' ';
+    i = 0;
+    j = j + 3;
+    while (answer[i] != '\0') {
+      userInputFormatted[j] = answer[i];
+      // printf("%d %c  %d %c\n", j, userInputFormatted[j], i, answer[i]);
+      i++;
+      j++;
+    }
+    userInputFormatted[j] = '\0';
     // printf("%s\n", userInputFormatted);
     fprintf(fileLogAppend, userInputFormatted);
     fclose(fileLogAppend);
@@ -96,7 +286,7 @@ int fileLog(char userInput[9]) {
     // Make the file and append the output if it doesn't exist.
     // printf("Doesn't exist and write mode.\n");
     FILE *fileLogWrite;
-    fileLogWrite = fopen("./.calculatorLog", "w");
+    fileLogWrite = fopen("./.log", "w");
 
     int i = 0;
     int j = 23;
@@ -148,132 +338,38 @@ int fileLog(char userInput[9]) {
       i++;
       j++;
     }
+    // Include the answer.
+    userInputFormatted[j] = ' ';
+    userInputFormatted[j+1] = '=';
+    userInputFormatted[j+2] = ' ';
+    i = 0;
+    j = j + 3;
+    while (answer[i] != '\0') {
+      userInputFormatted[j] = answer[i];
+      i++;
+      j++;
+    }
     userInputFormatted[j] = '\0';
-    // printf("%s\n", userInputFormatted);
     fprintf(fileLogWrite, userInputFormatted);
     fclose(fileLogWrite);
   }
   return 0;
 }
 
-/*
+// Runs the arithmatic user input and file log functions.
 void textGUI() {
-  // Allows inputs such as '1+1' and '1+ 1' calculating when the user presses 'enter' regardless of formating.
-  char input[13];
-  int numberOne = 0;
-  int numberTwo;
-  char arithmaticO[3];
-  printf("Text ");
-  printf("%s\n\n", version);
-  printf("Enter two numbers less than 200\nwith arithmatic operators\n +  ,  -  ,  *  ,  /  ,  **\n\nExample: 1 + 1 (press enter):\n\n");
-
-  // scanf(" %3d %c %10s", &numberOne, &operator, numberTwo);
-  scanf("%13[^\n]", input);
-
-  // fileLog(struct threeInt);
-
-  int i = 0;
-  while (input[i] != '\0') {
-     if (input[i] != ' ') {
-       // Exponents
-       if ((input[i] == 42) && (input[i+1] == 42)) {
-         arithmaticO[0] = '*';
-         arithmaticO[1] = '*';
-         arithmaticO[2] = '\0';
-         // printf("aaaa %d  %c%c %s\n", i, input[i], input[i], arithmaticO);
-       }
-       // Multiplication
-       else if ( (input[i-1] != 42) && (input[i] == 42) && (input[i+1] != 42)) {
-         printf("%d  %c\n", i, input[i]);
-       }
-       // Addition
-       else if (input[i] == 43) {
-         printf("%d  %c\n", i, input[i]);
-       }
-       // Subtraction
-       else if (input[i] == 45) {
-         printf("%d  %c\n", i, input[i]);
-       }
-       // Division
-       else if (input[i] == 47) {
-         printf("%d  %c\n", i, input[i]);
-       }
-       else if ((input[i] > 48) && (input[i] < 57)){
-         if (numberOne == 0) {
-           numberOne = input[i] - '0';
-           printf("%d  %c  %d\n", i, input[i], numberOne);
-         }
-         else {
-           numberTwo = input[i] - '0';
-           printf("%d  %c  %d  %d\n", i, input[i], numberOne, numberTwo);
-         }
-       }
-       else {
-         int fooo = 0;
-         // printf("Error not a number: %c\n", input[i]);
-       }
-     }
-     else {
-       int foo = 0;
-       // printf("white space\n");
-     }
-     i++;
-  }
-  i++;
-
-  // Checks if the input matches operator ('+', '-', '*', 'etc') to run the function.
-  // This is the overflow into numberTwo[0] '**'.
-  //if (operator == '*' && numberTwo[0] == '*') {
-    // todo append function
-
-    //int intNumberTwo;
-    /*
-    int i = 1;
-    while (numberTwo[i] != '\0') {
-      intNumberTwo = numberTwo[i] - '0';
-      //printf("%d    %c  %d\n", i, numberTwo[i], intNumberTwo);
-      i++;
-    }
-    //
-    // int intNumberTwo = numberTwo[1:] - '0';
-    // int intExponent = exponents(numberOne, intNumberTwo);
-    //printf("\n%d ** %d = %d\n", numberOne, intNumberTwo, intExponent);
-  //}
-  //
-  else if (operator == additionChar) {
-    // This is the char binary to int binary function (test if works). needs the length or change the function.
-    int i = 0;
-    int intNumberTwo = 1;
-    while (numberTwo[i] != '\0') {
-      intNumberTwo = (intNumberTwo * 10) + numberTwo[i] - '0';
-      i++;
-    }
-    int intNumberTwoExponent = exponents(10, i);
-    int intNumberTwoRemainder = intNumberTwo % intNumberTwoExponent;
-    // printf("%d  %d\n", numberOne, intNumberTwoRemainder);
-
-    // for some reason the addition doesnt work on 200 + 100 and other random two digit sums
-    // despite the input being accurate.
-    int sum = addition(numberOne, intNumberTwoRemainder);
-    printf("\n%d + %d = %d\n", numberOne, intNumberTwoRemainder, sum);
-  }
-  else if (operator == subtractionChar) {
-    int foo = 0;
-    // int difference = subtraction(numberOne, numberTwo);
-  }
-  else if (operator == multiplicationChar) {
-    int foo = 0;
-    // int product = multiplication(numberOne, numberTwo);
-  }
-  else if (operator == divisionChar) {
-    int foo = 0;
-    // int quotient = division(numberOne, numberTwo);
-  }
-  else {
-    printf("\nError : bad input.\n");
-  } //
+  char *strUserInput = malloc(13 * sizeof(char));
+  //char strUserInput[13];
+  charUserInput(strUserInput);
+  // int log = fileLog(strUserInput);
+  struct threeInt splitUserInput = inputFormat(strUserInput);
+  // Send to arithmatic functions and print the answer.
+  char *answer = inputArithmatic(splitUserInput);
+  // printf("%s\n", strUserInput);
+  int log = fileLog(strUserInput, answer);
+  free(answer);
+  free(strUserInput);
 }
-*/
 
 int test(int small, int large, int mid, int longPrint) {
   int realSum;
@@ -302,14 +398,8 @@ int test(int small, int large, int mid, int longPrint) {
   return 0;
 }
 
-/*
 int interface(int argc, char *argv){
   // printf("aaa %s\n", argv);
-  // The calculator text interface is shown if terminal doesn't ask for help.
-  if (argc < 2) {
-    textGUI();
-    return 1;
-  }
   // Allows for user designated input i.e. '-help', '-h', 'test', 't', longTest, 'lt', etc.
   int i = 0;
   // Find the length of the input.
@@ -320,7 +410,8 @@ int interface(int argc, char *argv){
   if ((argv[1] == 'h' && i == 5) || (argv[1] == 'h' && i == 2)) {
     printf("Text %s", version);
     printf(" Help.\n\n");
-    printf("Features: addition.\n");
+    // printf("Features: addition, logging.\n");
+    printf("%s\n", features);
   }
   else if ((argv[1] == 't' && i == 5) || (argv[1] == 't' && i == 2)) {
     // Short test output.
@@ -328,7 +419,7 @@ int interface(int argc, char *argv){
     int large = 200;
     int mid = 200;
     int longPrint = 0;
-    int testOut = test(small, large, mid, longPrint);
+    //int testOut = test(small, large, mid, longPrint);
   }
   else if ((argv[1] == 'l' && argv[2] == 't' && i == 3) || (argv[1] == 'l' && argv[2] == 'o' && i == 9)) {
     // Long test ouput.
@@ -336,11 +427,10 @@ int interface(int argc, char *argv){
     int large = 200;
     int mid = 200;
     int longPrint = 1;
-    int testOut = test(small, large, mid, longPrint);
+    //int testOut = test(small, large, mid, longPrint);
   }
   else {
     printf("Incorrect input. Exiting.\n");
   }
   return 0;
 }
-*/

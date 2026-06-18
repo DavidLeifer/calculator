@@ -3,6 +3,8 @@
 
 extern const char version[];
 
+extern const char features[];
+
 int exponents(int base, int exponent);
 
 int addition(int integerOne, int integerTwo);
