@@ -12,17 +12,15 @@ Notes
   Have to specify function calls in binaryFunctions.h and here besides the
   actual binaryFunctions.c file.
 
-  // full way: gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
+  // listing all the files: gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
 
 gcc main.c ./src/*.c -o binary && ./binary
 
 todo
-  - exponents() stopped working from input after name switch and move.
-  - append function
-  - append function in the log file
-  - log user input
 
-  - test are commented out.
+  - append function in the log file
+  - insert user input into the log file
+  - fix addition using test() and log
 
 */
 
@@ -31,9 +29,9 @@ const char version[23] = "Calculator\nVersion 0.01";
 void textGUI() {
   // Allows inputs such as '1+1' and '1+ 1' calculating when the user presses 'enter' regardless of formating.
   char input[13];
-  int numberOne = 0;
-  int numberTwo;
-  char arithmaticO[3];
+  char charNumberOne[4] = {0};
+  char charNumberTwo[4] = {0};
+  char arithmaticO[3] = {0};
   printf("Text ");
   printf("%s\n\n", version);
   printf("Enter two numbers less than 200\nwith arithmatic operators\n +  ,  -  ,  *  ,  /  ,  **\n\nExample: 1 + 1 (press enter):\n\n");
@@ -42,63 +40,79 @@ void textGUI() {
   scanf("%13[^\n]", input);
 
   // fileLog(struct threeInt);
-
   int i = 0;
+  int j = 0;
+  int m = 0;
+  // The length of the split char[] are used to convert to int.
+  int intNumberTwoLength = 0;
+  int intNumberOneLength = 0;
   while (input[i] != '\0') {
-     if (input[i] != ' ') {
-       // Exponents
-       if ((input[i] == 42) && (input[i+1] == 42)) {
-         arithmaticO[0] = '*';
-         arithmaticO[1] = '*';
-         arithmaticO[2] = '\0';
-         // printf("aaaa %d  %c%c %s\n", i, input[i], input[i], arithmaticO);
-       }
-       // Multiplication
-       else if ( (input[i-1] != 42) && (input[i] == 42) && (input[i+1] != 42)) {
-         arithmaticO[0] = '*';
-         arithmaticO[1] = '\0';
-         //printf("%d  %c\n", i, input[i]);
-       }
-       // Addition
-       else if (input[i] == 43) {
-         arithmaticO[0] = '+';
-         arithmaticO[1] = '\0';
-         //printf("%d  %c\n", i, input[i]);
-       }
-       // Subtraction
-       else if (input[i] == 45) {
-         arithmaticO[0] = '-';
-         arithmaticO[1] = '\0';
-         //printf("%d  %c\n", i, input[i]);
-       }
-       // Division
-       else if (input[i] == 47) {
-         arithmaticO[0] = '/';
-         arithmaticO[1] = '\0';
-         //printf("%d  %c\n", i, input[i]);
-       }
-
-
-       // Convert the first and second char[] numbers to int.
-       // Only does single digits.
-       else if ((input[i] > 48) && (input[i] < 58)){
-         // If numberOne is still NULL, convert input to int.
-         if (numberOne == 0) {
-           numberOne = input[i] - '0';
-           // printf("%d  %c  %d\n", i, input[i], numberOne);
-         }
-         // Otherwise convert numberTwo to int.
-         else {
-           numberTwo = input[i] - '0';
-           // printf("%d  %c  %d  %d\n", i, input[i], numberOne, numberTwo);
-         }
-       }
-
-
-     i++;
+    if (input[i] != ' ') {
+      // ASCii if it's an int char, set charNumberOne to those integers.
+      if ( (input[i] > 47) && (input[i] < 58) ) {
+        // charNumberTwo[] when arithmaticO[] is not empty.
+        if ( arithmaticO[0] != '\0' ) {
+          charNumberTwo[m] = input[i];
+          m++;
+          intNumberTwoLength = m;
+        }
+        // charNumberOne[] when charNumberTwo[] is still empty.
+        else if ( charNumberTwo[0] == '\0' ) {
+          charNumberOne[j] = input[i];
+          j++;
+          intNumberOneLength = j;
+        }
+      }
+      // Exponents
+      if ((input[i] == 42) && (input[i+1] == 42)) {
+        arithmaticO[0] = '*';
+        arithmaticO[1] = '*';
+        arithmaticO[2] = '\0';
+        // printf("aaaa %d  %c %c %s\n", i, input[i], input[i+1], arithmaticO);
+      }
+      // Multiplication
+      else if ( (input[i-1] != 42) && (input[i] == 42) && (input[i+1] != 42)) {
+        arithmaticO[0] = '*';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // Addition
+      else if (input[i] == 43) {
+        arithmaticO[0] = '+';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // Subtraction
+      else if (input[i] == 45) {
+        arithmaticO[0] = '-';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // Division
+      else if (input[i] == 47) {
+        arithmaticO[0] = '/';
+        arithmaticO[1] = '\0';
+        //printf("%d  %c\n", i, input[i]);
+      }
+      // didnt work after an update and then compiled with this and the last else{}
+      else {
+        int foo = 0;
+      }
     }
+    else {
+      //printf("%d  %d  space\n", i, input[i]);
+    }
+    i++;
   }
-  //printf("%d  %s  %d  =  ?\n", numberOne, arithmaticO, numberTwo);
+  // The two numbers and arithmaticO as their own char[].
+  // printf("%s  %s  %s\n", charNumberTwo, arithmaticO, charNumberOne);
+
+  // Convert charNumberTwo to int with 'binaryChar.c' function.
+  int numberOne = charBinary2Int(charNumberOne, intNumberOneLength);
+  int numberTwo = charBinary2Int(charNumberTwo, intNumberTwoLength);
+
+  //printf("\n\n%d  %s  %d\n", numberTwo, arithmaticO, numberOne);
+
   // Send to arithmatic functions.
   // Exponents
   if (arithmaticO[0] == 42 && arithmaticO[1] == 42 && arithmaticO[2] == '\0') {
