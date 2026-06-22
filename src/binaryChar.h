@@ -1,18 +1,21 @@
 #ifndef BINARYCHAR_H
 #define BINARYCHAR_H
 
-// Int structure.
+// int and char structure.
+/*
 struct threeInt {
   int one;
   int two;
   int three;
   char *string;
 };
-
+*/
 // Define functions in header and binaryFunctions.c.
-// W3 schools wasn't specific it just said 'gaurd'.
+// W3 schools wasn't specific it said 'gaurd'.
 
 extern const char version[];
+
+//extern const char features[];
 
 struct threeInt decimal2intBinary(int decimal, int binaryLength);
 

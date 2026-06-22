@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "struct.h"
 #include "binaryChar.h"
 #include "arithmatic.h"
 
@@ -23,23 +25,25 @@ int addition(int integerOne, int integerTwo) {
   // int integerOne = 4;
   // int integerTwo = 3;
   // 8 bit binary (n + 1) to include the 'b' prefix. 'const' might break other libraries.
+
   int binaryLength = 17;
   // printf("Decimals: %d  %d\n", integerOne, integerTwo);
   // Have to specify the functions in this file and generically in binaryFunctions.h
   // to avoid compilation issues.
   struct threeInt intBinaryOne = decimal2intBinary(integerOne, binaryLength);
   struct threeInt intBinaryTwo = decimal2intBinary(integerTwo, binaryLength);
+  // printf("%d  %d\n", intBinaryOne.one, intBinaryOne.two);
   // Convert 'binary' to char[] for 'binaryAddition()'.
   char *binaryOne = intBinary2Char(intBinaryOne); // outputs: char binaryOne[] = "100";
   char *binaryTwo = intBinary2Char(intBinaryTwo); // outputs: char binaryOne[] = "11";
+  // printf("%s\n", binaryOne);
   // Returns length of the binary digits, difference, and check value used in 'binaryAddition()'.
   struct threeInt intBinaryGreat = intBinaryCheck(intBinaryOne, intBinaryTwo);
   // Adds the two binary char and returns struct with char pointer sum and new int binary
   //  length check if the length is '10', '100', or '1000'.
   struct threeInt binaryAdd = binaryAddition(binaryOne, binaryTwo, intBinaryGreat);
   int intBinaryAdd = charBinary2Int(binaryAdd.string, intBinaryGreat.one);
-  // Free the malloc() char array pointer from 'struct threeInt binaryAdd()' after use in 'charBinary2Int()'.
-  free(binaryAdd.string);
+  // printf("%d\n", intBinaryAdd);
   int intDecimalAdd =  binary2Decimal(intBinaryAdd, intBinaryGreat.one, binaryAdd.one);
   // printf("%d + %d = %d\n", integerOne, integerTwo, intDecimalAdd);
   return intDecimalAdd;

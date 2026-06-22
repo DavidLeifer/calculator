@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include "struct.h"
 #include "binaryChar.h"
 #include "arithmatic.h"
 
@@ -45,7 +47,7 @@ gcc binary.c binaryFunctions.c -o binary && ./binary
   printf("binaryOne1 plus binaryTwo2 = %d\n", binaryOne1);
 */
 
-// Input to the power of number.
+// Input to the power of number. ->> moved to arithmatic.c
 /*
 int exponents(int base, int exponent) {
   int output = 1;
@@ -57,6 +59,7 @@ int exponents(int base, int exponent) {
   }
   return output;
 }
+
 */
 
 // Inputs int decimal and outputs int binary and binary digit length.
@@ -87,7 +90,7 @@ struct threeInt decimal2intBinary(int decimal, int binaryLength) {
   output.two = binary;
   // Place holder value.
   output.three = 0;
-  output.string = "a";
+  output.string = '\0';
   return output;
 }
 
@@ -97,15 +100,21 @@ char* intBinary2Char(struct threeInt intZerosBinary) {
   char *charBinary = malloc(intZerosBinary.one * sizeof(char));
   strcpy(charBinary, "a");
   // i is decremented for the duration of the loop.
+  charBinary[intZerosBinary.one] = '\0';
   int i = intZerosBinary.one - 1;
+  int intBinaryDigit = 0;
   while(i >= 0) {
     // Reverse intZerosBinary.two as a char.
-    int intBinaryDigit = intZerosBinary.two % 10;
+    // todo 'int intBinaryDigit = 0;' and see if it compiles.
+    // use in 'userInput.c' -> 'inputArithmatic'.
+    // int intBinaryDigit = intZerosBinary.two % 10;
+    intBinaryDigit = intZerosBinary.two % 10;
     charBinary[i] = intBinaryDigit + '0';
     intZerosBinary.two /= 10;
-    // printf("%d  %d    %s\n", i, intBinaryDigit, charBinary);
+    // printf("%d  %d    %c\n", i, intBinaryDigit, charBinary[i]);
     i--;
   }
+  // change 'charbinary[i] = '\0';' and make sure the malloc is correct.
   // printf("intBinary2Char:  %s\n", charBinary);
   return charBinary;
 }
@@ -123,16 +132,19 @@ struct threeInt intBinaryCheck(struct threeInt intBinaryOne, struct threeInt int
     output.two = 0;
     // Marks which output value is equal, greater, or less than.
     output.three = 0;
+    output.string = '\0';
   }
   else if (intBinaryOne.one > intBinaryTwo.one) {
     output.one = intBinaryOne.one;
     output.two = intBinaryOne.one - intBinaryTwo.one;
     output.three = 1;
+    output.string = '\0';
   }
   else if (intBinaryOne.one < intBinaryTwo.one) {
     output.one = intBinaryTwo.one;
     output.two = intBinaryTwo.one - intBinaryOne.one;
     output.three = 2;
+    output.string = '\0';
   }
   return output;
 }
@@ -146,6 +158,8 @@ struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeI
   int carry = 0;
   // The length of the longest binary is decremented.
   int i = intBinaryGreat.one - 1;
+  // Null terminate the sum.
+  binarySum[intBinaryGreat.one] = '\0';
   // Used to convert binary to decimal in another function.
   int binarySumLength = intBinaryGreat.one - 1;
   int intBinary = 1;
@@ -245,6 +259,8 @@ struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeI
     // printf("%d    %d    %d + %d = %d    %s\n\n", i, carry, binaryOne3, binaryTwo3, binaryAdd, binarySum);
     i--;
   }
+  free(binaryOne);
+  free(binaryTwo);
   struct threeInt output;
   output.one = binarySumLength;
   output.two = 0;
@@ -272,6 +288,7 @@ int charBinary2Int(char binaryAdd[], int intBinaryGreatOne) {
     // printf("%d  binary:  %c  intBinaryPlus:  %d\n", i, binary[i], intBinaryPlus);
     i++;
   }
+  free(binaryAdd);
   // The internet suggested to calculate log10 of the number to find the length
   // (which was calculated before) and proceed with the following steps.
   // Writing a log(n) function would reduce memory storage each time the length struct is
@@ -301,6 +318,7 @@ int binary2Decimal(int binary, int intBinaryGreatOne, int binaryAddOne) {
   struct threeInt intBinaryAdd;
   intBinaryAdd.one = intBinaryGreatOne;
   intBinaryAdd.two = binary;
+  intBinaryAdd.three = 0;
   char *charBinaryAdd = intBinary2Char(intBinaryAdd);
   // printf("%s \n", charBinaryAdd);
   while (i < intBinaryGreatOne) {
@@ -308,9 +326,8 @@ int binary2Decimal(int binary, int intBinaryGreatOne, int binaryAddOne) {
     // printf("%d binary2Decimal: %c      %d\n", i, charBinaryAdd[i], decimal);
     i++;
     j--;
+    //printf("%d\n", j); j might have to start as 0.
   }
-  free(charBinaryAdd);
   // printf("decimal: %d\n", decimal);
   return decimal;
 }
-

@@ -3,6 +3,8 @@
 #include <stdio.h>
 #include <time.h>
 
+#include "struct.h"
+#include "utility.h"
 #include "binaryChar.h"
 #include "arithmatic.h"
 #include "userInput.h"
@@ -19,8 +21,10 @@ void charUserInput(char *input) {
 struct threeInt inputFormat(char input[]) {
   // Allows inputs such as '1+1' and '1+ 1' or '100 +   10' calculated when
   // the user presses 'enter' regardless of formating.
-  char charNumberOne[4] = {0};
-  char charNumberTwo[4] = {0};
+  //char charNumberOne[4] = {0};
+  //char charNumberTwo[4] = {0};
+  char *charNumberOne = malloc(4 * sizeof(char));
+  char *charNumberTwo = malloc(4 * sizeof(char));
   // char pointerArithmatic[3] = {0};
   char *arithmaticO = malloc(3 * sizeof(char));
   int i = 0;
@@ -87,15 +91,19 @@ struct threeInt inputFormat(char input[]) {
     }
     i++;
   }
-  // The two numbers and arithmaticO as their own char[].
-  // printf("%s  %s  %s\n", charNumberOne, arithmaticO, charNumberTwo);
 
+  // The two numbers and arithmaticO as their own char[] with NULL terminators.
+  // printf("%s  %s  %s\n", charNumberOne, arithmaticO, charNumberTwo);
+  intNumberOneLength++;
+  intNumberTwoLength++;
+  charNumberOne[intNumberOneLength] = '\0';
+  charNumberTwo[intNumberTwoLength] = '\0';
+  intNumberOneLength--;
+  intNumberTwoLength--;
   // Convert 'charNumberOne' and 'charNumberTwo' to int with function from 'binaryChar.c'.
   // Why are these not pointers and read in the other function? arithmaticO has to be specifically defined.
   int numberOne = charBinary2Int(charNumberOne, intNumberOneLength);
   int numberTwo = charBinary2Int(charNumberTwo, intNumberTwoLength);
-  //printf("\n\n%d  %s  %d\n", numberTwo, arithmaticO, numberOne);
-
   struct threeInt output;
   output.one = numberOne;
   output.two = numberTwo;
@@ -114,7 +122,6 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   int numberTwo = inputFormatted.two;
   int answer = 0;
   char *arithmaticO = inputFormatted.string;
-
   // Exponents
   if (arithmaticO[0] == 42 && arithmaticO[1] == 42 && arithmaticO[2] == '\0') {
     answer = exponents(numberOne, numberTwo);
@@ -143,12 +150,13 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   else {
     printf("Error: bad input.\n");
   }
-  // free(arithmaticO);
+  // The malloc string from 'inputFormat()'.
+  free(arithmaticO);
   // printf("inputArithmatic:  %d %s %d = %d\n", numberOne, arithmaticO, numberTwo, answer);
 
   // Find length of answer.
   // todo This is the 'intLen()' function.
-  // Both 'while's are similar as two functions 'intBinary2Char' in 'charBinary.c'.
+  // Similar to function at the end of 'charBinary.c'.
   int answerReduce = answer;
   int answerLength = 0;
   while (answerReduce != 0) {
@@ -156,22 +164,13 @@ char* inputArithmatic(struct threeInt inputFormatted) {
     answerLength++;
   }
 
-  // int2char
-  char *output = malloc(4 * sizeof(char));
-  strcpy(output, "a");
-  int i = answerLength - 1;
-  // printf("answer %d answerLength %d  i: %d\n", answer, answerLength, i);
-
-  int intDigit = 0;
-  while (i >= 0) {
-    intDigit = answer % 10;
-    output[i] = intDigit + '0';
-    // printf("%d    output: %c\n", i, output[i]);
-    answer /= 10;
-    i--;
-  }
-  output[answerLength] = '\0';
-  //output = intBinary2Char(structAnswer);
+  // Converts int to char passing int and int length to a struct for a function in 'charBinary.c'.
+  struct threeInt structAnswer;
+  structAnswer.one = answerLength;
+  structAnswer.two = answer;
+  structAnswer.three = 0;
+  structAnswer.string = '\0';
+  char *output = intBinary2Char(structAnswer);
 
   return output;
 }
@@ -195,164 +194,70 @@ void fileLogRead(char fileName[]) {
   printf("Number of lines: %d\n", i);
 }
 
-/* todo char string parser
-char charAppend(char stringInput, int len, char append) {
-  i = 0;
-  while (append[i] != '\0'){
-    stringInput[len] = append[i];
-    len++;
-    i++;
-  }
-  return stringInput, len;
-};
-*/
+// Writes a file '.log' with a date and time ID to record the userInput and answer with 'charAppend()'.
 int fileLog(char userInput[13], char answer[4]) {
-  // printf("write the append for fileLog.c\n%d  %s  %d = %s\n", userInput.one, userInput.string, userInput.two, answer);
-  // userInput.one 2 char
-  // userInput.two 2 char
   FILE *fileLog;
   fileLog = fopen("./.log", "r");
   // Uses 'time()' and 'strftime()' from <time.h> for date and time.
+  // Could also make an epoch and count CPU rotations similar to 1969++;
   time_t now = time(NULL);
   struct tm *localTime = localtime(&now);
   char date[11];
   char time[9];
   int userInputLength = 13;
-  // char *userInput = malloc(userInputLength * sizeof(char));
-  // strcpy(userInput, mallocInput);
   strftime(date, sizeof(date), "%d-%m-%Y", localTime);
   strftime(time, sizeof(time), "%H:%M:%S", localTime);
-  // printf("Current date: %s\n", date);
-  // printf("Current time: %s\n", time);
-  // printf("Input: %s\n", userInput);
 
-  // Probably around 60 characters at most.
+  // The char[] for the entire string.
   char userInputFormatted[100];
-  // If the file exists, append information to the end.
-  // printf("%s\n", userInput);
+  // The date struct is declared early since it's a compiled language.
+  struct threeInt userInputDate;
+  FILE *fileLogTwo;
+
+  // If the file exists, open in append mode with a line break and date.
   if (fileLog != NULL) {
     fclose(fileLog);
     // printf("Exists and appending.\n");
-    FILE *fileLogAppend;
-    fileLogAppend = fopen("./.log", "a");
-    int i = 0;
-    int j = 1;
-    userInputFormatted[0] = '\n';
+    //FILE *fileLogAppend;
+    fileLogTwo = fopen("./.log", "a");
+
     // if (date != previousDate) {
-    // Writes the date and time.
-    while (date[i] != '\0') {
-      userInputFormatted[j] = date[i];
-      j++;
-      i++;
-    }
-    userInputFormatted[j] = ' ';
-    i = 0;
-    j++;
-    while (time[i] != '\0') {
-      userInputFormatted[j] = time[i];
-      j++;
-      i++;
-    }
-    userInputFormatted[j] = ' ';
-    i = 0;
-    j++;
-    userInputFormatted[j] = ' ';
-    j++;
-    // Appends the information to the document.
-    while (userInput[i] != '\0') {
-      userInputFormatted[j] = userInput[i];
-      //printf("%d %c  %d %c\n", j, userInputFormatted[j], i, userInput[i]);
-      i++;
-      j++;
-    }
-    // Include the answer.
-    userInputFormatted[j] = ' ';
-    userInputFormatted[j+1] = '=';
-    userInputFormatted[j+2] = ' ';
-    i = 0;
-    j = j + 3;
-    while (answer[i] != '\0') {
-      userInputFormatted[j] = answer[i];
-      // printf("%d %c  %d %c\n", j, userInputFormatted[j], i, answer[i]);
-      i++;
-      j++;
-    }
-    userInputFormatted[j] = '\0';
-    // printf("%s\n", userInputFormatted);
-    fprintf(fileLogAppend, userInputFormatted);
-    fclose(fileLogAppend);
+    userInputFormatted[0] = '\n';
+    // Append the date.
+    userInputDate = charAppend(userInputFormatted, 1, date, 11, 1);
   }
   else {
-    // Make the file and append the output if it doesn't exist.
-    // printf("Doesn't exist and write mode.\n");
-    FILE *fileLogWrite;
-    fileLogWrite = fopen("./.log", "w");
+    // Make the file with write mode and append the version, header, and date if it doesn't exist.
+    fileLogTwo = fopen("./.log", "w");
+    // Appends the document header and version.
+    char *mallocVersion = malloc(24 * sizeof(char));
+    strcpy(mallocVersion, version);
+    struct threeInt userInputVersion = charAppend(userInputFormatted, 0, mallocVersion, 24, 1);
 
-    int i = 0;
-    int j = 23;
-    int k = 0;
-    char header[10] = " Log File\n";
-    // The first loop includes the document title and version.
-    while (j < 33) {
-      if (i < 23) {
-        userInputFormatted[i] = version[i];
-        // printf("%d  %c\n", i, userInputFormatted[i]);
-        i++;
-      }
-      else {
-        // printf("%d  %c\n", j, header[k]);
-        userInputFormatted[j] = header[k];
-        j++;
-        k++;
-      }
-    }
-    userInputFormatted[j] = '\n';
-    i = 0;
-    j++;
-    // printf("%s\n%s\n%d\n", userInputFormatted, userInput, i);
-    // The next two include the date and time.
-    while (date[i] != '\0') {
-      // printf("%d  %c    %d\n", i, date[i], j);
-      userInputFormatted[j] = date[i];
-      i++;
-      j++;
-    }
-    userInputFormatted[j] = ' ';
-    i = 0;
-    j++;
-    while (time[i] != '\0') {
-      // printf("%d  %c    %d\n", i, time[i], j);
-      userInputFormatted[j] = time[i];
-      i++;
-      j++;
-    }
-    userInputFormatted[j] = ' ';
-    i = 0;
-    j++;
-    userInputFormatted[j] = ' ';
-    j++;
-    // Writes the user input.
-    while (userInput[i] != '\0') {
-      // printf("%d  %c    %d\n", i, userInput[i], j);
-      userInputFormatted[j] = userInput[i];
-      i++;
-      j++;
-    }
-    // Include the answer.
-    userInputFormatted[j] = ' ';
-    userInputFormatted[j+1] = '=';
-    userInputFormatted[j+2] = ' ';
-    i = 0;
-    j = j + 3;
-    while (answer[i] != '\0') {
-      userInputFormatted[j] = answer[i];
-      i++;
-      j++;
-    }
-    userInputFormatted[j] = '\0';
-    fprintf(fileLogWrite, userInputFormatted);
-    fclose(fileLogWrite);
+    char header[12] = " Log File\n\n";
+    char *mallocHeader = malloc(12 * sizeof(char));
+    strcpy(mallocHeader, header);
+    struct threeInt userInputHeader = charAppend(userInputVersion.string, userInputVersion.one, mallocHeader, 12, 0);
+
+    printf("userInputHeader = %s\n", userInputHeader.string);
+
+    userInputDate = charAppend(userInputHeader.string, userInputHeader.one, date, 11, 1);
   }
+
+  // Writes the date, time, and user input.
+  struct threeInt userInputTime = charAppend(userInputDate.string, userInputDate.one, time, 9, 1);
+  struct threeInt userInputInput = charAppend(userInputTime.string, userInputTime.one, userInput, 13, 1);
+
+  // Append the equal sign and answer.
+  char *charEqual = malloc(2 * sizeof(char));
+  strcpy(charEqual, "=");
+  struct threeInt userInputEqual = charAppend(userInputInput.string, userInputInput.one, charEqual, 1, 1);
+
+  struct threeInt userInputAnswer = charAppend(userInputEqual.string, userInputEqual.one, answer, 5, 0);
+  printf("charAppend:  %s\n\n", userInputAnswer.string);
+
+  fprintf(fileLogTwo, userInputAnswer.string);
+  fclose(fileLogTwo);
   return 0;
 }
 
@@ -362,6 +267,7 @@ void textGUI() {
   //char strUserInput[13];
   charUserInput(strUserInput);
   // int log = fileLog(strUserInput);
+  // The malloc string 'arithmaticO' is free() in inputArithmatic.
   struct threeInt splitUserInput = inputFormat(strUserInput);
   // Send to arithmatic functions and print the answer.
   char *answer = inputArithmatic(splitUserInput);
@@ -384,6 +290,12 @@ int test(int small, int large, int mid, int longPrint) {
       if (realSum != mainSum) {
         bad++;
         if (longPrint == 1) {
+          // char *output = malloc(19 * sizeof(char));
+          // strcpy(output, "a");
+          // output[bad] = small;
+          // int smallLength = binaryInt2Char(small); append function()
+          // output[bad+smallLength] = ' ';
+          // output[bad] = small;
           printf("%d + %d = %d != %d\n", small, smallTwo, realSum, mainSum);
         }
       }
@@ -406,11 +318,10 @@ int interface(int argc, char *argv){
   while (argv[i] != '\0') {
     i++;
   }
-  // printf("\n%c  %d\n", argv[1], i);
+  // printf("%c  %d\n", argv[1], i);
   if ((argv[1] == 'h' && i == 5) || (argv[1] == 'h' && i == 2)) {
     printf("Text %s", version);
     printf(" Help.\n\n");
-    // printf("Features: addition, logging.\n");
     printf("%s\n", features);
   }
   else if ((argv[1] == 't' && i == 5) || (argv[1] == 't' && i == 2)) {
@@ -419,7 +330,7 @@ int interface(int argc, char *argv){
     int large = 200;
     int mid = 200;
     int longPrint = 0;
-    //int testOut = test(small, large, mid, longPrint);
+    int testOut = test(small, large, mid, longPrint);
   }
   else if ((argv[1] == 'l' && argv[2] == 't' && i == 3) || (argv[1] == 'l' && argv[2] == 'o' && i == 9)) {
     // Long test ouput.
@@ -427,7 +338,7 @@ int interface(int argc, char *argv){
     int large = 200;
     int mid = 200;
     int longPrint = 1;
-    //int testOut = test(small, large, mid, longPrint);
+    int testOut = test(small, large, mid, longPrint);
   }
   else {
     printf("Incorrect input. Exiting.\n");
