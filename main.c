@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "./src/struct.h"
+#include "./src/utility.h"
 #include "./src/binaryChar.h"
 #include "./src/arithmatic.h"
 #include "./src/userInput.h"
@@ -18,8 +20,9 @@ gcc main.c ./src/*.c -o binary && ./binary
 
 todo
 
-  - append function in the log file
-  - fix addition using test() and log
+  - append and length functions.
+  - send test to .log.
+  - fix addition using test() and log.
 
 minor todo
 
@@ -27,11 +30,22 @@ minor todo
 
 */
 
-const char version[23] = "Calculator\nVersion 0.02";
+const char version[24] = "Calculator\nVersion 0.02";
 const char features[44] = "Features: addition, input logging, testing.";
 
 int main(int argc, char *argv[4]) {
+  /*
+  int firstLength = 7;
+  char *firstChar = malloc(firstLength * sizeof(char));
+  strcpy(firstChar, "There ");
+  int appendLength = 4;
+  char *appendChar = malloc(appendLength * sizeof(char));
+  strcpy(appendChar, "are");
 
+  struct threeInt appendTest = charAppend(firstChar, firstLength, appendChar, appendLength);
+  printf("appendTest: %s  %d\n", appendTest.string, appendTest.one);
+  return 0;
+  */
   // fileLogRead("./.calculatorLog");
   // The calculator text interface is shown if terminal doesn't ask for help.
   if (argc == 1) {
@@ -41,6 +55,7 @@ int main(int argc, char *argv[4]) {
   else {
     // Interface functions including addition test '-t'
     int intInterface = interface(argc, argv[1]);
-  return 0;
+    return 0;
   }
 }
+
