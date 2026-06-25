@@ -7,6 +7,7 @@
 #include "./src/binaryChar.h"
 #include "./src/arithmatic.h"
 #include "./src/userInput.h"
+#include "./src/interface.h"
 
 /*
 Notes
@@ -20,8 +21,10 @@ gcc main.c ./src/*.c -o binary && ./binary
 
 todo
 
-  - append and length functions.
-  - send test to .log.
+  - Char length function.
+  - Remove userInput formatting in .log and make function.
+    - Modify .log function input to write any char[] input.
+
   - fix addition using test() and log.
 
 minor todo
@@ -34,28 +37,15 @@ const char version[24] = "Calculator\nVersion 0.02";
 const char features[44] = "Features: addition, input logging, testing.";
 
 int main(int argc, char *argv[4]) {
-  /*
-  int firstLength = 7;
-  char *firstChar = malloc(firstLength * sizeof(char));
-  strcpy(firstChar, "There ");
-  int appendLength = 4;
-  char *appendChar = malloc(appendLength * sizeof(char));
-  strcpy(appendChar, "are");
-
-  struct threeInt appendTest = charAppend(firstChar, firstLength, appendChar, appendLength);
-  printf("appendTest: %s  %d\n", appendTest.string, appendTest.one);
-  return 0;
-  */
-  // fileLogRead("./.calculatorLog");
-  // The calculator text interface is shown if terminal doesn't ask for help.
+  // The calculator text GUI is shown if terminal doesn't ask for help.
   if (argc == 1) {
-    textGUI();
+    textUI();
     return 1;
   }
   else {
-    // Interface functions including addition test '-t'
+    // Interface functions are help '-h' or '-help' and test '-t' or
+    // '-test' and print test '-lt' or '-longTest'.
     int intInterface = interface(argc, argv[1]);
     return 0;
   }
 }
-
