@@ -1,7 +1,7 @@
 #ifndef USERINPUT_H
 #define USERINPUT_H
 
-int fileLog(char userInput[], char answer[]);
+char* charUserInput();
 
 int test(int small, int large, int mid, int longPrint);
 
@@ -9,8 +9,14 @@ struct threeInt inputFormat(char input[]);
 
 char* inputArithmatic(struct threeInt inputFormatted);
 
-void textGUI();
+struct threeInt dateTime(int logCheck);
 
-int interface(int arc, char argv[]);
+int fileLogCheck();
+
+char* outputArithmatic(char userInput[]);
+
+struct threeInt manualInput(struct threeInt userInputTime, char strUserInput[], char answer[]);
+
+void fileLog(char userInput[], int fileCheck);
 
 #endif

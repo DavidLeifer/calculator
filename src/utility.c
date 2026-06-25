@@ -16,51 +16,71 @@ int logarithm(){
 
 // todo char string length.
 
-struct threeInt charAppend(char firstChar[], int firstLength, char appendChar[], int appendLength, int space)  {
+// Finds the number of digits in an integer through division.
+int intLength(int intInput) {
+  int lengthOutput = 0;
+  while (intInput != 0) {
+    intInput /= 10;
+    lengthOutput++;
+  }
+  return lengthOutput;
+}
 
+// Appends a char[] to another char[] using lengths of both. The first
+// length has to be known without the null terminator, the second
+// can be longer and is explained below. '0' for no space at the end of
+// the output char[] or '1' for space i.e. 'one '.
+struct threeInt charAppend(char firstChar[], int firstLength, char appendChar[], int appendLength, int space)  {
   int i = 0;
   int j = 0;
   int k = 0;
   // The total length of the returned char 'totalChar'.
   int totalLength = firstLength + appendLength;
-
+  // Length of 'totalChar' is incremented by one for an end space.
   if (space == 1) {
     totalLength++;
   }
-  // printf("totalLength:  %d\n", totalLength);
-  printf("appendChar[]:  %s\n", appendChar);
-
-
   char *totalChar = malloc(totalLength * sizeof(char));
   strcpy(totalChar, "a");
   // 'i' keeps track of the 'totalChar'.
-  // 'j' counts the 'firstChar' and is reset for the 'appendChar'.
-  while (appendChar[k] != '\0') { // int k = 0; (appendChar[k] != '\0)  k++;
+  // 'j' counts the 'firstChar'.
+  // Loops for the length of 'appendChar[]'.
+  while (appendChar[k] != '\0') {
     if (i < firstLength) {
+      // The first if is broken by 'i' before the '\0'.
       totalChar[i] = firstChar[j];
-      // printf("%d    %c  %d\n", i, firstChar[i], j);
       j++;
     }
     else {
+      // 'k' increments 'appendChar'.
       totalChar[i] = appendChar[k];
-      // printf("%d    %c  %d\n", i, appendChar[k], k);
       k++;
     }
     i++;
   }
+  // One ' ' is included if 'space' equals '1'.
   if (space == 1) {
     totalChar[i] = ' ';
     i++;
   }
   // Null terminator.
   totalChar[i] = '\0';
-  // printf("charAppend: %s\n", totalChar);
   // Returns a struct with length of 'totalChar' and the string.
   struct threeInt appendOutput;
-  // appendOutput.one = totalLength - 1;
-  // todo include '='
+  // 'appendLength' may or may not be accurate and returns the
+  // difference between 'appendLength' and 'appendLength' through
+  // the null terminator '\0' subtracted from 'totalLength'.
 
-
+  // The example below does not include a space at the end.
+  // 'randomIt'  = 'random'    + 'It'
+  // totalLength = firstLength + appendLength
+  // 12          = 6           + 6
+  // 'k++' was incremented 3 times before reaching '\0' instead of 6
+  // since 'It' only has 2 characters and terminates at '\0'. The
+  // difference between the listed 'appendLength' 6 and the recorded
+  // 'k++' of 3 is 3. The returned length for 'totalChar' is:
+  //               =             -  (6 - 3)
+  // 9             = 12          -  3
   appendOutput.one = totalLength - (appendLength - k);
   appendOutput.two = 0;
   appendOutput.three = 0;
