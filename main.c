@@ -21,20 +21,21 @@ gcc main.c ./src/*.c -o binary && ./binary
 
 todo
 
-  - Char length function.
-  - Remove userInput formatting in .log and make function.
-    - Modify .log function input to write any char[] input.
-
-  - fix addition using test() and log.
+  - char[] subtraction, multiplication, division.
 
 minor todo
 
+  - char length function.
   - fix inputArithmatic variable names with new struct int pointers and malloc.
+  - use 'maxBinaryLength' in "binaryChar.c"
 
 */
 
-const char version[24] = "Calculator\nVersion 0.02";
+const char version[24] = "Calculator\nVersion 0.03";
 const char features[44] = "Features: addition, input logging, testing.";
+
+// This would be used in "binaryChar.c" 'binaryAddition()'
+const int maxBinaryLength = 17;
 
 int main(int argc, char *argv[4]) {
   // The calculator text GUI is shown if terminal doesn't ask for help.
