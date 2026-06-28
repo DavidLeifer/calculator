@@ -25,8 +25,8 @@ struct threeInt intBinaryCheck(struct threeInt intBinaryOne, struct threeInt int
 
 struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeInt intBinaryGreat);
 
-int charBinary2Int(char binaryAddString[], int intBinaryGreatOne);
+int binary2Decimal(char charBinaryAdd[], int binaryAddOne);
 
-int binary2Decimal(int binary, int intBinaryGreatOne, int binaryAddOne);
+int charBinary2Int(char binaryAddString[], int intBinaryGreatOne);
 
 #endif

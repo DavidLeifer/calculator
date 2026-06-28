@@ -9,11 +9,18 @@
 #include "arithmatic.h"
 #include "userInput.h"
 
-void charUserInput(char *input) {
+// Formats the user input and writes the .log.
+// Used in "interface.c" 'textGUI()'.
+
+// Prints name and version for the calculator.
+// Asks for user input.
+char *charUserInput() {
+  char *input = malloc(13 * sizeof(char));
   printf("Text ");
   printf("%s\n\n", version);
   printf("Enter two numbers less than 200\nwith arithmatic operators\n +  ,  -  ,  *  ,  /  ,  **\n\nExample: 1 + 1 (press enter):\n\n");
   scanf("%13[^\n]", input);
+  return input;
 }
 
 // Splits the input by determining the airthmatic string, converts the two
@@ -155,14 +162,7 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   // printf("inputArithmatic:  %d %s %d = %d\n", numberOne, arithmaticO, numberTwo, answer);
 
   // Find length of answer.
-  // todo This is the 'intLen()' function.
-  // Similar to function at the end of 'charBinary.c'.
-  int answerReduce = answer;
-  int answerLength = 0;
-  while (answerReduce != 0) {
-    answerReduce /= 10;
-    answerLength++;
-  }
+  int answerLength = intLength(answer);
 
   // Converts int to char passing int and int length to a struct for a function in 'charBinary.c'.
   struct threeInt structAnswer;
@@ -175,29 +175,30 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   return output;
 }
 
-// Uses 'fopen()' and 'fgets()' to parse the document in 'r' mode.
-void fileLogRead(char fileName[]) {
-  FILE *fileLog;
-  fileLog = fopen(fileName, "r");
-  int fileLogLength = 100;
-  char logString[fileLogLength];
-  int i = 0;
-  while(1) {
-    if (fgets(logString, fileLogLength, fileLog) != NULL) {
-      printf("Line %d: %s\n", i, logString);
-      i++;
-    }
-    else {
-      break;
-    }
-  }
-  printf("Number of lines: %d\n", i);
-}
+// Opens a the .log file to see if it returns NULL or already exists and returns the boolean.
+int fileLogCheck() {
+  int fileCheck = 0;
 
-// Writes a file '.log' with a date and time ID to record the userInput and answer with 'charAppend()'.
-int fileLog(char userInput[13], char answer[4]) {
   FILE *fileLog;
   fileLog = fopen("./.log", "r");
+  // If the file exists, set the 'fileCheck' to '1'.
+  if (fileLog != NULL) {
+    fileCheck = 1;
+    fclose(fileLog);
+  }
+  else {
+    fileCheck = 0;
+  }
+  return fileCheck;
+}
+
+
+
+////////////////////////////////////////////////////////
+// Mostly run the above functions and append the char[].
+
+// Uses the 'logCheck' from "fileLogCheck()' to format the beginning of '.log'.
+struct threeInt dateTime(int logCheck) {
   // Uses 'time()' and 'strftime()' from <time.h> for date and time.
   // Could also make an epoch and count CPU rotations similar to 1969++;
   time_t now = time(NULL);
@@ -210,16 +211,15 @@ int fileLog(char userInput[13], char answer[4]) {
 
   // The char[] for the entire string.
   char userInputFormatted[100];
+  // Not sure why this is tolerable but the other char[] were malloc.
+
   // The date struct is declared early since it's a compiled language.
   struct threeInt userInputDate;
-  FILE *fileLogTwo;
 
-  // If the file exists, open in append mode with a line break and date.
-  if (fileLog != NULL) {
-    fclose(fileLog);
+  // If '.log' exists the returned char starts witha  new line and the date.
+  if (logCheck == 1) {
     // printf("Exists and appending.\n");
     //FILE *fileLogAppend;
-    fileLogTwo = fopen("./.log", "a");
 
     // if (date != previousDate) {
     userInputFormatted[0] = '\n';
@@ -227,121 +227,75 @@ int fileLog(char userInput[13], char answer[4]) {
     userInputDate = charAppend(userInputFormatted, 1, date, 11, 1);
   }
   else {
-    // Make the file with write mode and append the version, header, and date if it doesn't exist.
-    fileLogTwo = fopen("./.log", "w");
+    // If '.log' doesn't exist, append the version, header, and date.
     // Appends the document header and version.
     char *mallocVersion = malloc(24 * sizeof(char));
     strcpy(mallocVersion, version);
     struct threeInt userInputVersion = charAppend(userInputFormatted, 0, mallocVersion, 24, 1);
+    // Free all the malloc data.
+    free(mallocVersion);
 
     char header[12] = " Log File\n\n";
     char *mallocHeader = malloc(12 * sizeof(char));
     strcpy(mallocHeader, header);
     struct threeInt userInputHeader = charAppend(userInputVersion.string, userInputVersion.one, mallocHeader, 12, 0);
-
-    printf("userInputHeader = %s\n", userInputHeader.string);
+    free(userInputVersion.string);
+    free(mallocHeader);
+    // printf("userInputHeader = %s\n", userInputHeader.string);
 
     userInputDate = charAppend(userInputHeader.string, userInputHeader.one, date, 11, 1);
+    free(userInputHeader.string);
   }
-
-  // Writes the date, time, and user input.
+  // Writes the time identification to the output.
   struct threeInt userInputTime = charAppend(userInputDate.string, userInputDate.one, time, 9, 1);
-  struct threeInt userInputInput = charAppend(userInputTime.string, userInputTime.one, userInput, 13, 1);
+  free(userInputDate.string);
+  return userInputTime;
+}
+
+// 0) Splits 'strUserInput' into int and arithmatic char with 'inputFormat()'.
+// 1) Sends to 'inputArithmatic()' returns the answer as a char.
+char* outputArithmatic(char *userInput) {
+  // The malloc string 'arithmaticO' is free() in inputArithmatic.
+  struct threeInt splitUserInput = inputFormat(userInput);
+  // Send to arithmatic functions and print the answer.
+  char *answer = inputArithmatic(splitUserInput);
+  // printf("%s\n", strUserInput);
+  return answer;
+}
+
+// Appends the time, equal sign, and answer into a char[].
+struct threeInt manualInput(struct threeInt userInputTime, char *strUserInput, char *answer) {
+  // Append the userInput without the answer.
+  struct threeInt userInputInput = charAppend(userInputTime.string, userInputTime.one, strUserInput, 13, 1);
 
   // Append the equal sign and answer.
   char *charEqual = malloc(2 * sizeof(char));
   strcpy(charEqual, "=");
   struct threeInt userInputEqual = charAppend(userInputInput.string, userInputInput.one, charEqual, 1, 1);
+  free(userInputInput.string);
+  free(charEqual);
 
   struct threeInt userInputAnswer = charAppend(userInputEqual.string, userInputEqual.one, answer, 5, 0);
-  printf("charAppend:  %s\n\n", userInputAnswer.string);
-
-  fprintf(fileLogTwo, userInputAnswer.string);
-  fclose(fileLogTwo);
-  return 0;
+  //printf("charAppend:  %s\n\n", userInputAnswer.string);
+  free(userInputEqual.string);
+  return userInputAnswer;
 }
 
-// Runs the arithmatic user input and file log functions.
-void textGUI() {
-  char *strUserInput = malloc(13 * sizeof(char));
-  //char strUserInput[13];
-  charUserInput(strUserInput);
-  // int log = fileLog(strUserInput);
-  // The malloc string 'arithmaticO' is free() in inputArithmatic.
-  struct threeInt splitUserInput = inputFormat(strUserInput);
-  // Send to arithmatic functions and print the answer.
-  char *answer = inputArithmatic(splitUserInput);
-  // printf("%s\n", strUserInput);
-  int log = fileLog(strUserInput, answer);
-  free(answer);
-  free(strUserInput);
-}
-
-int test(int small, int large, int mid, int longPrint) {
-  int realSum;
-  int mainSum;
-  int smallTwo = 0;
-  int bad = 1;
-  int total = 1;
-  while (small <= large) {
-    while (smallTwo <= mid) {
-      realSum = small + smallTwo;
-      mainSum = addition(small, smallTwo);
-      if (realSum != mainSum) {
-        bad++;
-        if (longPrint == 1) {
-          // char *output = malloc(19 * sizeof(char));
-          // strcpy(output, "a");
-          // output[bad] = small;
-          // int smallLength = binaryInt2Char(small); append function()
-          // output[bad+smallLength] = ' ';
-          // output[bad] = small;
-          printf("%d + %d = %d != %d\n", small, smallTwo, realSum, mainSum);
-        }
-      }
-      smallTwo++;
-      total++;
-    }
-    smallTwo = 0;
-    //printf("%d ", small);
-    small++;
+// Writes (makes the .log file) or appends 'userInput' based on output from 'fileLogCheck()'.
+void fileLog(char *userInput, int fileCheck) {
+  FILE *fileLogTwo;
+  if (fileCheck == 1) {
+    fileLogTwo = fopen("./.log", "a");
   }
-  printf("Not right: %d  Right %d\n", bad, total);
-  return 0;
-}
-
-int interface(int argc, char *argv){
-  // printf("aaa %s\n", argv);
-  // Allows for user designated input i.e. '-help', '-h', 'test', 't', longTest, 'lt', etc.
-  int i = 0;
-  // Find the length of the input.
-  while (argv[i] != '\0') {
-    i++;
-  }
-  // printf("%c  %d\n", argv[1], i);
-  if ((argv[1] == 'h' && i == 5) || (argv[1] == 'h' && i == 2)) {
-    printf("Text %s", version);
-    printf(" Help.\n\n");
-    printf("%s\n", features);
-  }
-  else if ((argv[1] == 't' && i == 5) || (argv[1] == 't' && i == 2)) {
-    // Short test output.
-    int small = 0;
-    int large = 200;
-    int mid = 200;
-    int longPrint = 0;
-    int testOut = test(small, large, mid, longPrint);
-  }
-  else if ((argv[1] == 'l' && argv[2] == 't' && i == 3) || (argv[1] == 'l' && argv[2] == 'o' && i == 9)) {
-    // Long test ouput.
-    int small = 0;
-    int large = 200;
-    int mid = 200;
-    int longPrint = 1;
-    int testOut = test(small, large, mid, longPrint);
+  else if (fileCheck == 0) {
+    fileLogTwo = fopen("./.log", "w");
   }
   else {
-    printf("Incorrect input. Exiting.\n");
+    printf("No file log check: %d.\n", fileCheck);
   }
-  return 0;
+
+  // Write the file and close.
+  fprintf(fileLogTwo, userInput);
+  fclose(fileLogTwo);
+  free(userInput);
 }

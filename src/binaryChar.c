@@ -127,7 +127,7 @@ struct threeInt intBinaryCheck(struct threeInt intBinaryOne, struct threeInt int
   // Stays the same if int binary is the same length.
   if (intBinaryOne.one == intBinaryTwo.one) {
     // Length of the longest binary.
-    output.one = intBinaryOne.one + 1;
+    output.one = intBinaryOne.one;
     // Difference between lengths.
     output.two = 0;
     // Marks which output value is equal, greater, or less than.
@@ -149,143 +149,168 @@ struct threeInt intBinaryCheck(struct threeInt intBinaryOne, struct threeInt int
   return output;
 }
 
-// Adds two char binary. Returns the addition.
-struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeInt intBinaryGreat) {
-  // Allocates memory that is later deallocated with free().
-  char *binarySum = malloc(intBinaryGreat.one * sizeof(char));
-  strcpy(binarySum, "a");
-  // 'carry' is used in binary addtion.
-  int carry = 0;
-  // The length of the longest binary is decremented.
-  int i = intBinaryGreat.one - 1;
-  // Null terminate the sum.
-  binarySum[intBinaryGreat.one] = '\0';
-  // Used to convert binary to decimal in another function.
-  int binarySumLength = intBinaryGreat.one - 1;
-  int intBinary = 1;
-  // printf("binaryAddition char input: %s %s\n", binaryOne, binaryTwo);
-  // printf("length  difference  check: %d   %d   %d\n", intBinaryGreat.one, intBinaryGreat.two, intBinaryGreat.three);
 
-  // 'i' is decremented starting at the length of the longest binary length.
+
+
+
+
+
+
+
+
+// Inputs are two binary as char[] and results from 'intBinaryCheck()'.
+// Output the sum as a binary char[] with the length.
+struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeInt intBinaryGreat) {
+  // 'intBinaryGreat.one' length of longest binary char[];
+  int i = intBinaryGreat.one - 1;
+  // 'j' is the length of 'binarySum[]'.
+  int j = 1;
+  // 'k' is used to add one digit to binarySum[] for the 'carry'.
+  int k = 0;
+  // 'digitSum' is the sum of the aligned binary digits plus the carry.
+  int digitSum = 0;
+  int carry = 0;
+  // 0 - 3 scale based on the 'carry' sorting for right shift 'binarySum[]' when 'i' is '0'.
+  int category = 0;
+
+  // The length of the longest binary int.
+  char *binarySum = malloc(17 * sizeof(char));
+  strcpy(binarySum, "a");
+
+  int intDigitOne = 4;
+  int intDigitTwo = 4; ///////////
+
+  // Decimal addition is reversed
   while (i >= 0) {
-    // Convert char arrays to int for addition.
-    int binaryOne3;
-    int binaryTwo3;
-    // Checks if the lengths are the same with '.three' and aligns the
-    // last binary digit using the difference in length 'intBinaryGreat.two'.
+    intDigitOne = 4; // might have to move these up.
+    intDigitTwo = 4; //
+    // Uses output from 'intBinaryCheck()' to align digits for addition.
     if (intBinaryGreat.three == 0) {
-      // " -'0' " converts char array to int with ascii ordering.
-      binaryOne3 = binaryOne[i - 1] - '0';
-      binaryTwo3 = binaryTwo[i - 1] - '0';
+      intDigitOne = binaryOne[i] - '0';
+      intDigitTwo = binaryTwo[i] - '0';
     }
     else if (intBinaryGreat.three == 1) {
-      binaryOne3 = binaryOne[i] - '0';
-      // If 'binaryOne' is longer, 'binaryTwo' char array iterator 'i' is
-      // moved back the 'difference' to align the digits for the binary addition step.
-      binaryTwo3 = binaryTwo[i - intBinaryGreat.two] - '0';
+      // binaryOne[] is longer and align the digits with the difference.
+      intDigitOne = binaryOne[i] - '0';
+      intDigitTwo = binaryTwo[i - intBinaryGreat.two] - '0';
     }
     else if (intBinaryGreat.three == 2) {
-      // If the other is longer, the opposite occurs.
-      binaryOne3 = binaryOne[i - intBinaryGreat.two] - '0';
-      binaryTwo3 = binaryTwo[i] - '0';
+      // binaryTwo[] is longer and align the digits with the difference.
+      intDigitOne = binaryOne[i - intBinaryGreat.two] - '0';
+      intDigitTwo = binaryTwo[i] - '0';
     }
-    // printf("binaryAddition int input: %d   %d\n", binaryOne3, binaryTwo3);
+    // If either integers don't exist they are set to 0.
+    if (intDigitOne == -48) {
+      intDigitOne = 0;
+    }
+    if (intDigitTwo == -48) {
+      intDigitTwo = 0;
+    }
 
-    // If one is longer than the other, '-48' is returned on the shorter
-    // int and that binary digit is set to 0.
-    if ( (binaryOne3 != 1 && binaryOne3 != 0) && (binaryTwo3 != 1 && binaryTwo3 != 0) ) {
-      binaryOne3 = 0;
-      binaryTwo3 = 0;
+    // Add the binary digits from right to left.
+    digitSum = intDigitOne + intDigitTwo + carry;
+
+    // Calculate the carry.
+    if (digitSum == 0) {
+      // '0 + 0' is 0.
+      category = 0;
+      digitSum == 0;
     }
-    else if (binaryOne3 != 1 && binaryOne3 != 0) {
-      binaryOne3 = 0;
+    else if (digitSum == 1) {
+      // '1 + 0' or '0 + 1' is 1.
+      category = 1;
+      digitSum = 1;
+      carry = 0;
     }
-    else if (binaryTwo3 != 1 && binaryTwo3 != 0) {
-      binaryTwo3 = 0;
+    else if (digitSum == 2) {
+      // '1 + 1 with carry 0'.
+      category = 2;
+      digitSum = 0;
+      carry = 1;
     }
-    // printf("after setting NULL: %d    %d %d\n", i, binaryOne3, binaryTwo3);
-    // Add the bits.
-    int binaryAdd = binaryOne3 + binaryTwo3;
-    // Convert int back to char[].
-    // The first if handles edge cases '100', '1000', '10000' that adds an extra digit
-    // to the length of digits after using the rest to calculate the carry with the
-    // added binary digits.
-    // WARNING probably doesn't work for 4 to 6 digits.
-    if (binaryAdd == 1 && carry == 1 && i == 0) {
-      int j = intBinaryGreat.one;
-      binarySumLength = intBinaryGreat.one;
-      while (j >= 0) {
-        if (j == intBinaryGreat.one) {
-          binarySum[j] = '0';
-        }
-        else if (j == 0) {
-          binarySum[j] = '1';
-        }
-        // printf("1 plus 0*n: %d  %c\n", j, binarySum[j]);
-        j--;
+    else if (digitSum == 3) {
+      // '1 + 1 with carry 1' is 1.
+      category = 3;
+      digitSum = 1;
+      carry = 1;
+    }
+
+    // Convert the binary digit sum to the char[].
+    binarySum[i] = digitSum + '0';
+
+    //printf("i:  %d   %d + %d = %d\n", i, intDigitOne, intDigitTwo, digitSum);
+
+    // Shift 'binarySum[]' right if there are no more digits in 'i' and 'carry' is 1.
+    if ( (i == 0) && ( (category == 2) || (category == 3) ) ) {
+      k = j;
+      char *currentBinarySum = malloc((k+1) * sizeof(char));
+      strcpy(currentBinarySum, binarySum);
+      while (k >= 0) {
+        binarySum[k+1] = currentBinarySum[k];
+        // printf("k: %d  %c  %c = %s\n", k, binarySum[k+1], currentBinarySum[k], binarySum);
+        k--;
       }
+      // Add the 'carry' to the left most [0] digit.
+      binarySum[0] = '1';
+      i++;
+      // 'j' is incremented to the actual length for the null terminator below.
+      j++;
+      j++;
+      break;
     }
-    else if (binaryAdd == 1 && carry == 0) {
-      binarySum[i] = binaryAdd + '0';
-      carry = 0;
-    }
-    else if (binaryAdd == 0 && carry == 1) {
-      binaryAdd = 1;
-      binarySum[i] = binaryAdd + '0';
-      carry = 0;
-    }
-    else if (binaryAdd == 1 && carry == 1) {
-      binaryAdd = 0;
-      binarySum[i] = binaryAdd + '0';
-      carry = 1;
-    }
-    else if (binaryAdd == 0 && carry == 0) {
-      binarySum[i] = binaryAdd + '0';
-      carry = 0;
-    }
-    else if (binaryAdd == 2 && carry == 0) {
-      binaryAdd = 0;
-      binarySum[i] = binaryAdd + '0';
-      carry = 1;
-    }
-    else if (binaryAdd == 2 && carry == 1) {
-      binaryAdd = 1;
-      binarySum[i] = binaryAdd + '0';
-      carry = 1;
-    }
-    else {
-      binarySum[i] = '0';
-    }
-    // printf("%d    %d    %d + %d = %d    %s\n\n", i, carry, binaryOne3, binaryTwo3, binaryAdd, binarySum);
+    // 'j' is the length of the 'binarySum' - 1  and exists because 'i' is decrementing.
+    j++;
     i--;
   }
   free(binaryOne);
   free(binaryTwo);
+  // printf("%s + %s = %s\n", binaryOne, binaryTwo, binarySum);
+  // Null terminate the char[].
+  binarySum[j] = '\0';
   struct threeInt output;
-  output.one = binarySumLength;
+  output.one = j - 1; //length of char binary addition answer
   output.two = 0;
   output.three = 0;
-  output.string = malloc(binarySumLength * sizeof(char));
+  output.string = malloc(j * sizeof(char));
   strcpy(output.string, binarySum);
-  free(binarySum);
-  // printf("Binarysum struct %s\n", output.string);
   return output;
 }
 
-// This step is not needed since binary2Decimal() accesses each binary digit as a char[].
+// Convert binary to decimal int from right to left using exponents (0-(n-1)).
+int binary2Decimal(char charBinaryAdd[], int binaryAddOne) {
+
+  //printf("charBinaryAdd[]: %s\n", charBinaryAdd);
+  //printf("binaryAddOne length: %d\n", binaryAddOne);
+
+  int decimal = 0;
+  int i = binaryAddOne - 1;
+  int j = 0;
+  while (i >= 0) {
+    decimal += ( (charBinaryAdd[i] - '0') * ( exponents(2,j) ) );
+    // printf("%d  %d  %d  %d\n", i, charBinaryAdd[i]-'0', foo, decimal);
+    j++;
+    i--;
+  }
+  free(charBinaryAdd);
+  return decimal;
+}
+
+// This step is not needed in 'addition()' since binary2Decimal() accesses each binary digit as a char[].
+// Also used in "userInput.c". It wasn't accurate in "arithmatic.c" 'addition()' since
+// it used the input of longest binary int and not the length of the binary sum.
 // Convert char[] binary to int binary.
 // Internet uses bitwise left shift and OR in a loop.
-int charBinary2Int(char binaryAdd[], int intBinaryGreatOne) {
-  // printf("binary: %s\n", binary);
+int charBinary2Int(char binaryAdd[], int binaryAddLength) {
+  // printf("binary: %s\n", binaryAdd);
   int intBinaryPlus = 1;
   // The length of the longest binary plus 1 in case the first digit
   // has a carry (the last in the calculation from 'binaryAddition()').
-  int j = intBinaryGreatOne;
+  int j = binaryAddLength;
   int i = 0;
   while (i < j) {
     // intBinaryPlus is multiplied by 10 to make room for each digit from the char[] iteration.
     intBinaryPlus = (intBinaryPlus * 10) + (binaryAdd[i] - '0');
-    // printf("%d  binary:  %c  intBinaryPlus:  %d\n", i, binary[i], intBinaryPlus);
+    // printf("%d  binary:  %c  intBinaryPlus:  %d\n", i, binaryAdd[i], intBinaryPlus);
     i++;
   }
   free(binaryAdd);
@@ -295,39 +320,9 @@ int charBinary2Int(char binaryAdd[], int intBinaryGreatOne) {
   // needed but increase iterations.
 
   // The first digit '1' is removed with 10 to the power of the binary length.
-  int lengthPower = exponents(10, intBinaryGreatOne);
+  int lengthPower = exponents(10, binaryAddLength);
   // intBinaryPlus removes the first digit using the remainder.
   int intBinary = intBinaryPlus % lengthPower;
   // printf("intBinary:  %d\n", intBinary);
   return intBinary;
-}
-
-// Convert binary to decimal int.
-int binary2Decimal(int binary, int intBinaryGreatOne, int binaryAddOne) {
-  int decimal = 0;
-  int i = 0;
-  int j;
-  // j is the digit length for '100' '1000' or '10000' that needed extra length in binaryAdd().
-  if (intBinaryGreatOne == binaryAddOne) {
-    j = intBinaryGreatOne;
-  }
-  else {
-    j = intBinaryGreatOne - 1;
-  }
-  // Convert int binary to char binary.
-  struct threeInt intBinaryAdd;
-  intBinaryAdd.one = intBinaryGreatOne;
-  intBinaryAdd.two = binary;
-  intBinaryAdd.three = 0;
-  char *charBinaryAdd = intBinary2Char(intBinaryAdd);
-  // printf("%s \n", charBinaryAdd);
-  while (i < intBinaryGreatOne) {
-    decimal = decimal + ((charBinaryAdd[i] - '0') * (exponents(2, j)));
-    // printf("%d binary2Decimal: %c      %d\n", i, charBinaryAdd[i], decimal);
-    i++;
-    j--;
-    //printf("%d\n", j); j might have to start as 0.
-  }
-  // printf("decimal: %d\n", decimal);
-  return decimal;
 }
