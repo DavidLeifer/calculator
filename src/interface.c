@@ -5,7 +5,7 @@
 #include "struct.h"
 #include "interface.h"
 #include "utility.h"
-#include "arithmatic.h"
+#include "arithmaticSteps.h"
 #include "binaryChar.h"
 #include "userInput.h"
 
@@ -43,17 +43,21 @@ void textUI() {
 int test(int small, int large, int mid, int longPrint) {
   int realSum;
   int mainSum;
-  int smallTwo = 0;
+  int smallTwo = 200;
   int bad = 1;
   int total = 1;
   while (small <= large) {
     while (smallTwo <= mid) {
       realSum = small + smallTwo;
       mainSum = addition(small, smallTwo);
+      //realSum = small - smallTwo;
+      //mainSum = subtraction(small, smallTwo);
       if (realSum != mainSum) {
+      //if ((realSum == mainSum) && (small >= smallTwo)) {
         bad++;
         if (longPrint == 1) {
           printf("%d + %d = %d realSum %d\n", small, smallTwo, mainSum, realSum);
+          //printf("%d - %d = %d realDifference %d\n", small, smallTwo, mainSum, realSum);
           // Convert int small and smallTwo to char[] with "binaryChar.c" 'intBinary2Char()'.
           int smallLength = intLength(small);
           int smallTwoLength = intLength(smallTwo);

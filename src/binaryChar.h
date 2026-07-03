@@ -15,6 +15,8 @@ struct threeInt {
 
 extern const char version[];
 
+extern const int maxBinaryLength;
+
 //extern const char features[];
 
 struct threeInt decimal2intBinary(int decimal, int binaryLength);
@@ -22,8 +24,6 @@ struct threeInt decimal2intBinary(int decimal, int binaryLength);
 char* intBinary2Char(struct threeInt intZerosBinary);
 
 struct threeInt intBinaryCheck(struct threeInt intBinaryOne, struct threeInt intBinaryTwo);
-
-struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeInt intBinaryGreat);
 
 int binary2Decimal(char charBinaryAdd[], int binaryAddOne);
 

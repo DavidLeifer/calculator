@@ -6,7 +6,7 @@
 #include "struct.h"
 #include "utility.h"
 #include "binaryChar.h"
-#include "arithmatic.h"
+#include "arithmaticSteps.h"
 #include "userInput.h"
 
 // Formats the user input and writes the .log.
@@ -147,7 +147,7 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   // Subtraction
   else if (arithmaticO[0] == 45 && arithmaticO[1] == '\0') {
     answer = subtraction(numberOne, numberTwo);
-    // printf("%d - %d = %d\n", numberOne, numberTwo, answer);
+    printf("%d - %d = %d\n", numberOne, numberTwo, answer);
   }
   // Division
   else if (arithmaticO[0] == 47 && arithmaticO[1] == '\0') {
