@@ -14,7 +14,36 @@ int logarithm(){
 }
 */
 
-// todo char string length.
+// Inputs 'charInput[]' and the character position 'start' ('n - 1' i.e. '0')
+// through last character 'end'. Have to use 'free()' on return 'charOutput'.
+char *slice(char charInput[], int start, int end) {
+  // printf("%s\n", charInput);
+  int charOutputLength = end - start;
+  char *charOutput = malloc(charOutputLength * sizeof(char));
+  strcpy(charOutput, "a");
+  int i = 0;
+  while (start <= end) {
+    // printf("%x ", charInput[start]);
+    charOutput[i] = charInput[start];
+    i++;
+    start++;
+    if (i == (end+1)) {
+      break;
+    }
+  }
+  charOutput[i] = '\0';
+  //printf("\n");
+  return charOutput;
+}
+
+// Returns the length of a char[].
+int charLength(char charInput[]) {
+  int i = 1;
+  while (charInput[i] != '\0') {
+    i++;
+  }
+  return i;
+}
 
 // Finds the number of digits in an integer through division.
 int intLength(int intInput) {
