@@ -8,6 +8,8 @@
 #include "./src/arithmaticSteps.h"
 #include "./src/userInput.h"
 #include "./src/interface.h"
+#include "./src/window.h" // migrated first two window functions prior to /.nanok/202607151522_main.c
+
 /*
 Notes
 - compiling all the files by listing:
@@ -42,210 +44,141 @@ const int maxBinaryLength = 17;
 // ./usr/include/unistd.h
 #include <unistd.h>
 
-// 0) Extract MIT-MAGIC-COOKIE-1 from ~/.Xauthority
-// Input is the user's path 'userPath'. Returns the path to ".Xauthority".
-char *xAuthority(char *userPath) {
-  int userPathLength = charLength(userPath);
-  char *charAuthority = malloc(12 * sizeof(char));
-  strcpy(charAuthority, ".Xauthority");
-  struct threeInt charAuthorityPath = charAppend(userPath, userPathLength, charAuthority, 12, 0);
-  free(userPath);
-  free(charAuthority);
-  // printf("%s\n", charAuthorityPath.string);
-  return charAuthorityPath.string;
-}
-
-// 0) Opens '~/.Xauthority' using 'charAuthorityPath[]' and returns 'xAuthorityRequest' struct.
-struct xAuthorityRequest openAuthority(char *charAuthorityPath) {
-  // https://stackoverflow.com/questions/70932880/what-is-the-internal-format-of-xauthority-file
-  FILE *file = fopen(charAuthorityPath, "rb");
-  char buffer[256];
-  // Reads the file into 'buffer[]' with the number of items 'bufferItems'.
-  int bufferItems = fread(buffer, sizeof(char), sizeof(buffer), file);
-  buffer[bufferItems] = '\0';
-  fclose(file);
-  // Slices 'buffer[]' with 'slice()' from "utility.h".
-  int familyStart = 0;
-  int familyEnd = 2;
-  char *family = slice(buffer, familyStart, familyEnd);
-  unsigned short addressLength = buffer[3];
-  int addressStart = 4;
-  int addressEnd = 14;
-  char *address = slice(buffer, addressStart, addressEnd);
-  int nameStart = 20;
-  int nameEnd = 37;
-  char *name = slice(buffer, nameStart, nameEnd);
-  unsigned short dataLength = buffer[39];
-  int cookieStart = 40;
-  int cookieEnd = 55;
-  char *cookie = slice(buffer, cookieStart, cookieEnd);
-  // Returning the requested '.Xauthority' data into 'struct xAuthorityRequest'.
-  struct xAuthorityRequest req;
-  req.byteOrder = 'l'; // 'B' is the alternative.
-  req.padOne = 0;
-  req.majorVersion = 11;
-  req.minorVersion = 0;
-  req.authNameLen = 18;
-  req.authDataLen = 16;
-  req.padTwo = 0;
-  int i = 0;
-  int j = 0;
-  // Name with padding of three extra zeros.
-  while (i < 21) {
-    if (i < 18) {
-      req.authName[i] = name[i];
-    }
-    else {
-      req.authName[i] = '0';
-    }
-    // Also returns the 'cookie' data into an int array.
-    if (i < 16) {
-      req.authData[j] = cookie[j];
-      j++;
-    }
-    i++;
-  }
-  // free() the char[].
-  free(family);
-  free(address);
-  free(name);
-  free(cookie);
-  /*
-  int i = 0;
-  while (cookie[i] != '\0') {
-    // ascii chart
-    // //Prints the character when the operands are switched.
-    // Prints the binary.
-    //if (buffer[i] <= 32 && buffer[i] >= 126) {
-      //printf("%d  %c\n", i, buffer[i]);
-      //printf("%d  %02x\n", i, buffer[i]);
-    printf("%d  %02x\n", i, cookie[i]);
-    //}
-    i++;
-  }*/
-  return req;
-}
-
 // 'window()' is called after steps 0-3 in 'serverConnect()' and input is the char[]
 // contining window and root information from the socket connection's 'read()'.
 // 4) Uses the window and root ID to send a packet containing window
 //    drawing information to 'X11'.
 // 5) Construct and send the MapWindow packet (Opcode 8).
-void window(char *replyHeader) {
+void window(char *parentWindowID, char *windowID, char *visualID) {
+  // Construct and send the CreateWindow packet (Opcode 1)
+  //char *createWindowBuffer = malloc(32 * sizeof(char));
+  //strcpy(createWindowBuffer, "a");
+  unsigned char createWindowBuffer[32];
+  //memset(createWindowBuffer, 0, sizeof(createWindowBuffer)); // 32
+  // Kept everything 8-bit to reduce padding issue. '0b' doesn't count as a bit.
+  // Opcode '1' = CreateWindow
+  createWindowBuffer[0] = 0b00000001;
+  createWindowBuffer[1] = 0;
+  // Request length low byte: 8 words total (8 * 4 = 32 bytes)
+  createWindowBuffer[2] = 0b00001000;
+  createWindowBuffer[3] = 0;
+  // Window ID
+  // '48' or '0'
+  createWindowBuffer[4] = windowID[0];
+  createWindowBuffer[5] = windowID[1];
+  createWindowBuffer[6] = windowID[2];
+  createWindowBuffer[7] = windowID[3];
+  // Parent window ID
+  // '48' or '0'
+  createWindowBuffer[8] = parentWindowID[0];
+  createWindowBuffer[9] = parentWindowID[1];
+  createWindowBuffer[10] = parentWindowID[2];
+  createWindowBuffer[11] = parentWindowID[3];
+  // Setting X
+  //createWindowBuffer[12] = 0b11111010;
+  // 250
+  createWindowBuffer[12] = 0;
+  createWindowBuffer[13] = 0;
+  // Setting Y
+  // 250
+  //createWindowBuffer[14] = 0b11111010;
+  createWindowBuffer[14] = 0;
+  createWindowBuffer[15] = 0;
+  // Width 128
+  createWindowBuffer[16] = 0b10000000;
+  // 2
+  //createWindowBuffer[17] = 0b00000010;
+  createWindowBuffer[17] = 0b00000001;
+  // Height 128
+  createWindowBuffer[18] = 0b10000000;
+  // 1
+  // createWindowBuffer[19] = 0b00000001;
+  createWindowBuffer[19] = 0b00000001;
+  // Border width.
+  createWindowBuffer[20] = 0b00000001;
+  // Border class.
+  createWindowBuffer[21] = 0;
+  // Window class - '1' means InputOutput window
+  // and use 'visualID[]' in [24]-[27].
+  createWindowBuffer[22] = 0b00000001;
+  // Copy Parent ID with '0'
+  //createWindowBuffer[22] = 0;
+  createWindowBuffer[23] = 0;
+
+  createWindowBuffer[24] = visualID[0];
+  createWindowBuffer[25] = visualID[1];
+  createWindowBuffer[26] = visualID[2];
+  createWindowBuffer[27] = visualID[3];
+
+  // Background color.
+  createWindowBuffer[28] = 0;
+  createWindowBuffer[29] = 0;
+  createWindowBuffer[30] = 0;
+  createWindowBuffer[31] = 0;
+  //createWindowBuffer[32] = '\0';
+
+  int sock = 3;
+  // fails here
+  // printf("Writing 'createWindowBuffer[]' data\n");
+  int intWrite = write(sock, createWindowBuffer, sizeof(createWindowBuffer));
+  //printf("write() int returns: %d\n", intWrite);
+  unsigned char responseCreateWindow[50];
+  int intReadCreateWindow = read(sock, responseCreateWindow, sizeof(responseCreateWindow)); // 50
+  // printf("intReadCreateWindow returns: %d\n", intReadCreateWindow);
+  printf("responseCreateWindow[0] returns: %d\n", responseCreateWindow[0]);
+
   int i = 0;
-  while (i <= 9) {
-    printf("%d window heap: %d\n", i, replyHeader[i]);
+  while (i <= 50) {
+    //printf("%d  %d\n", i, responseCreateWindow[i]);
     i++;
   }
-  free(replyHeader);
-
-  /*
-  one method
-    // ----------------------------------------------------
-    // [PREVIOUS CONTEXT]: Assume socket 'sock' is active
-    // and you just read 'reply_status == 1'.
-    // ----------------------------------------------------
-    int sock = 3; // Placeholder for your active socket descriptor
-    uint16_t extra_len = 0; // Read this from the 8-byte response header
-
-    // 1. READ THE REST OF THE SUCCESSFUL CONNECTION SELECTION PAYLOAD
-    // 'extra_len' is specified in 4-byte units.
-    size_t reply_payload_size = extra_len * 4;
-    uint8_t *reply_payload = malloc(reply_payload_size);
-
-    size_t total_read = 0;
-    while (total_read < reply_payload_size) {
-
-
-        // using reply_payload for resource_id_base
-        ssize_t n = read(sock, reply_payload + total_read, reply_payload_size - total_read);
-
-
-
-
-        if (n <= 0) {
-            perror("Failed reading server setup payload");
-            free(reply_payload);
-            return 1;
-        }
-        total_read += n;
-    }
-
-
-
-        // using reply_payload for resource_id_base
-
-  // a different method.
-
-  // Parse necessary identifiers directly out of the reply buffer
-  unsigned int resource_id_base = *(unsigned int*)&replySock.string[12];
-  unsigned short vendor_len     = *(unsigned short*)&replySock.string[16];
-  //int vendor_len = reply[16];
-  unsigned short num_formats    = *(unsigned char*)&replySock.string[29];
-  // Compute the accurate memory offset for the screen information
-  int screen_offset = 40 + ((vendor_len + 3) & ~3) + (num_formats * 8);
-  unsigned int root_window_id = *(unsigned int*)&replySock.string[screen_offset];
-
-  // Create a new unique Window ID using the provided resource base
-  unsigned int client_window_id = resource_id_base + 1;
-
-  // Construct and send the CreateWindow packet (Opcode 1)
-  unsigned int create_window_buf[12];
-  create_window_buf[0] = (8 << 16) | 1;      // Request length (8 blocks of 4 bytes) | Opcode 1
-  create_window_buf[1] = client_window_id;   // New Window ID
-  create_window_buf[2] = root_window_id;     // Parent Window ID
-  create_window_buf[3] = (100 << 16) | 100;  // X position (100) | Y position (100)
-  create_window_buf[4] = (400 << 16) | 600;  // Width (600px) | Height (400px)
-  create_window_buf[5] = (0 << 16) | 1;      // CopyFromParent Window Class | Border Width
-  create_window_buf[6] = 0;                  // CopyFromParent Visual ID
-  create_window_buf[7] = 0x00000002;         // Value mask flag (setting background pixel)
-  create_window_buf[8] = 0x00000001;         // Background pixel value (0 = Black)
-
-  //int ii = 0;
-  //while (ii < 13) {
-  //  printf("%d  %d\n", ii, create_window_buf[ii]);
-  //  ii++;
-  //}
-
-  write(replySock.one, create_window_buf, 36);
 
   // 5) Construct and send the MapWindow packet (Opcode 8)
-  unsigned int map_window_buf[2];
-  map_window_buf[0] = (2 << 16) | 8;        // Request length (2 blocks) | Opcode 8
-  map_window_buf[1] = client_window_id;     // ID of the target window to draw
-  write(replySock.one, map_window_buf, 8);
+  unsigned char mapWindowBuffer[8];
+  mapWindowBuffer[0] = 0b00001000;      // Opcode 8
+  mapWindowBuffer[1] = 0;               // Unused padding byte
+  mapWindowBuffer[2] = 0b00000010;      // Request length low byte
+  mapWindowBuffer[3] = 0;               // Request length high byte
+  mapWindowBuffer[4] = 0b110000;        // New window ID
+  mapWindowBuffer[5] = 0;               //
+  mapWindowBuffer[6] = 0;               //
+  mapWindowBuffer[7] = 0;               //
 
-  printf("a  %d\n", map_window_buf[0]);
+  write(sock, mapWindowBuffer, sizeof(mapWindowBuffer)); // 8
+  unsigned char responseMap[33];
+  int intReadMap = read(sock, responseMap, 32); // 32
 
-  //printf("Window created via raw sockets! Keep process alive to view.\n");
+  printf("intReadMap() int returns: %d\n", intReadMap);
+  printf("responseMap[0] returns: %d\n", responseMap[0]);
+  //int ii = 0;
+  //while (ii <= 32) {
+  //  printf("%d  %d\n", ii, responseMap[ii]);
+  //  ii++;
+  //}
+  printf("Window created via raw sockets! Keep process alive to view.\n");
+
+  //Provide the ChangeWindowAttributes (Opcode 2) to
+  //request input events like window closing or mouse clicks.
 
   // 6. Keep event loop active to maintain socket connection
-  while (1) {
-    char dummy[256];
-    if (read(replySock.one, dummy, sizeof(dummy)) <= 0) {
-    //  int iii = 0;
-    //  while (iii < 257) {
-    //    printf("%d  %c\n", iii, dummy[iii]);
-    //    iii++;
-    //  }
-      break;
-    }
+  if (responseMap[0] == 1) {
+    printf("Window created via raw sockets! Keep process alive to view.\n");
+    getchar();
   }
-  //close(sock); // closed in serverConnect();
-  */
+  // 'socket()' closed in serverConnect();
 }
 
 int serverConnect(char userPath[]) {
   // 0. Format and send X11 Connection Setup request
-  // 'userPath' is free() in xAuthority.
+  // 'userPath' is 'free()' in xAuthority.
   char *charAuthorityPath = xAuthority(userPath);
   // Open the file and get MIT-MAGIC-COOKIE-1 from user's '~/.Xauthority'.
-  struct xAuthorityRequest req = openAuthority(charAuthorityPath);
+  char *req = openAuthority(charAuthorityPath);
   free(charAuthorityPath);
-
   // 1. Establish connection to local X server socket
   int sock = socket(AF_UNIX, SOCK_STREAM, 0);
-  //printf("socket int returns: %d\n", sock);
+  // printf("socket int returns: %d\n", sock);
+
   // From "un.h"
   struct sockaddr_un addr;
   memset(&addr, 0, sizeof(addr));
@@ -254,38 +187,53 @@ int serverConnect(char userPath[]) {
   strncpy(addr.sun_path, "/tmp/.X11-unix/X0", sizeof(addr.sun_path) - 1);
   int intConnect = connect(sock, (struct sockaddr *)&addr, sizeof(addr));
   //printf("connect() int returns: %d\n", intConnect);
+
   // 2) 'write()' to 'X11' and 3) 'read()' the response to return ID data.
   //printf("Sending connection setup packet\n");
-  int intWrite = write(sock, &req, sizeof(req));
-  //printf("write() int returns: %d\n", intWrite);
-  unsigned char responseHeader[8];
-  int intRead = read(sock, responseHeader, 8);
-  //printf("read() int returns: %d\n", intRead);
-  printf("response_header[] returns: %d\n", responseHeader[8]);
+  //int intWrite = write(sock, &req, sizeof(req));
 
-  // Heap the response char[] and free() in window().
-  char *readSock = malloc(9 * sizeof(char));
-  strcpy(readSock, responseHeader);
+  // 'req' has 0 through 47 == 48 elements.
+  int intWrite = write(sock, req, 48); // 48
+  free(req);
+  // printf("write() int returns: %d\n", intWrite);
+  int intResponse = 256;
+  // The requested elements are in 0-63 and 64 is the non-existent
+  // null-terminator. 'read()' does not include a null-terminator.
+  unsigned char responseHeader[intResponse];
+  int intRead = read(sock, responseHeader, intResponse);
+  // Supposed to be '64'.
+  //printf("read() int returns: %d\n", intRead);
+  // Supposed to be '1'.
+  //printf("responseHeader[0] returns: %d\n", responseHeader[0]);
+
+  // Heap the response char[] and 'free()' in 'getWindowID()'.
+  // The length is the length of 'responseHeader' 'intRead'.
+  // 'strcpy()' requries a null-terminator.
+  // 'readSock' is 'free()' in 'getWindowID()'
+  char *readSock = malloc((intResponse + 1) * sizeof(char));
+  strcpy(readSock, "a");
   int i = 0;
-  while (i <= 9) {
-    //printf("%d not heap: %d \n", i, responseHeader[i]);
-    // Null terminate the char[].
-    if (i == 9) {
+  while (i <= (intResponse + 1)) {
+    if (i == (intResponse + 1)) {
       readSock[i] = '\0';
     }
-    else if (responseHeader[i] == 0) {
-      // The null terminators are changed to '1'.
-      readSock[i] = '1';
-    }
     else {
-      readSock[i] = responseHeader[i];
+    readSock[i] = responseHeader[i];
     }
+    //printf("%d readSock: %d\n", i, readSock[i]);
     i++;
   }
-
-  // If the server returns 1, connection was successfull and send heap pointer to 'window()'.
-  if (responseHeader[8] == 1) {
-    window(readSock);
+  // If the server returns 1, the connection was successfull and send
+  // the heap pointer 'readSock' to extract the vendor length.
+  if (readSock[0] == 1) {
+    printf("ReadSock %d\n", readSock[0]);
+    int screenOffset = getScreenOffset(readSock);
+    char *parentID = getParentWindowID(readSock, screenOffset);
+    char *windowID = getWindowID(readSock);
+    char *visualID = getVisualID(readSock, screenOffset);
+    if (screenOffset != 0) {
+      window(parentID, windowID, visualID);
+    }
   }
   else {
     // Otherwise print an error message.
@@ -294,10 +242,6 @@ int serverConnect(char userPath[]) {
   close(sock);
   return 0;
 }
-/////////////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 int main(int argc, char *argv[4]) {
   // Input is usually "/home/<userName>/"
@@ -315,6 +259,7 @@ int main(int argc, char *argv[4]) {
   //char *path = getenv("HOME");
   //printf("aaaaaaaa %s\n", path);
 
+  // Steps to build a window using sockets without graphic libraries Xlib or sdl2+.
   // 0) Formats 'mallocPath' in 'xauthority()' through 'charAuthorityPath()' and
   //    'openAuthority()' to retrieve the cookie from '~/.Xauthority' file.
   //    These functions return a struct 'xAuthorityRequest' and are run in
@@ -379,6 +324,14 @@ code must perform these sequential actions:
   // datatype byte length since a different method from the internet included another header
   // from the standard library '#include <stdint.h>' to use 'uint8_t = 1' or single byte int instead
   // of the two byte 'short int' = 1' found in the current working 'struct xAuthorityRequest = {}'.
+
+  // Also tried the 1 byte 'uint8_t' datatype with it's header file but decided against even though
+  // <stdint.h> is standard in the C99 library. It's an unsigned char[] or positive ASCII numbers.
+
+  // The only other imports not from the regular three or my basic implementations of C++ or
+  // Python functions include data structures for using the 'socket()' function to connect to
+  // 'X11' with '/tmp/.X11-unix/X0'.
+
   / *
   char *setupInit = malloc(13 * sizeof(char)); // {0}
   strcpy(setupInit, "a");
