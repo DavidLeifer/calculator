@@ -110,11 +110,17 @@ int getScreenOffset(char *readSock) {
   }
   // Since there are two spaces, 'vendorLength' is incremented by 3 and
   // rounded down to a multiple of four. 'vendorRound' should be '20'.
+
   int vendorRound = (vendorLength + 3) & ~3;
-  //printf("vendor length multiple of 4 bytes = %d\n", vendorRound);
-  int numberFormats = readSock[29] * 8;
-  //printf("number formats = %d\n", numberFormats);
-  int screenOffset = numberFormats + vendorRound + 40;
+  printf("vendor length multiple of 4 bytes = %d\n", vendorRound);
+  // 'readSock[29]' is minus '8' to account for the first 'read()' that's
+  // used to calculate the remaining bytes in the socket 'write()'.
+  // The times '8' is unrelated.
+  int numberFormats = readSock[21] * 8;
+  // 'screenOffset' is also subtracted '8' digits from the usual
+  // 40th character in 'readSock[]' = '32'.
+  int screenOffset = numberFormats + vendorRound + 32;
+
   if (vendorRound == 20) {
     return screenOffset;
   }
@@ -125,7 +131,7 @@ int getScreenOffset(char *readSock) {
 }
 
 char* getParentWindowID(char *readSock, int screenOffset) {
-  printf("screen offset = %d\n", screenOffset);
+  // printf("screen offset = %d\n", screenOffset);
   // Return the heap pointer 'parentWindowID'.
   // 'free()' in 'window()'.
   char *parentWindowID = malloc(5 * sizeof(char));
@@ -143,17 +149,19 @@ char* getWindowID(char *readSock) {
   // 'free()' in 'window()'.
   char *windowID = malloc(5 * sizeof(char));
   strcpy(windowID, "a");
-  windowID[0] = readSock[12];
-  windowID[1] = readSock[13];
-  windowID[2] = readSock[14];
-  windowID[3] = readSock[15];
+  // 'windowID' is 12-15 from the 'read()' char[] but
+  // the first 'read()' length is '8'.
+  windowID[0] = readSock[4];
+  windowID[1] = readSock[5];
+  windowID[2] = readSock[6];
+  windowID[3] = readSock[7];
   windowID[4] = '\0';
   return windowID;
 }
 
 char* getVisualID(char *readSock, int screenOffset) {
   int visualScreenOffset = screenOffset + 32;
-  printf("screen offset = %d\n", visualScreenOffset);
+  // printf("screen offset = %d\n", visualScreenOffset);
   // Return the heap pointer 'visualID'.
   // 'free()' in 'window()'.
   char *visualID = malloc(5 * sizeof(char));
