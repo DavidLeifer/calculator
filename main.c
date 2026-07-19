@@ -8,7 +8,7 @@
 #include "./src/arithmaticSteps.h"
 #include "./src/userInput.h"
 #include "./src/interface.h"
-#include "./src/window.h" // migrated first two window functions prior to /.nanok/202607151522_main.c
+#include "./src/window.h"
 
 /*
 Notes
@@ -20,15 +20,14 @@ Tested on headless Ubuntu with X11 server based GUI.
 todo
   - multiplication, division.
 minor todo
-  - char length function.
   - fix inputArithmatic variable names with new struct int pointers and malloc.
-  - use 'maxBinaryLength' in "binaryChar.c"
   - subtraction() and addition() use same function series to convert int to char[] binary.
   - test 'fileLog()' error messages from 'subtraction()' and 'binaryInvert()'.
+  - 'serverConnect()' in "window.c" has a bitwise comparison that's mostly in "binaryChar.c".
 */
 // 'version' and 'maxBinaryLength' declared in "binaryChar.h"
 // 'version' and 'features' declared in the file "interface.h"
-const char version[24] = "Calculator\nVersion 0.05";
+const char version[24] = "Calculator\nVersion 0.06";
 const char features[44] = "Features: addition, input logging, testing.";
 // 'maxBinaryLength' is used in "binaryChar.c" 'binaryAddition()'
 const int maxBinaryLength = 17;
@@ -50,12 +49,10 @@ const int maxBinaryLength = 17;
 //    drawing information to 'X11'.
 // 5) Construct and send the MapWindow packet (Opcode 8).
 void window(char *parentWindowID, char *windowID, char *visualID) {
-  // Construct and send the CreateWindow packet (Opcode 1)
-  //char *createWindowBuffer = malloc(32 * sizeof(char));
-  //strcpy(createWindowBuffer, "a");
+  // 4) Construct the CreateWindow packet (Opcode 1)
   unsigned char createWindowBuffer[32];
-  //memset(createWindowBuffer, 0, sizeof(createWindowBuffer)); // 32
-  // Kept everything 8-bit to reduce padding issue. '0b' doesn't count as a bit.
+  // Kept everything 8-bit to reduce padding issue, I think you use regular decimals.
+  // '0b' doesn't count as a bit.
   // Opcode '1' = CreateWindow
   createWindowBuffer[0] = 0b00000001;
   createWindowBuffer[1] = 0;
@@ -63,13 +60,11 @@ void window(char *parentWindowID, char *windowID, char *visualID) {
   createWindowBuffer[2] = 0b00001000;
   createWindowBuffer[3] = 0;
   // Window ID
-  // '48' or '0'
   createWindowBuffer[4] = windowID[0];
   createWindowBuffer[5] = windowID[1];
   createWindowBuffer[6] = windowID[2];
   createWindowBuffer[7] = windowID[3];
   // Parent window ID
-  // '48' or '0'
   createWindowBuffer[8] = parentWindowID[0];
   createWindowBuffer[9] = parentWindowID[1];
   createWindowBuffer[10] = parentWindowID[2];
@@ -104,12 +99,10 @@ void window(char *parentWindowID, char *windowID, char *visualID) {
   // Copy Parent ID with '0'
   //createWindowBuffer[22] = 0;
   createWindowBuffer[23] = 0;
-
   createWindowBuffer[24] = visualID[0];
   createWindowBuffer[25] = visualID[1];
   createWindowBuffer[26] = visualID[2];
   createWindowBuffer[27] = visualID[3];
-
   // Background color.
   createWindowBuffer[28] = 0;
   createWindowBuffer[29] = 0;
@@ -117,44 +110,56 @@ void window(char *parentWindowID, char *windowID, char *visualID) {
   createWindowBuffer[31] = 0;
   //createWindowBuffer[32] = '\0';
 
-  int sock = 3;
-  // fails here
-  // printf("Writing 'createWindowBuffer[]' data\n");
-  int intWrite = write(sock, createWindowBuffer, sizeof(createWindowBuffer));
-  //printf("write() int returns: %d\n", intWrite);
-  unsigned char responseCreateWindow[50];
-  int intReadCreateWindow = read(sock, responseCreateWindow, sizeof(responseCreateWindow)); // 50
-  // printf("intReadCreateWindow returns: %d\n", intReadCreateWindow);
-  printf("responseCreateWindow[0] returns: %d\n", responseCreateWindow[0]);
+  // Write geometry packet.
+  unsigned char getGeometry[8];
+  getGeometry[0] = 14;
+  getGeometry[1] = 0;
+  getGeometry[2] = 2;
+  getGeometry[3] = 0;
+  getGeometry[4] = windowID[0];
+  getGeometry[5] = windowID[1];
+  getGeometry[6] = windowID[2];
+  getGeometry[7] = windowID[3];
 
-  int i = 0;
-  while (i <= 50) {
-    //printf("%d  %d\n", i, responseCreateWindow[i]);
-    i++;
-  }
-
-  // 5) Construct and send the MapWindow packet (Opcode 8)
+  // 5) Construct the MapWindow packet (Opcode 8)
   unsigned char mapWindowBuffer[8];
   mapWindowBuffer[0] = 0b00001000;      // Opcode 8
   mapWindowBuffer[1] = 0;               // Unused padding byte
   mapWindowBuffer[2] = 0b00000010;      // Request length low byte
   mapWindowBuffer[3] = 0;               // Request length high byte
-  mapWindowBuffer[4] = 0b110000;        // New window ID
-  mapWindowBuffer[5] = 0;               //
-  mapWindowBuffer[6] = 0;               //
-  mapWindowBuffer[7] = 0;               //
+  mapWindowBuffer[4] = windowID[0];     // New window ID
+  mapWindowBuffer[5] = windowID[1];     //
+  mapWindowBuffer[6] = windowID[2];     //
+  mapWindowBuffer[7] = windowID[3];     //
 
+  // 'free()' the char[] from "window.c".
+  free(parentWindowID);
+  free(windowID);
+  free(visualID);
+
+  // 4) 'write()' the 'createWindow' socket request.
+  int sock = 3;
+  int windowWrite = write(sock, createWindowBuffer, sizeof(createWindowBuffer));
+  // 4) 'write()' the 'getGeometry' socket request to avoid hanging program.
+  int geometryWrite = write(sock, getGeometry, sizeof(getGeometry));
+  // printf("write() int returns: %d\n", intWrite);
+  unsigned char responseCreateWindow[32];
+  int intReadCreateWindow = read(sock, responseCreateWindow, sizeof(responseCreateWindow));
+  // printf("intReadCreateWindow returns: %d\n", intReadCreateWindow);
+  printf("responseCreateWindow[0] returns: %d\n", responseCreateWindow[0]);
+
+  // 5) 'write()' the 'mapWindowBuffer' socket request to view the window.
   write(sock, mapWindowBuffer, sizeof(mapWindowBuffer)); // 8
-  unsigned char responseMap[33];
-  int intReadMap = read(sock, responseMap, 32); // 32
+  unsigned char responseMap[32];
+  int intReadMap = read(sock, responseMap, sizeof(responseMap)); // 32
 
   printf("intReadMap() int returns: %d\n", intReadMap);
   printf("responseMap[0] returns: %d\n", responseMap[0]);
-  //int ii = 0;
-  //while (ii <= 32) {
-  //  printf("%d  %d\n", ii, responseMap[ii]);
-  //  ii++;
-  //}
+  int ii = 0;
+  while (ii <= 32) {
+    printf("%d  %d\n", ii, responseMap[ii]);
+    ii++;
+  }
   printf("Window created via raw sockets! Keep process alive to view.\n");
 
   //Provide the ChangeWindowAttributes (Opcode 2) to
@@ -195,13 +200,66 @@ int serverConnect(char userPath[]) {
   // 'req' has 0 through 47 == 48 elements.
   int intWrite = write(sock, req, 48); // 48
   free(req);
+
+  // getHeader();
   // printf("write() int returns: %d\n", intWrite);
-  int intResponse = 256;
+  // The first response is used to calculate the length of
+  // the entire response.
+  int intHeaderLength = 8;
+  unsigned char header[intHeaderLength];
+  int intHeaderReturn = read(sock, header, intHeaderLength);
+
+  // This is a bitwise comparison between the binary representation
+  // of '3' and '147' where if either of the values is '1', the result
+  // is '1'.  The '<<' shifts binary digits to the left and its equivalent
+  // is (2 to the power of 8).
+  // int reply_length = ((header[7] << 8) | header[6]) * 4;
+  // printf("reply_length  %d\n", reply_length);
+  ///////////////////////////////////////////////////////////////////////
+
+  // The workflow without bitwise is converting
+  // to 'char binary[]' as outlined in 'arithmaticSteps.c' and writing
+  // a function that loops over the length of the longest binary roughly:
+  // int i = 0;
+  // while (i < longestBinary) {
+  //   if (binaryHeader[7][i] == 1 || binaryHeader[6][i] == 1) {
+  //     outputHeader[i] = 1;
+  //   else {
+  //     outputHeader[i] = 0;
+  //   }
+  //   i++;
+  // }
+  int baseDecimal = 2;
+  int exponentDecimal = 8;
+  int replyExponents = exponents(baseDecimal, exponentDecimal);
+  int intResponse = ( (header[7] * (replyExponents) ) | header[6]) * 4;
+
+  // printf("write() int returns: %d\n", intWrite);
+  // '256' was the last length tested before the internet suggested
+  // using two 'read()' and calculating the length of the second with
+  // values from the first response to avoid overflows when
+  // drawing the window.
+  // int intResponse = 256;
+  //int intResponse = 64;
+  // If the 'read()' char[] length is '64', the requested elements are mostly in
+  // 0-63 and 64 is the non-existent null-terminator. 'read()' does not include
+  // a null-terminator. The parentID and windowID are calculated using the length
+  // of the vendor name i.e. 'The X.org foundation'. The internet said the entire
+  // 'responseHeader' from 'read()' was 100-16,000.
+  //printf("replyLength     %d\n", intResponse);
   // The requested elements are in 0-63 and 64 is the non-existent
   // null-terminator. 'read()' does not include a null-terminator.
   unsigned char responseHeader[intResponse];
   int intRead = read(sock, responseHeader, intResponse);
-  // Supposed to be '64'.
+  /*
+  int count = 0;
+  while (count < intResponse) {
+    //printf("%d  %c\n", count, responseHeader[count]);
+    count++;
+  }
+  */
+
+  // Supposed to be 'intResponse'.
   //printf("read() int returns: %d\n", intRead);
   // Supposed to be '1'.
   //printf("responseHeader[0] returns: %d\n", responseHeader[0]);
@@ -224,10 +282,13 @@ int serverConnect(char userPath[]) {
     i++;
   }
   // If the server returns 1, the connection was successfull and send
-  // the heap pointer 'readSock' to extract the vendor length.
-  if (readSock[0] == 1) {
-    printf("ReadSock %d\n", readSock[0]);
+  // the heap pointer 'readSock' to 'getScreenOffset()' and extract
+  // the vendor length.
+  if (header[0] == 1) {
+    printf("ReadSock %d\n", header[0]);
+    // screenOffset + 8
     int screenOffset = getScreenOffset(readSock);
+    // 'free()' in 'window()'.
     char *parentID = getParentWindowID(readSock, screenOffset);
     char *windowID = getWindowID(readSock);
     char *visualID = getVisualID(readSock, screenOffset);
@@ -306,7 +367,7 @@ The Core Protocol Steps
 To get a window on the screen using only basic POSIX socket system calls, your
 code must perform these sequential actions:
 
-0-3 Completed.
+0-6 Completed.
 
   // The below code was in 'serverConnect()' and is replaced with 'openAuthority()'.
   // In one version the commmented out workflow returned the requested '1' that was
@@ -381,10 +442,6 @@ code must perform these sequential actions:
     i++;
   }
   * /
-
-4-5 in progress
-
-6.) Loop: Enter an infinite loop to prevent the connection from closing.
 
 Length Fields: The X11 server expects sizes to be declared in 4-byte words. For instance,
 a packet size of 32 bytes means your packet length field must read 8.
