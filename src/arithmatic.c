@@ -5,6 +5,7 @@
 #include "binaryChar.h"
 #include "arithmatic.h"
 #include "arithmaticSteps.h"
+#include "userInput.h"
 
 // Specific math functions in "arithmaticSteps.c" for 'addition()' and 'subtraction()' independent
 // of binary character transformations. Versions <= 0.03 'binaryAddition()' was in "binaryChar.c"
@@ -26,8 +27,9 @@ struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeI
   int category = 0;
 
   // The length of the longest binary int.
-  char *binarySum = malloc(17 * sizeof(char));
-  strcpy(binarySum, "a");
+  // char *binarySum = malloc(17 * sizeof(char));
+  // strcpy(binarySum, "a");
+  char binarySum[17];
 
   int intDigitOne = 4;
   int intDigitTwo = 4; ///////////
@@ -131,7 +133,7 @@ struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeI
 // Inputs are a 'charBinary[]', the length, and length of the longest binary in the subtraction.
 // Returns 'charBinary[]' the length of the longest binary plus one zero (shorter would have more '0').
 // i.e. '0100' and '0011'.
-char *binaryPadding(char *charBinary, int binaryLength, int intBinaryGreatOne) {
+char *binaryPadding(char charBinary[], int binaryLength, int intBinaryGreatOne) {
   // The returned char[] is the length of the longest plus 2 for extra '0' and null terminator.
   char *charBinaryPadding = malloc((intBinaryGreatOne + 2) * sizeof(char));
   strcpy(charBinaryPadding, "a");
@@ -174,12 +176,13 @@ char *binaryInvert(char *binaryTwoPadding, int intBinaryGreatOne) {
       binaryTwoNegative[i] = '0';
     }
     else {
-      // Logs an error message if neither of the inputs are '1' or '0'.
-      char *errorMessage = malloc(47 * sizeof(char));
-      strcpy(errorMessage, "Error: binaryTwoInvert() inputs neither 1 or 0");
+      //char *errorMessage = malloc(47 * sizeof(char));
+      //strcpy(errorMessage, "Error: binaryTwoInvert() inputs neither 1 or 0");
+      char errorMessage[47] =  "Error: binaryTwoInvert() inputs neither 1 or 0";
       printf("%s", errorMessage);
-      //fileLog(errorMessage);
-      free(errorMessage);
+      int fileCheck = fileLogCheck();
+      fileLog(errorMessage, fileCheck);
+      // free(errorMessage);
     }
     i++;
   }

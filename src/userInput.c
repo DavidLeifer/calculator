@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-
 #include "struct.h"
 #include "utility.h"
 #include "binaryChar.h"
@@ -30,10 +29,19 @@ struct threeInt inputFormat(char input[]) {
   // the user presses 'enter' regardless of formating.
   //char charNumberOne[4] = {0};
   //char charNumberTwo[4] = {0};
-  char *charNumberOne = malloc(4 * sizeof(char));
-  char *charNumberTwo = malloc(4 * sizeof(char));
+  //char *charNumberOne = malloc(4 * sizeof(char));
+  //char *charNumberTwo = malloc(4 * sizeof(char));
+  char charNumberOne[4]; //= malloc(4 * sizeof(char));
+  char charNumberTwo[4]; //= malloc(4 * sizeof(char));
+  charNumberTwo[4] = '\0';
   // char pointerArithmatic[3] = {0};
   char *arithmaticO = malloc(3 * sizeof(char));
+  // 'malloc()' contains random data that could be the literal null-terminator 0
+  // and is instead set to the ASCII character 48 or '0'.
+  arithmaticO[0] = '0';
+  //arithmaticO[1] = '0';
+  //arithmaticO[2] = '0';
+  //arithmaticO[3] = '0';
   int i = 0;
   int j = 0;
   int m = 0;
@@ -42,10 +50,41 @@ struct threeInt inputFormat(char input[]) {
   int intNumberOneLength = 0;
   while (input[i] != '\0') {
     if (input[i] != ' ') {
-      // ASCii if it's an int char, set charNumberOne to those integers.
+      // ASCii if it's an int char, set charNumberTwo to those integers.
       if ( (input[i] > 47) && (input[i] < 58) ) {
+        //printf("input[i]  %c  sizeof(charNumberOne) %d  'intNumberTwo' %d\n", input[i], sizeof(charNumberOne), intNumberTwoLength);
         // charNumberTwo[] when arithmaticO[] is not empty.
-        if ( arithmaticO[0] != '\0' ) {
+
+        // The code is confusing since english text reads from top to bottom.
+        // The 'charNumberTwo' "if" is placed before the 'charNumberOne' "else if"
+        // based on three assumptions:
+        // 0) The second number 'charNumberTwo' already has a null-terminator in the [4] position (or
+        //    the 5th character) in the array and is explicitly stated with the "else if".
+        // 1) The order of 'input[i]' reads the first number from top to bottom.
+        // 2) The first "if" has not found a 48 or '0' at 'arithmatic[0]' which is the second
+        //    pointer char[] being extracted in this loop.
+        // The char[] pointer with 'malloc()' without 'strcpy()' contains random data without the
+        // character version of a null-terminator '\0' instead of ASCII version: 0. A regular char[]
+        // also does this but can't be returned in functions and is why 'arithmatic0' is a pointer char[].
+        // The other two 'char[]' are not pointers since they are used in 'charBinary2Int()' and that
+        // function returns a different 'malloc()' pointer array.
+
+        if ( arithmaticO[0] != '0' ) {
+          charNumberTwo[m] = input[i];
+          m++;
+          intNumberTwoLength = m;
+          charNumberTwo[intNumberTwoLength] = '\0';
+        }
+        // 'charNumberOne' when 'charNumberTwo[4]' is the null-terminator .
+        else if ( charNumberTwo[4] == '\0' ) {
+          charNumberOne[j] = input[i];
+          j++;
+          intNumberOneLength = j;
+        }
+        /*
+        // The version with pointers.
+        // charNumberTwo[] when arithmaticO[] is not empty.
+        if ( arithmaticO[0] != '\0') {
           charNumberTwo[m] = input[i];
           m++;
           intNumberTwoLength = m;
@@ -56,6 +95,7 @@ struct threeInt inputFormat(char input[]) {
           j++;
           intNumberOneLength = j;
         }
+        */
       }
       // Exponents
       if ((input[i] == 42) && (input[i+1] == 42)) {
@@ -90,7 +130,7 @@ struct threeInt inputFormat(char input[]) {
       }
       // Didnt work after an update and then compiled with this and the last else{}
       else {
-        int foo = 0;
+        // int foo = 0;
       }
     }
     else {
@@ -108,7 +148,8 @@ struct threeInt inputFormat(char input[]) {
   intNumberOneLength--;
   intNumberTwoLength--;
   // Convert 'charNumberOne' and 'charNumberTwo' to int with function from 'binaryChar.c'.
-  // Why are these not pointers and read in the other function? arithmaticO has to be specifically defined.
+  ///////////////////////////////////////////////////////////////////////////////////////
+
   int numberOne = charBinary2Int(charNumberOne, intNumberOneLength);
   int numberTwo = charBinary2Int(charNumberTwo, intNumberTwoLength);
   struct threeInt output;
@@ -122,35 +163,36 @@ struct threeInt inputFormat(char input[]) {
   return output;
 }
 
-// Prints the answer to arithmatic input. Sends the answer to .log file in 'logFile.c'.
+// Prints the answer from 'inputFormat()'. Sends the answer to .log file with 'logFile()'.
 char* inputArithmatic(struct threeInt inputFormatted) {
 
   int numberOne = inputFormatted.one;
   int numberTwo = inputFormatted.two;
   int answer = 0;
-  char *arithmaticO = inputFormatted.string;
+  //char *arithmaticO = inputFormatted.string;
+
   // Exponents
-  if (arithmaticO[0] == 42 && arithmaticO[1] == 42 && arithmaticO[2] == '\0') {
+  if (inputFormatted.string[0] == 42 && inputFormatted.string[1] == 42 && inputFormatted.string[2] == '\0') {
     answer = exponents(numberOne, numberTwo);
     printf("%d ** %d = %d\n", numberOne, numberTwo, answer);
   }
   // Multiplication
-  else if (arithmaticO[0] == 42 && arithmaticO[1] == '\0') {
+  else if (inputFormatted.string[0] == 42 && inputFormatted.string[1] == '\0') {
     answer = multiplication(numberOne, numberTwo);
-    // printf("%d * %d = %d\n", numberOne, numberTwo, answer);
+    //printf("%d * %d = %d\n", numberOne, numberTwo, answer);
   }
   // Addition
-  else if (arithmaticO[0] == 43 && arithmaticO[1] == '\0') {
+  else if (inputFormatted.string[0] == 43 && inputFormatted.string[1] == '\0') {
     answer = addition(numberOne, numberTwo);
     printf("%d + %d = %d\n", numberOne, numberTwo, answer);
   }
   // Subtraction
-  else if (arithmaticO[0] == 45 && arithmaticO[1] == '\0') {
+  else if (inputFormatted.string[0] == 45 && inputFormatted.string[1] == '\0') {
     answer = subtraction(numberOne, numberTwo);
     printf("%d - %d = %d\n", numberOne, numberTwo, answer);
   }
   // Division
-  else if (arithmaticO[0] == 47 && arithmaticO[1] == '\0') {
+  else if (inputFormatted.string[0] == 47 && inputFormatted.string[1] == '\0') {
     answer = division(numberOne, numberTwo);
     // printf("%d / %d = %d\n", numberOne, numberTwo, answer);
   }
@@ -158,7 +200,7 @@ char* inputArithmatic(struct threeInt inputFormatted) {
     printf("Error: bad input.\n");
   }
   // The malloc string from 'inputFormat()'.
-  free(arithmaticO);
+  //free(arithmaticO);
   // printf("inputArithmatic:  %d %s %d = %d\n", numberOne, arithmaticO, numberTwo, answer);
 
   // Find length of answer.
@@ -175,7 +217,7 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   return output;
 }
 
-// Opens a the .log file to see if it returns NULL or already exists and returns the boolean.
+// Opens the .log file to see if it returns NULL or already exists and returns the boolean.
 int fileLogCheck() {
   int fileCheck = 0;
 
@@ -228,19 +270,28 @@ struct threeInt dateTime(int logCheck) {
   }
   else {
     // If '.log' doesn't exist, append the version, header, and date.
-    // Appends the document header and version.
-    char *mallocVersion = malloc(24 * sizeof(char));
-    strcpy(mallocVersion, version);
-    struct threeInt userInputVersion = charAppend(userInputFormatted, 0, mallocVersion, 24, 1);
-    // Free all the malloc data.
-    free(mallocVersion);
+    // Appends the document header and version. 'version' is a const
+    // and is reassigned to reuse 'charAppend()' in "utility.c".
+    //char *mallocVersion = malloc(24 * sizeof(char));
+    //strcpy(mallocVersion, version);
+    char notConstVersion[24];
+    int i = 0;
+    while (version[i] != '\0') {
+      notConstVersion[i] = version[i];
+      i++;
+    }
+    notConstVersion[i] = '\0';
+    struct threeInt userInputVersion = charAppend(userInputFormatted, 0, notConstVersion, 24, 1);
+    // Free the 'mallocVersion' data.
+    //free(mallocVersion);
 
-    char header[12] = " Log File\n\n";
-    char *mallocHeader = malloc(12 * sizeof(char));
-    strcpy(mallocHeader, header);
-    struct threeInt userInputHeader = charAppend(userInputVersion.string, userInputVersion.one, mallocHeader, 12, 0);
+    char header[10] = "Log File\n\n";
+    //char *mallocHeader = malloc(12 * sizeof(char));
+    //strcpy(mallocHeader, header);
+    //struct threeInt userInputHeader = charAppend(userInputVersion.string, userInputVersion.one, mallocHeader, 12, 0);
+    struct threeInt userInputHeader = charAppend(userInputVersion.string, userInputVersion.one, header, 10, 0);
     free(userInputVersion.string);
-    free(mallocHeader);
+    //free(mallocHeader);
     // printf("userInputHeader = %s\n", userInputHeader.string);
 
     userInputDate = charAppend(userInputHeader.string, userInputHeader.one, date, 11, 1);
@@ -269,11 +320,14 @@ struct threeInt manualInput(struct threeInt userInputTime, char *strUserInput, c
   struct threeInt userInputInput = charAppend(userInputTime.string, userInputTime.one, strUserInput, 13, 1);
 
   // Append the equal sign and answer.
-  char *charEqual = malloc(2 * sizeof(char));
-  strcpy(charEqual, "=");
+  //char *charEqual = malloc(2 * sizeof(char));
+  //strcpy(charEqual, "=");
+  char charEqual[2];
+  charEqual[0] = '=';
+  charEqual[1] = '\0';
   struct threeInt userInputEqual = charAppend(userInputInput.string, userInputInput.one, charEqual, 1, 1);
   free(userInputInput.string);
-  free(charEqual);
+  //free(charEqual);
 
   struct threeInt userInputAnswer = charAppend(userInputEqual.string, userInputEqual.one, answer, 5, 0);
   //printf("charAppend:  %s\n\n", userInputAnswer.string);

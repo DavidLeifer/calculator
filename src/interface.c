@@ -1,7 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
-
 #include "struct.h"
 #include "interface.h"
 #include "utility.h"
@@ -17,9 +16,9 @@ struct threeInt userOutput(char *strUserInput) {
   char *answer = outputArithmatic(strUserInput);
   // Check to see if the file exists and format the date and time identification.
   int logCheck = fileLogCheck();
-
   struct threeInt userInputTime = dateTime(logCheck);
   // Appends the date, time, user input and answer into one char[].
+  // 'userInputAnswer' 'free()' in 'manualInput()' from "userInput()".
   struct threeInt userInputAnswer = manualInput(userInputTime, strUserInput, answer);
   free(userInputTime.string);
   free(strUserInput);
@@ -34,6 +33,7 @@ void textUI() {
   // User input with 'scanf()'.
   char *strUserInput = charUserInput();
   struct threeInt userInputAnswer = userOutput(strUserInput);
+  // 'userInputAnswer.string' 'free()' in 'fileLog' from "userInput.c"
   fileLog(userInputAnswer.string, userInputAnswer.two);
 }
 
@@ -76,17 +76,25 @@ int test(int small, int large, int mid, int longPrint) {
           free(structSmall.string);
           free(structSmallTwo.string);
           // Appends the char[] numbers, arithmatic, equals sign, and answer and send to 'fileLog()'.
-          char *mallocUserInput = malloc(13 * sizeof(char));
-          struct threeInt strUserSmall = charAppend(mallocUserInput, 0, charSmall, 4, 1);
+          //char *mallocUserInput = malloc(13 * sizeof(char));
+          //strcpy(mallocUserInput, "a");
+          int charSmallLength = charLength(charSmall) - 1;
+          //struct threeInt strUserSmall = charAppend(mallocUserInput, 1, charSmall, 4, 1);
+          //free(mallocUserInput);
+          ///////////////////////////////////////////////////////////
+          // hard to test() without altering "binaryChar.c"
+          // char mallocArithmatic[3] = "+++\0";
           char *mallocArithmatic = malloc(3 * sizeof(char));
           strcpy(mallocArithmatic, "+");
-          struct threeInt strUserArithmatic = charAppend(strUserSmall.string, strUserSmall.one, mallocArithmatic, 1, 1);
-          free(strUserSmall.string);
+          ///////////////////////////////////////////////////////////
+          //struct threeInt strUserArithmatic = charAppend(strUserSmall.string, strUserSmall.one, mallocArithmatic, 1, 1);
+          struct threeInt strUserArithmatic = charAppend(charSmall, charSmallLength, mallocArithmatic, 1, 1);
+          //free(strUserSmall.string);
           free(mallocArithmatic);
           struct threeInt strUserSmallTwo = charAppend(strUserArithmatic.string, strUserArithmatic.one, charSmallTwo, 4, 0);
+          //printf("aa %s \n", strUserSmallTwo.string);
           struct threeInt userInputAnswer = userOutput(strUserSmallTwo.string);
           //printf("%s realSum %d\n", userInputAnswer.string, realSum);
-
           fileLog(userInputAnswer.string, userInputAnswer.two);
         }
       }
@@ -103,9 +111,8 @@ int test(int small, int large, int mid, int longPrint) {
 }
 
 int interface(int argc, char *argv){
-  // printf("aaa %s\n", argv);
   // Allows for user designated input i.e. '-help', '-h', 'test', 't', longTest, 'lt', etc.
-  int i = 0;
+  int i = 1;
   // Find the length of the input.
   while (argv[i] != '\0') {
     i++;
@@ -118,7 +125,6 @@ int interface(int argc, char *argv){
   }
   else if ((argv[1] == 't' && i == 5) || (argv[1] == 't' && i == 2)) {
     // Short test output.
-    printf("bad\n");
     int small = 0;
     int large = 200;
     int mid = 200;

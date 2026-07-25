@@ -1,15 +1,6 @@
 #ifndef BINARYCHAR_H
 #define BINARYCHAR_H
 
-// int and char structure.
-/*
-struct threeInt {
-  int one;
-  int two;
-  int three;
-  char *string;
-};
-*/
 // Define functions in header and binaryFunctions.c.
 // W3 schools wasn't specific it said 'gaurd'.
 

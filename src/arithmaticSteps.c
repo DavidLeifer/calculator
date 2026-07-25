@@ -6,6 +6,7 @@
 #include "binaryChar.h"
 #include "arithmatic.h"
 #include "arithmaticSteps.h"
+#include "userInput.h"
 
 // Input to the power of number.
 int exponents(int base, int exponent) {
@@ -21,7 +22,7 @@ int exponents(int base, int exponent) {
 
 int addition(int integerOne, int integerTwo) {
   // Input decimal int, output binary.
-  // Doesnt work when the sum > 2000 since int has limit ~2,000,,000,000.
+  // Doesnt work when the sum > 200 since char has limit ~2,000,000,000.
   // and the 'intBinary2Char' uses 'shift*10' to convert int to char.
   // int integerOne = 4;
   // int integerTwo = 3;
@@ -49,12 +50,13 @@ int addition(int integerOne, int integerTwo) {
 // Inputs two integers between '0-200' and returns the difference.
 int subtraction(int integerOne, int integerTwo) {
   if (integerOne < integerTwo) {
-    // Logs an error message if neither of the inputs are '1' or '0'.
-    char *errorMessage = malloc(76 * sizeof(char));
-    strcpy(errorMessage, "Error: difference is negative, first number has to be >= the second number\n");
-    //printf("%s", errorMessage);
-    //fileLog(errorMessage);
-    free(errorMessage);
+    //char *errorMessage = malloc(47 * sizeof(char));
+    //strcpy(errorMessage, "Error: binaryTwoInvert() inputs neither 1 or 0");
+    char errorMessage[76] =  "Error: difference is negative, first number has to be >= the second number\n";
+    printf("%s", errorMessage);
+    int fileCheck = fileLogCheck();
+    fileLog(errorMessage, fileCheck);
+    // free(errorMessage);
   }
   /*
   internet says computers don't have a subtraction sign to use the
@@ -111,8 +113,16 @@ int subtraction(int integerOne, int integerTwo) {
   intBinaryGreat2.one = intBinaryGreat.one + 1;
   intBinaryGreat2.two = 0;
   intBinaryGreat2.three = 0;
-  char *binaryPlusOne = malloc((intBinaryGreat2.one) * sizeof(char));
-  strcpy(binaryPlusOne, "1");
+  // char *binaryPlusOne = malloc((intBinaryGreat2.one) * sizeof(char));
+  // strcpy(binaryPlusOne, "1");
+  // binaryPlusOne = "1 * intBinaryGreat2.one";
+  char binaryPlusOne[intBinaryGreat2.one];
+  int i = 0;
+  while (i < intBinaryGreat2.one) {
+    binaryPlusOne[i] = '1';
+    i++;
+  }
+  binaryPlusOne[i] = '\0';
   char *binaryPlusOnePadding = binaryPadding(binaryPlusOne, 1, intBinaryGreat.one);
   struct threeInt binaryInvertPlus = binaryAddition(binaryPlusOnePadding, binaryTwoInvert, intBinaryGreat2);
   // printf("binaryInvertPlus: %s\n", binaryInvertPlus.string);

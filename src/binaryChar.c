@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-
 #include "struct.h"
 #include "binaryChar.h"
 #include "arithmaticSteps.h"
@@ -169,7 +168,7 @@ int binary2Decimal(char charBinaryAdd[], int binaryAddOne) {
 }
 
 // This step is not needed in 'addition()' since binary2Decimal() accesses each binary digit as a char[].
-// Also used in "userInput.c". It wasn't accurate in "arithmatic.c" 'addition()' since
+// Used in "userInput.c". It wasn't accurate in "arithmatic.c" 'addition()' since
 // it used the input of longest binary int and not the length of the binary sum.
 // Convert char[] binary to int binary.
 // Internet uses bitwise left shift and OR in a loop.
@@ -183,10 +182,13 @@ int charBinary2Int(char binaryAdd[], int binaryAddLength) {
   while (i < j) {
     // intBinaryPlus is multiplied by 10 to make room for each digit from the char[] iteration.
     intBinaryPlus = (intBinaryPlus * 10) + (binaryAdd[i] - '0');
-    // printf("%d  binary:  %c  intBinaryPlus:  %d\n", i, binaryAdd[i], intBinaryPlus);
+    //printf("%d  binary:  %c  intBinaryPlus:  %d\n", i, binaryAdd[i], intBinaryPlus);
     i++;
   }
-  free(binaryAdd);
+  // Pointer before it was revealed that non-pointers could be sent to functions if
+  // they weren't returned.
+  // free(binaryAdd);
+
   // The internet suggested to calculate log10 of the number to find the length
   // (which was calculated before) and proceed with the following steps.
   // Writing a log(n) function would reduce memory storage each time the length struct is
