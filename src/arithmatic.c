@@ -13,7 +13,7 @@
 
 // Inputs are two binary as char[] and results from 'intBinaryCheck()'.
 // Output the sum as a binary char[] with the length.
-struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeInt intBinaryGreat) {
+struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeInt intBinaryGreat, int freeCheck) {
   // 'intBinaryGreat.one' length of longest binary char[];
   int i = intBinaryGreat.one - 1;
   // 'j' is the length of 'binarySum[]'.
@@ -116,8 +116,20 @@ struct threeInt binaryAddition(char binaryOne[], char binaryTwo[], struct threeI
     j++;
     i--;
   }
-  free(binaryOne);
-  free(binaryTwo);
+  // 'freeCheck' determines if 'binaryOne' or 'binaryTwo' or both allocated char[] are 'free()'.
+  if (freeCheck == 1) {
+    free(binaryOne);
+  }
+  else if (freeCheck == 2) {
+    free(binaryTwo);
+  }
+  else if (freeCheck == 3) {
+    free(binaryOne);
+    free(binaryTwo);
+  }
+  // 20260803
+  //free(binaryOne);
+  //free(binaryTwo);
   // printf("%s + %s = %s\n", binaryOne, binaryTwo, binarySum);
   // Null terminate the char[].
   binarySum[j] = '\0';

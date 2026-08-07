@@ -119,6 +119,7 @@ char* intBinary2Char(struct threeInt intZerosBinary) {
 }
 
 // Returns length of the longest binary digits, difference, and check value used in binaryAddition().
+// Setting 'output.string' does not add memory to the heap and doesn't have to use 'free()'.
 struct threeInt intBinaryCheck(struct threeInt intBinaryOne, struct threeInt intBinaryTwo) {
   struct threeInt output;
   // int intBinaryLength = 0;

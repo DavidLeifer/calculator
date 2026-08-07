@@ -179,7 +179,7 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   // Multiplication
   else if (inputFormatted.string[0] == 42 && inputFormatted.string[1] == '\0') {
     answer = multiplication(numberOne, numberTwo);
-    //printf("%d * %d = %d\n", numberOne, numberTwo, answer);
+    printf("%d * %d = %d\n", numberOne, numberTwo, answer);
   }
   // Addition
   else if (inputFormatted.string[0] == 43 && inputFormatted.string[1] == '\0') {
