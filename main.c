@@ -37,9 +37,7 @@ Notes
             - 'charAppend()' in "utility.c" 'strcpy()' was commented out but it might break stuff later.
 
 todo
-  - multiplication, division.
-    - line 521 - 584: reduce times this is set:
-      diffrence 'intBinaryGreatTwo.two = 1' and (first input is longer) 'intBinaryGreatTwo.three = 1'
+  - division
   - "window.c" GUI.
 
 minor todo
@@ -64,6 +62,19 @@ minor todo
       // or use the function since 'struct threeInt intBinaryGreatThree' has a blank char[] pointer on heap the entire while loop
       // in addition to 'struct threeInt binaryAdd' which also exists the entire time.
       // 'binaryAdd.string' and either 'zeroStep' or 'oneStep' are the same length
+  - multiplication 'test()' since it's only tested with these numbers:
+  //printf("-lt\n");
+  // Long print tests addition but 'interface()' expects a length of 0-4 char.
+  // printf("Addition tests:\n");
+  // int intInterface = interface(argc, "-lt\0");
+  //int testOne = 21; // last row has a '?' at the end
+  //int testTwo = 10;
+  //int testOne = 15;
+  //int testTwo = 11;
+  //int testOne = 1;
+  //int testTwo = 9;
+  //int outputMultiplication =  multiplication(testOne, testTwo);
+  //printf("output: %d\n", outputMultiplication);
 
 
 */
@@ -83,23 +94,11 @@ int main(int argc, char *argv[4]) {
   int pathLength = charLength(path);
   char *mallocPath = malloc(pathLength * sizeof(char));
   strcpy(mallocPath, path);
-  //int connect = serverConnect(mallocPath);
-  //printf("-lt\n");
-  // Long print tests addition but 'interface()' expects a length of 0-4 char.
-  // printf("Addition tests:\n");
-  // int intInterface = interface(argc, "-lt\0");
-  //int testOne = 21; // last row has a '?' at the end
-  //int testTwo = 10;
-  //int testOne = 15;
-  //int testTwo = 11;
-  //int testOne = 1;
-  //int testTwo = 9;
-  //int outputMultiplication =  multiplication(testOne, testTwo);
-  // The CLI
-  // The calculator text GUI is shown if terminal doesn't ask for help.
+  int connect = serverConnect(mallocPath);
+  // The calculator CLI aka text GUI is shown if terminal doesn't ask for help.
   // change to ask for '-c' or something similar after the GUI.
   if (argc == 1) {
-    textUI();
+    //textUI();
     return 1;
   }
   else {
