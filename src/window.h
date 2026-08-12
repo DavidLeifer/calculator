@@ -7,10 +7,12 @@ char* openAuthority(char charAuthorityPath[]);
 
 int getScreenOffset(char readSock[]);
 
-char* getParentWindowID(char readSock[], int screenOffset);
+struct fourInt getWindowID(char readSock[]);
 
-char* getWindowID(char readSock[]);
+struct fourInt getParentWindowID(char readSock[], int screenOffset);
 
-char* getVisualID(char readSock[], int screenOffset);
+struct fourInt getVisualID(char readSock[], int screenOffset);
+
+int serverConnect(char userPath[]);
 
 #endif
