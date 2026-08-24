@@ -27,6 +27,8 @@
   2) Connection handshake with 'write()' and '.Xauthority' data to bypass GUI security.
   3) Reads the response and extracts the window ID and base resource ID.
   4) Formats a request to draw a window.
+     - Opcode 1, 2, 14, 8.
+
 
 */
 
@@ -153,7 +155,7 @@ int getScreenOffset(char *readSock) {
   // rounded down to a multiple of four. 'vendorRound' should be '20'.
 
   int vendorRound = (vendorLength + 3) & ~3;
-  printf("vendor length multiple of 4 bytes = %d\n", vendorRound);
+  //printf("vendor length multiple of 4 bytes = %d\n", vendorRound);
   // 'readSock[29]' is minus '8' to account for the first 'read()' that's
   // used to calculate the remaining bytes in the socket 'write()'.
   // The times '8' is unrelated.
@@ -184,7 +186,67 @@ struct fourInt getWindowID(char *readSock) {
   return windowID;
 }
 
-// 2b) Functions to exchange identification data with X11 GUI.
+// 2b) 'gcID' function is used in ''
+//     'write()' requests i.e. asdf.
+struct fourInt getGCID(char *readSock, struct fourInt windowID) {
+  struct fourInt gcID;
+  gcID.one = readSock[4] + 2;
+  gcID.two = readSock[5];
+  gcID.three = readSock[6];
+  gcID.four = readSock[7];
+
+  // The internet did not want to answer this question:
+  // The 'resource_id_mask' (windowID) and 'resource_id_base' is the first char[]
+  // response. Since the first char[8] captures the first 8 elements, the values are
+  // are 'readSock - 8'. You could not use 'windowID' to save 4 bytes but it is less clear.
+  //         Blank char[] readSock[4]-[7]  readSock[0]-[3]
+
+  // the setup for ID might be more complciated later on.
+  // base - this is used as the windowID but computer said not to.
+  //printf("gcID 1-4: %d  %d  %d  %d\n", readSock[0], readSock[1], readSock[2], readSock[3]);
+  //int id_base = 12143104;  // 12,143,104 (readSock 0-4)
+  //int id_mask = 111303168; // 111,303,168 (readSock 4-7)
+
+  //int min_val = id_base | 1;
+  //int max_val = id_base | id_mask;
+  //printf("id_base: %d  id_mask: %d  min_val: %d  max_val: %d\n", id_base, id_mask, min_val, max_val);
+  // min_val: 12,143,105  max_val: 112,941,568
+  //printf("windowID 1-4: %d  %d  %d  %d\n", windowID.one, windowID.two, windowID.three, windowID.four);
+
+  // acceptable range might be between 2 - 4 million
+  //printf("gcID 1-4: %d  %d  %d  %d\n", readSock[0], readSock[1], readSock[2], readSock[3]);
+
+  /*
+  // The provided example increments the gcID for other graphic changing. Or you could + 1
+  // and manually calculate if there is an overflow.
+  // 'windowID' is 12-15 from the 'read()' char[] but the first 'read()'
+  // length is '8'. (minus 8 elements).
+  // Bytes 12–15: resource_id_mask.
+  // Bytes 8–11: resource_id_base.
+  unsigned char counter[4];
+  // & bitwise compares each bit and sets to '1' only if both are '1'.
+  // | bitwise compares each bit and sets to '1' if either are '1'.
+  gcID.one = (counter[0] & windowID.one) | readSock[0];
+  gcID.two = (counter[1] & windowID.two) | readSock[1];
+  gcID.three = (counter[2] & windowID.three) | readSock[2];
+  gcID.four = (counter[3] & windowID.four) | readSock[3];
+  // Helper function to increment a 4-byte array like a standard integer (handles carrying)
+  void increment_counter_array(unsigned char *counter) {
+    if (++counter[0] == 0) {       // If byte 0 overflows, carry to byte 1
+        if (++counter[1] == 0) {   // If byte 1 overflows, carry to byte 2
+            if (++counter[2] == 0) {
+                ++counter[3];      // Carry to byte 3
+            }
+        }
+    }
+  }
+  increment_counter_array(x11_counter);
+  */
+
+  return gcID;
+}
+
+// 2c) Functions to exchange identification data with X11 GUI.
 //     'parentWindowID' is used with 'createWindowBuffer' in "drawWindow()".
 struct fourInt getParentWindowID(char *readSock, int screenOffset) {
   struct fourInt parentWindowID;
@@ -195,7 +257,7 @@ struct fourInt getParentWindowID(char *readSock, int screenOffset) {
   return parentWindowID;
 }
 
-// 2c) Used in 'createWindowBuffer'.
+// 2d) Used in 'createWindowBuffer'.
 struct fourInt getVisualID(char *readSock, int screenOffset) {
   int visualScreenOffset = screenOffset + 32;
   struct fourInt visualID;
@@ -207,19 +269,36 @@ struct fourInt getVisualID(char *readSock, int screenOffset) {
   return visualID;
 }
 
-// 'drawWindow()' is called after steps 0-3 in 'serverConnect()' and input is the char[]
-// containing window and root information from the socket connection's 'read()'.
-// 4) Uses the window and root ID to send a packet containing window
-//    drawing information to 'X11'.
-// 5) Construct and send the MapWindow packet (Opcode 8).
-void drawWindow(struct fourInt windowID, struct fourInt parentWindowID, struct fourInt visualID) {
+// 'drawWindow()' is called after steps 0-3 in 'serverConnect()' and input is several struct
+// containing windowID information from the initial socket connection's 'read()' in 'serverConnect()'.
+// 4) Uses window, parent ID, and manipulates the signed/unsigned char[] minimum with
+// byte encoding to send packets containing window drawing information to the 'X11' server.
+// Opcode 1, 2, 14
+// createWindowBuffer, changeWindowAttributes, getGeometry
+
+// 55, 70
+
+// 5) Opcode 8 - send 'MapWindowBuffer' - char[] to draw the window with the above listed attributes.
+// 6) Continuous while loop asking for user input with the 'X11' keyboard codes replaced with ASCII.
+
+//    todo - 0-9 buttons Opcode 55 - 'PolyFillRectangle' - needs the dimensions of the window
+//           since the window opens depending on the window manager (which can be disabled but also
+//           removes the exit, window title, etc.)
+
+//    todo - keyboard input display text box
+//    todo - arithmatic buttons (todo - division)
+
+// unsigned char is  0 - 255
+// signed char is -127 - 127
+
+void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt parentWindowID, struct fourInt visualID) {
   // 4) Construct the CreateWindow packet (Opcode 1)
   unsigned char createWindowBuffer[32];
-  // Kept everything 8-bit to reduce padding issue, I think you use regular decimals.
+  // You can use regular decimals but input is 8-bit to retain > 256 binary.
   // '0b' doesn't count as a bit.
   // Opcode '1' = CreateWindow
   createWindowBuffer[0] = 0b00000001;
-  createWindowBuffer[1] = 0;
+  createWindowBuffer[1] = 0; // original value: 0 // suggested "Depth must match visualID depth (24 or 32)"
   // Request length low byte: 8 words total (8 * 4 = 32 bytes)
   createWindowBuffer[2] = 0b00001000;
   createWindowBuffer[3] = 0;
@@ -233,15 +312,11 @@ void drawWindow(struct fourInt windowID, struct fourInt parentWindowID, struct f
   createWindowBuffer[9] = parentWindowID.two;
   createWindowBuffer[10] = parentWindowID.three;
   createWindowBuffer[11] = parentWindowID.four;
-  // Setting X
-  //createWindowBuffer[12] = 0b11111010;
-  // 250
+  // Setting X from left to right
   createWindowBuffer[12] = 0;
-  createWindowBuffer[13] = 0;
-  // Setting Y
-  // 250
-  //createWindowBuffer[14] = 0b11111010;
-  createWindowBuffer[14] = 0;
+  createWindowBuffer[13] = 0b00000100; // 4 X 256 maybe
+  // Setting Y from top to bottom
+  createWindowBuffer[14] = 0b11111010; // 250 X 1
   createWindowBuffer[15] = 0;
   // Width 128 + (2 * 256) = 640;
   createWindowBuffer[16] = 0b10000000;
@@ -270,13 +345,13 @@ void drawWindow(struct fourInt windowID, struct fourInt parentWindowID, struct f
   createWindowBuffer[31] = 0;
   //createWindowBuffer[32] = '\0';
 
-  // There's more explaination in latest window .c in the folder
-  // '/windowStruct', the getID functions were changed to
-  // not use char[] and heap memory and stopped working
-  // when the window manager is disabled in 'createWindowBuffer'.
+  /*
+  (Note: If you plan to use CWOverrideRedirect, your Request Length needs to change to 9, your value mask at byte 28 needs to be 0x00000200, and you must append 4 more bytes containing the value 1 at the end of the buffer).
 
-  // Maximum unsigned char array decimal is 128.
-  // But little-endian byte-ordering allows larger numbers with
+  */
+  // Maximum signed char array decimal is '-127 through 127'.
+  // unsigned is '0 through 256'
+  // little-endian byte-ordering allows larger numbers with
   // four 1-byte elements representing a 32 bit integer.
   //        [28] 128               =  128     +
   //        [29] 62 ( * 256)       =  15872   +
@@ -326,66 +401,149 @@ void drawWindow(struct fourInt windowID, struct fourInt parentWindowID, struct f
   changeWindowAttributes[1] = 0;              //
   changeWindowAttributes[2] = 0b00000101;     // Request length ( n / 4)
   changeWindowAttributes[3] = 0;
+
   changeWindowAttributes[4] = windowID.one;
   changeWindowAttributes[5] = windowID.two;
   changeWindowAttributes[6] = windowID.three;
   changeWindowAttributes[7] = windowID.four;
-  changeWindowAttributes[8] = 0b00000010;     // 2 CWBackPixel   - the background - defines which attributes are being altered.
+
+  changeWindowAttributes[8] = 0b00000010;     // 2 CWBackPixel   - the background - defines which attributes are being>
   changeWindowAttributes[9] = 0b00001000;     // 8 CWBorderPixel - na
   changeWindowAttributes[10] = 0;
   changeWindowAttributes[11] = 0;
-  changeWindowAttributes[12] = 0b11011100;    // B Background color.
+
+  changeWindowAttributes[12] = 0b11011100;    // B  Background color.
   changeWindowAttributes[13] = 0b11011100;    // G
   changeWindowAttributes[14] = 0b11011100;    // R
-  changeWindowAttributes[15] = 0;
+  changeWindowAttributes[15] = 0;             //
   // Input Value List - The Event Mask (4 bytes, Little-Endian)
   // KeyPress + KeyRelease + ButtonPress + ButtonRelease + PointerMotion
   // Combined Input Mask (79)
   // KeyPress (0x00000001) + KeyRelease (0x00000002) = 0x00000003
   // ButtonPress (0x00000004) + ButtonRelease (0x00000008) = 0x0000000C
   // PointerMotion (Mouse movement) = 0x00000040
-  changeWindowAttributes[16] = 0b01001111;    // Key press: 1 "to listen for key presses and window exposure at the same time"
-  changeWindowAttributes[17] = 0;
+  //changeWindowAttributes[16] = 0b01001111;
+  //                           = 0;
+  //                           ... etc
+  // + the 'Expose' redraw event is 0x800D or '32781'
+  // 0D, 80
+  // 13, 128
+  changeWindowAttributes[16] = 13;
+  changeWindowAttributes[17] = 128;
   changeWindowAttributes[18] = 0;
   changeWindowAttributes[19] = 0;
 
-  /*
-  changeWindowAttributes[16] = 0b00000001;    // Key press: 1 "to listen for key presses and window exposure at the same time"
-  changeWindowAttributes[17] = 0b00001000;    // 0b10000000; Event exposure - 128
-  changeWindowAttributes[18] = 0;
-  changeWindowAttributes[19] = 0;
+  // 4) 'CWOverrideRedirect' using 'ChangeWindowAttributes'
+  unsigned char overrideRedirect[16];
+  overrideRedirect[0] = 0b00000010;           // Opcode 2 (ChangeWindowAttributes)
+  overrideRedirect[1] = 0;
+  overrideRedirect[2] = 0b00000100;           // Length = 4 words 16
+  overrideRedirect[3] = 0;
+  overrideRedirect[4] = windowID.one;
+  overrideRedirect[5] = windowID.two;
+  overrideRedirect[6] = windowID.three;
+  overrideRedirect[7] = windowID.four;
+  overrideRedirect[8] = 0;                    // Value Mask 0 X 1
+  overrideRedirect[9] = 0b00000010;           //          512 X 2 (CWOverrideRedirect flag)
+  overrideRedirect[10] = 0;
+  overrideRedirect[11] = 0;
+  overrideRedirect[12] = 0b00000001;          // CWOverrideRedirect value is '1' - bypasses window manager.
+  overrideRedirect[13] = 0;
+  overrideRedirect[14] = 0;
+  overrideRedirect[15] = 0;
 
-  unsigned char captureWindowInput[16];
-  captureWindowInput[0] = 0b00000010;     // Opcode 2 (ChangeWindowAttributes)
-  captureWindowInput[1] = 0;              // Pad byte
-  captureWindowInput[2] = 0b00000100;     // Length: 4 words total (16 bytes)
-  captureWindowInput[3] = 0;              // Length high byte
-  captureWindowInput[4] = windowID.one;
-  captureWindowInput[5] = windowID.two;
-  captureWindowInput[6] = windowID.three;
-  captureWindowInput[7] = windowID.four;
-  // Attribute Mask (4 bytes, Little-Endian)
-  captureWindowInput[8] = 0;          // Mask: 0x00000800 (CWEventMask flag)
-  captureWindowInput[9] = 0b00001000; // 8
-  captureWindowInput[10] = 0;
-  captureWindowInput[11] = 0;
-  // Input Value List - The Event Mask (4 bytes, Little-Endian)
-  // KeyPress + KeyRelease + ButtonPress + ButtonRelease + PointerMotion
-  // Combined Input Mask (79)
-  // KeyPress (0x00000001) + KeyRelease (0x00000002) = 0x00000003
-  // ButtonPress (0x00000004) + ButtonRelease (0x00000008) = 0x0000000C
-  // PointerMotion (Mouse movement) = 0x00000040
-  captureWindowInput[12] = 0b01001111;
-  captureWindowInput[13] = 0;
-  captureWindowInput[14] = 0;
-  captureWindowInput[15] = 0;
-  */
+  // opcode 55 -> change the color
+  unsigned char createGC[20];
+  createGC[0] = 55; // CreateGC
+  createGC[1] = 0;
+  createGC[2] = 5; // Bytes 2-3: Request length in 4-byte units (24 bytes / 4 = 6)
+  createGC[3] = 0;
+  createGC[4] = gcID.one;
+  createGC[5] = gcID.two;
+  createGC[6] = gcID.three;
+  createGC[7] = gcID.four;
+  createGC[8] = windowID.one;
+  createGC[9] = windowID.two;
+  createGC[10] = windowID.three;
+  createGC[11] = windowID.four;
+  // Bytes 12-15: Value Mask (Bit 2 is Foreground attribute -> 0x00000004)
+  createGC[12] = 4;
+  createGC[13] = 0;
+  createGC[14] = 0;
+  createGC[15] = 0;
+  // BGR color
+  createGC[16] = 220;
+  createGC[17] = 0;
+  createGC[18] = 0;
+  createGC[19] = 0;
 
-  // Write geometry packet.
+  // 4) 'polyRectangle' opcode 67 for border
+  unsigned char borderRectangle[20];
+  borderRectangle[0] = 67; // polyRectangle
+  borderRectangle[1] = 0;
+  borderRectangle[2] = 0b00000101;     // '5' Request length ( n / 4)
+  borderRectangle[3] = 0;
+  // Target Window ID
+  borderRectangle[4] = windowID.one;
+  borderRectangle[5] = windowID.two;
+  borderRectangle[6] = windowID.three;
+  borderRectangle[7] = windowID.four;
+  borderRectangle[8] = gcID.one;
+  borderRectangle[9] = gcID.two;
+  borderRectangle[10] = gcID.three;
+  borderRectangle[11] = gcID.four;
+  // Geometry data
+  // x
+  borderRectangle[12] = 1;
+  borderRectangle[13] = 0;
+  // y
+  borderRectangle[14] = 1;
+  borderRectangle[15] = 0;
+  // Width 128 + (0 * 256) = 128;
+  //borderRectangle[16] = 0b10000000;
+  borderRectangle[16] = 10;
+  borderRectangle[17] = 0;
+  // Height 128 + (0 * 256) = 128;
+  //borderRectangle[18] = 0b10000000;
+  borderRectangle[18] = 10;
+  borderRectangle[19] = 0;
+
+  // 4) Opcode 70 'polyFillRectangle' -> opcode 67 for border
+  unsigned char fillRectangle[20];
+  fillRectangle[0] = 70; // X_PolyFillRectangle
+  fillRectangle[1] = 0;
+  fillRectangle[2] = 0b00000101;     // '5' Request length ( n / 4)
+  fillRectangle[3] = 0;
+  // Target Window ID
+  fillRectangle[4] = windowID.one;
+  fillRectangle[5] = windowID.two;
+  fillRectangle[6] = windowID.three;
+  fillRectangle[7] = windowID.four;
+  fillRectangle[8] = gcID.one;
+  fillRectangle[9] = gcID.two;
+  fillRectangle[10] = gcID.three;
+  fillRectangle[11] = gcID.four;
+  // Geometry data
+  // x
+  fillRectangle[12] = 1;
+  fillRectangle[13] = 0;
+  // y
+  fillRectangle[14] = 1;
+  fillRectangle[15] = 0;
+  // Width 128 + (0 * 256) = 128;
+  //fillRectangle[16] = 0b10000000;
+  fillRectangle[16] = 10;
+  fillRectangle[17] = 0;
+  // Height 128 + (0 * 256) = 128;
+  //fillRectangle[18] = 0b10000000;
+  fillRectangle[18] = 10;
+  fillRectangle[19] = 0;
+
+  // Geometry packet.
   unsigned char getGeometry[8];
   getGeometry[0] = 14;
   getGeometry[1] = 0;
-  getGeometry[2] = 2;
+  getGeometry[2] = 0b00000010;
   getGeometry[3] = 0;
   getGeometry[4] = windowID.one;
   getGeometry[5] = windowID.two;
@@ -396,12 +554,29 @@ void drawWindow(struct fourInt windowID, struct fourInt parentWindowID, struct f
   unsigned char mapWindowBuffer[8];
   mapWindowBuffer[0] = 0b00001000;      // Opcode 8
   mapWindowBuffer[1] = 0;               // Unused padding byte
-  mapWindowBuffer[2] = 0b00000010;      // Request length low byte
-  mapWindowBuffer[3] = 0;               // Request length high byte
+  mapWindowBuffer[2] = 0b00000010;      // Request length low byte 2
+  mapWindowBuffer[3] = 0;               //
   mapWindowBuffer[4] = windowID.one;    // New window ID
   mapWindowBuffer[5] = windowID.two;    //
   mapWindowBuffer[6] = windowID.three;  //
   mapWindowBuffer[7] = windowID.four;   //
+  // the 32 byte response has 12-19 for x,y,width,height information.
+
+
+  // 5) Retains keyboard input from the window.
+  unsigned char setInputFocus[12];
+  setInputFocus[0] = 42;              // Opcode 42
+  setInputFocus[1] = 0b00000001;      // Focus to new window.
+  setInputFocus[2] = 0b00000011;      // Request length low byte: '3'
+  setInputFocus[3] = 0;               // Request length high byte
+  setInputFocus[4] = windowID.one;    // New window ID
+  setInputFocus[5] = windowID.two;    //
+  setInputFocus[6] = windowID.three;  //
+  setInputFocus[7] = windowID.four;   //
+  setInputFocus[8] = 0;               // Current time.
+  setInputFocus[9] = 0;               //
+  setInputFocus[10] = 0;              //
+  setInputFocus[11] = 0;              //
 
   // 4) 'write()' the 'createWindow' socket request.
   int sock = 3;
@@ -410,71 +585,177 @@ void drawWindow(struct fourInt windowID, struct fourInt parentWindowID, struct f
   // 4) 'write()' the 'changeWindowAttributes'.
   int changeWindowWrite = write(sock, changeWindowAttributes, sizeof(changeWindowAttributes));
 
+  // suggested to combine the two opcode 2 but didnt work
+  // 4) 'write()' 'changeWindowAttributes' to disable window manager with 'CWOverrideRedirect'.
+  //int overrideWrite = write(sock, overrideRedirect, sizeof(overrideRedirect));
+
   // 4) 'write()' the 'getGeometry' socket request to avoid hanging program.
   int geometryWrite = write(sock, getGeometry, sizeof(getGeometry));
-  // printf("write() int returns: %d\n", intWrite);
-  //unsigned char responseCreateWindow[32];
-  //int intReadCreateWindow = read(sock, responseCreateWindow, sizeof(responseCreateWindow));
-  // printf("intReadCreateWindow returns: %d\n", intReadCreateWindow);
-  //printf("responseCreateWindow[0] returns: %d\n", responseCreateWindow[0]);
+
+  unsigned char geometryRead[32];
+  int intGeometryRead = read(sock, geometryRead, sizeof(geometryRead));
+  printf("intGeometryRead: %d  geometryRead[0]: %d\n", intGeometryRead, geometryRead[0]);
+
+
+        // ?) 55 'createGC' - change the rectangle color.
+        int createGCWrite = write(sock, createGC, sizeof(createGC));
+
+
+
+  // The success packet "'geometryRead[0]': '1'" is sent back after the 'geometryWrite' instead
+  // of the 'mapWindowBuffer'. 20260824.
+  //int intGeometryRead = read(sock, geometryRead, sizeof(geometryRead));
+  //printf("intGeometryRead: %d  geometryRead[0]: %d\n", intGeometryRead, geometryRead[0]);
 
   // 5) 'write()' the 'mapWindowBuffer' socket request to view the window.
-  write(sock, mapWindowBuffer, sizeof(mapWindowBuffer)); // 8
+  int intMapWindow = write(sock, mapWindowBuffer, sizeof(mapWindowBuffer)); // 8
 
+  // opcode 67 borderRectangle
+  //int borderRectangleWrite = write(sock, borderRectangle, sizeof(borderRectangle));
+  // ?) 55 'createGC' - change the rectangle color.
+  //int createGCWrite = write(sock, createGC, sizeof(createGC));
+  //unsigned char createGCRead[32];
+  //int intCreateGCRead = read(sock, createGCRead, sizeof(createGCRead));
+  // ?) 70 'write()' the 'polyFillRectangle' to draw a button without a border.
+  //int fillRectangleWrite = write(sock, fillRectangle, sizeof(fillRectangle));
+  //unsigned char fillRectangleRead[32];
+  //int intFillRectangleRead = read(sock, fillRectangleRead, sizeof(fillRectangleRead));
 
-  unsigned char responseMap[32];
-  int intReadMap = read(sock, responseMap, sizeof(responseMap)); // 32
+  // 5) 'write()' the 'setInputFocus' to retain keyboard input when the window
+  // window manager is disabled.
+  //int inputFocus = write(sock, setInputFocus, sizeof(setInputFocus));
+  //unsigned char setInputFocusRead[32];
+  //int intSetInputFocusRead = read(sock, setInputFocusRead, sizeof(setInputFocusRead));
 
-  //printf("intReadMap() int returns: %d\n", intReadMap);
-  //printf("responseMap[0] returns: %d\n", responseMap[0]);
-  //int ii = 0;
-  //while (ii <= 32) {
-  //  printf("%d  %d\n", ii, responseMap[ii]);
-  //  ii++;
-  //}
-  //printf("Window created via raw sockets! Keep process alive to view.\n");
+  // The variables are constant throughout each iteration.
+  // The first char[] uses: read(sock, responseWindowInput, 32);
+    //do you have to resize in the loop or blank here?
+  unsigned char responseWindowInput[32];
+  // Holds the size of the previous char[].
+  int changeWindowInput;
+  // The next variable uses: responseWindowInput[0]; to route the intitial if/else.
+  int eventCode;
+  // Physical key matrix index
+  // 'X11' is not used in recent ubuntu or debian distributions anymore since it was
+  // replaced by 'Wayland'. Linux on 'X11' regardless of hardware mostly uses 'ASCII - 39' for
+  // number entries. One way is to make a char[] but loops in the continuing 'while' loop is
+  // computational expensive. Since a calculator only needs numerical input, a conditional
+  // will be used to hardcode each number. The concept is similar to hardware with limited
+  // space for transistors but is probably more like the hardware instructions.
+  // responseWindowInput[1] + 39;
+  // i.e.  10               + 39 = 49
+  //                             = 1
+  int keyInput;
+  // 36 = enter
+  // 9 = esc
+  // 61 = delete
+  // GetKeyboardMapping also exists to avoid hardcoding for other keyboards.
 
-  //Provide the ChangeWindowAttributes (Opcode 2) to
-  //request input events like window closing or mouse clicks.
-  // 6) Keep event loop active to maintain socket connection
-  if (responseMap[0] == 1) {
-  //if (responseMap[0] == 0) {
+  // You could probably alter the standard library to bypass the 'enter' requirement
+  // for 'getchar();' and do something similar but 'C' and linux versions change very often.
+
+  // todo
+  // responseWindowInput[1];
+  // 1 = Left Click, 2 = Middle, 3 = Right
+  int button;
+  // Extract mouse X and Y coordinates (Bytes 24-27)
+    // responseWindowInput[24] | (responseWindowInput[25] << 8);
+    // responseWindowInput[26] | (responseWindowInput[27] << 8);
+  int mouseX;
+  int mouseY;
+
+  if (geometryRead[0] == 1) {
+    //if (geometryRead[0] == 0) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
-    //getchar();
     while (1) {
-      unsigned char responseWindowInput[32];
-      int changeWindowInput = read(sock, responseWindowInput, 32);
-      int eventCode = responseWindowInput[0];
+      responseWindowInput[32];
+      changeWindowInput = read(sock, responseWindowInput, 32);
+      eventCode = responseWindowInput[0];
+      printf("eventCode: %d\n", eventCode);
+
+      if (eventCode == 0) {
+        int i = 0;
+        while (i < 32) {
+          printf("responseWindowInput[%d]: %d\n", i, responseWindowInput[i]);
+          i++;
+        }
+      }
+      else if (eventCode == 12) {
+        printf("               eventCode: %d\n", eventCode);
+        // ?) 67 'borderRectangle' - rectangle outline.
+        int borderRectangleWrite = write(sock, borderRectangle, sizeof(borderRectangle));
+        // ?) 70 'write()' the 'polyFillRectangle' to draw a button without a border.
+        int fillRectangleWrite = write(sock, fillRectangle, sizeof(fillRectangle));
+      }
       //printf("eventcode = %d\n", eventCode);
-      if (eventCode == 2) {
-        // KeyPress Event occurred!
-        int keyInput = responseWindowInput[1] + 29; // Physical key matrix index
+      // The 'keyInput' indicates the keyboard has been pressed.
+      else if (eventCode == 2) {
+        // Physical key matrix index
+        keyInput = responseWindowInput[1] + 39;
         printf("keypress = %d\n", keyInput);
-        int zero = 48;
-        if (keyInput == zero) {
-          printf("a = %d\n", keyInput);
+        if (keyInput == 58) {
+          keyInput = keyInput - 10;
+          break;
+        }
+        // int keyboard map.
+        if (keyInput > 47 && keyInput < 58) {
+          if (keyInput == 49) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 50) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 51) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 52) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 53) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 54) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 55) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 56) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 57) {
+            printf("a = %d\n", keyInput);
+          }
+          else if (keyInput == 48) {
+            printf("a = %d\n", keyInput);
+          }
         }
       }
       else if (eventCode == 4) {
-        // ButtonPress (Mouse click) occurred!
-        int button = responseWindowInput[1]; // 1 = Left Click, 2 = Middle, 3 = Right
+        // ButtonPress (Mouse click) occurred.
+        // Right handed: 1 = Left Click, 2 = Middle, 3 = Right
+        button = responseWindowInput[1];
+        //if (button == 3) {
+        //  printf("button = %d\n", button);
+        //  break;
+        //}
         // Extract mouse X and Y coordinates (Bytes 24-27)
-        int mouseX = responseWindowInput[24] | (responseWindowInput[25] << 8);
-        int mouseY = responseWindowInput[26] | (responseWindowInput[27] << 8);
+        //mouseX = responseWindowInput[24] | (responseWindowInput[25] << 8);
+        //mouseY = responseWindowInput[26] | (responseWindowInput[27] << 8);
 
         printf("button = %d\n", button);
+        //printf("mouseX = %d\n", mouseX);
+        //printf("mouseY = %d\n", mouseY);
 
-        printf("responseWindowInput[24] = %d\n", responseWindowInput[24]);
-        printf("responseWindowInput[25] = %d\n", responseWindowInput[25]);
-
-        printf("mouseX = %d\n", mouseX);
-        printf("mouseY = %d\n", mouseY);
-
-        printf("responseWindowInput[26] = %d\n", responseWindowInput[26]);
-        printf("responseWindowInput[27] = %d\n", responseWindowInput[27]);
+        // Drawing window from the top left (or right).
+        printf("X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
+        printf("X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
+        printf("Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
+        printf("Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
       }
     }
   }
+
   // 'socket()' closed in serverConnect();
 }
 
@@ -589,14 +870,17 @@ int serverConnect(char userPath[]) {
   // the heap pointer 'readSock' to 'getScreenOffset()' and extract
   // the vendor length.
   if (header[0] == 1) {
-    printf("ReadSock %d\n", header[0]);
+    // printf("ReadSock %d\n", header[0]);
     // screenOffset + 8
     int screenOffset = getScreenOffset(readSock);
     struct fourInt windowID = getWindowID(readSock);
+
+    struct fourInt gcID = getGCID(readSock, windowID);
+
     struct fourInt parentID = getParentWindowID(readSock, screenOffset);
     struct fourInt visualID = getVisualID(readSock, screenOffset);
     if (screenOffset != 0) {
-      drawWindow(windowID, parentID, visualID);
+      drawWindow(windowID, gcID, parentID, visualID);
     }
   }
   else {
