@@ -186,8 +186,11 @@ struct fourInt getWindowID(char *readSock) {
   return windowID;
 }
 
-// 2b) 'gcID' function is used in ''
-//     'write()' requests i.e. asdf.
+// 2b) 'gcID' function is used in 'write()' requests i.e. 'createGC',
+//     'polyRectangle', 'polyFillRectangle'. There is a longer explanation and
+//      there is seems to be a writeable range for 'graphic context ID'. This one
+//      is 'windowID' plus 2 but for larger program GUI there would probably a
+//      more exact method of generating ID for each graphic object so they don't conflict.
 struct fourInt getGCID(char *readSock, struct fourInt windowID) {
   struct fourInt gcID;
   gcID.one = readSock[4] + 2;
@@ -231,6 +234,7 @@ struct fourInt getGCID(char *readSock, struct fourInt windowID) {
   gcID.three = (counter[2] & windowID.three) | readSock[2];
   gcID.four = (counter[3] & windowID.four) | readSock[3];
   // Helper function to increment a 4-byte array like a standard integer (handles carrying)
+  // used in button loop.
   void increment_counter_array(unsigned char *counter) {
     if (++counter[0] == 0) {       // If byte 0 overflows, carry to byte 1
         if (++counter[1] == 0) {   // If byte 1 overflows, carry to byte 2
@@ -269,27 +273,115 @@ struct fourInt getVisualID(char *readSock, int screenOffset) {
   return visualID;
 }
 
+////////////////////////////////////////////////////
+//    todo - getGCID() for opcode 67 change border color
+//    todo - keyboard input display text box
+//    todo - arithmatic buttons (todo - division)
+//    minor todo - there are decimals randomly in
+//                 the char array instead of binary.
+
+////////////////////////////////////////////////////
+// Explanation:
 // 'drawWindow()' is called after steps 0-3 in 'serverConnect()' and input is several struct
 // containing windowID information from the initial socket connection's 'read()' in 'serverConnect()'.
 // 4) Uses window, parent ID, and manipulates the signed/unsigned char[] minimum with
 // byte encoding to send packets containing window drawing information to the 'X11' server.
-// Opcode 1, 2, 14
-// createWindowBuffer, changeWindowAttributes, getGeometry
-
-// 55, 70
-
+//   Opcode 1, 2, 14, 55
+//   createWindowBuffer, changeWindowAttributes, getGeometry, createGC
+//                                             /\ there's another opcode 2 to disable the window
+//                                                manager which removes the top bar and allows
+//                                                specific X,Y coordinates.
+// There is a 'read()' after 'getGeometry' that returns if the previous 'write()' were successful.
+// The returned first value is '1', the while loop in step 6 begins.
 // 5) Opcode 8 - send 'MapWindowBuffer' - char[] to draw the window with the above listed attributes.
-// 6) Continuous while loop asking for user input with the 'X11' keyboard codes replaced with ASCII.
+//      - optional is opcode 42 to resume keyboard input after disabling the window manager in 4).
+//      - may or may not have to 'write()' opcode 67 and 70 first before the loop
+// 6) Continuous while loop asking for int user input with the 'X11' keyboard codes replaced with ASCII.
+//    Opcode 67, 70.
+//    'polyRectangle' and 'polyFillRectangle' wait for 'eventCode' 12 or 'Expose' event.
 
-//    todo - 0-9 buttons Opcode 55 - 'PolyFillRectangle' - needs the dimensions of the window
-//           since the window opens depending on the window manager (which can be disabled but also
-//           removes the exit, window title, etc.)
+//////////////////////////////////////////////////////////////////////////
+// 4) This is a long explanation to capture user input for opcode 1 and 2:
+  // Note from internet: "If you plan to use CWOverrideRedirect, your Request Length needs to change
+  //        to 9,your value mask at byte 28 needs to be 0x00000200, and you must append 4 more bytes
+  //        containing the value 1 at the end of the buffer." may or may not be accurate.
 
-//    todo - keyboard input display text box
-//    todo - arithmatic buttons (todo - division)
+  /*
+  // not sure what [8] and [9] do.  2  "Lowest byte of 0x00000802 (CWBackPixel flag)" and
+                                    8  "Highest active byte of 0x00000802 (CWEventMask flag)"
+                                   // if you comment either out the background color is clear.
+                                   // and if you change the high value to 4 instead of 8 it's the same window.
 
+    // CWOverrideRedirect - 0x00004000 -    0b100000000000000  - 16384
+
+    // This list is in hexidecimal but 'changeWindowAttributes' is mostly binary.
+    // changeWindowAttributes[16] and [17] are a range of events to be captured with 'read()'    char[] int max is 128 (above) a>
+    // "to listen for key presses and window exposure at the same time"                          you'd have to use an int array
+    // For a calculator, you only need mouse button events but for other applciations            /\
+                                                                                                 ints are 4 bytes vs char[] 1 by>
+
+    // Key press            0x00000001
+    // Event exposure       0x00008000 -    0b1000000000000000 - 32768
+
+    // CWEventMask          0x00000800 -    0b100000000000     - 2048
+
+    Core X11 Event Mask OptionsWhen using ChangeWindowAttributes, the value mask flag CWEventMask is 0x00000800.
+    The actual event options you pass in the value list to select which events your window receives are defined below
+    in hexadecimal format:
+      Keyboard Events             0x00000001 (KeyPress): Fires when a key is pressed down.
+                                  0x00000002 (KeyRelease): Fires when a key is released.
+      Mouse Button Events         0x00000004 (ButtonPress): Fires when a mouse button is clicked.
+                                  0x00000008 (ButtonRelease): Fires when a mouse button is released.
+      Mouse Motion Events         0x00000010 (EnterWindow): Pointer enters the window boundaries.
+                                  0x00000020 (LeaveWindow): Pointer leaves the window boundaries.
+                                  0x00000040 (PointerMotion): Pointer moves inside the window.
+     Window Exposure & Rendering  0x00008000 (Exposure): Part of the window becomes visible and needs redrawing.
+     Window Lifetime & Management 0x00020000 (StructureNotify): Window is resized, moved, or destroyed.
+                                  0x00040000 (ResizeRedirect): Intercepts resize requests from window managers.
+                                  0x00100000 (PropertyChange): Window properties (like titles) are altered.
+  */
+
+  // 6) Applicable to the continuous loop.
+  // Physical key matrix index
+  // 'X11' is not used in recent ubuntu or debian distributions anymore since it was
+  // replaced by 'Wayland'. Linux on 'X11' regardless of hardware mostly uses 'ASCII - 39' for
+  // number entries. One way is to make a char[] but loops in the continuing 'while' loop is
+  // computational expensive. Since a calculator only needs numerical input, a conditional
+  // will be used to hardcode each number. The concept is similar to hardware with limited
+  // space for transistors but is probably more like the hardware instructions.
+  // responseWindowInput[1] + 39;
+  // i.e.  10               + 39 = 49
+  //                             = 1
+
+  // 36 = enter
+  // 9 = esc
+  // 61 = delete
+  // GetKeyboardMapping also exists to avoid hardcoding for other keyboards.
+
+  // You could probably alter the standard library to bypass the 'enter' requirement
+  // for 'getchar();' and do something similar but 'C' and linux versions change very often.
+
+  // todo
+  // responseWindowInput[1];
+  // 1 = Left Click, 2 = Middle, 3 = Right
+
+  // Extract mouse X and Y coordinates (Bytes 24-27)
+    // responseWindowInput[24] | (responseWindowInput[25] << 8);
+    // responseWindowInput[26] | (responseWindowInput[27] << 8);
+
+
+///////////////////////////////////
+// This information is more useful.
+///////////////////////////////////
 // unsigned char is  0 - 255
 // signed char is -127 - 127
+// little-endian byte-ordering allows larger numbers with
+// four 1-byte elements representing a 32 bit integer.
+//        [28] 128               =  128     +
+//        [29] 62 ( * 256)       =  15872   +
+//        [30] 0  ( * 65536)     =  ( 0 ) ) +
+//        [31] 0  ( * 26777216)  =  ( 0 ) )
+//                               =  16,000
 
 void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt parentWindowID, struct fourInt visualID) {
   // 4) Construct the CreateWindow packet (Opcode 1)
@@ -345,73 +437,20 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   createWindowBuffer[31] = 0;
   //createWindowBuffer[32] = '\0';
 
-  /*
-  (Note: If you plan to use CWOverrideRedirect, your Request Length needs to change to 9, your value mask at byte 28 needs to be 0x00000200, and you must append 4 more bytes containing the value 1 at the end of the buffer).
-
-  */
-  // Maximum signed char array decimal is '-127 through 127'.
-  // unsigned is '0 through 256'
-  // little-endian byte-ordering allows larger numbers with
-  // four 1-byte elements representing a 32 bit integer.
-  //        [28] 128               =  128     +
-  //        [29] 62 ( * 256)       =  15872   +
-  //        [30] 0  ( * 65536)     =  ( 0 ) ) +
-  //        [31] 0  ( * 26777216)  =  ( 0 ) )
-  //                               =  16,000
-
-  /*
-  // not sure what [8] and [9] do.  2  "Lowest byte of 0x00000802 (CWBackPixel flag)" and
-                                    8  "Highest active byte of 0x00000802 (CWEventMask flag)"
-                                   // if you comment either out the background color is clear.
-                                   // and if you change the high value to 4 instead of 8 it's the same window.
-
-    // CWOverrideRedirect - 0x00004000 -    0b100000000000000  - 16384
-
-
-    // This list is in hexidecimal but 'changeWindowAttributes' is mostly binary.
-    // changeWindowAttributes[16] and [17] are a range of events to be captured with 'read()'    char[] int max is 128 (above) a>
-    // "to listen for key presses and window exposure at the same time"                          you'd have to use an int array
-    // For a calculator, you only need mouse button events but for other applciations            /\
-                                                                                                 ints are 4 bytes vs char[] 1 by>
-
-    // Key press            0x00000001
-    // Event exposure       0x00008000 -    0b1000000000000000 - 32768
-
-    // CWEventMask          0x00000800 -    0b100000000000     - 2048
-
-    Core X11 Event Mask OptionsWhen using ChangeWindowAttributes, the value mask flag CWEventMask is 0x00000800.
-    The actual event options you pass in the value list to select which events your window receives are defined below
-    in hexadecimal format:
-      Keyboard Events             0x00000001 (KeyPress): Fires when a key is pressed down.
-                                  0x00000002 (KeyRelease): Fires when a key is released.
-      Mouse Button Events         0x00000004 (ButtonPress): Fires when a mouse button is clicked.
-                                  0x00000008 (ButtonRelease): Fires when a mouse button is released.
-      Mouse Motion Events         0x00000010 (EnterWindow): Pointer enters the window boundaries.
-                                  0x00000020 (LeaveWindow): Pointer leaves the window boundaries.
-                                  0x00000040 (PointerMotion): Pointer moves inside the window.
-     Window Exposure & Rendering  0x00008000 (Exposure): Part of the window becomes visible and needs redrawing.
-     Window Lifetime & Management 0x00020000 (StructureNotify): Window is resized, moved, or destroyed.
-                                  0x00040000 (ResizeRedirect): Intercepts resize requests from window managers.
-                                  0x00100000 (PropertyChange): Window properties (like titles) are altered.
-  */
-
   // 4) 'changeWindowAttributes' socket request (Opcode 2).
   char changeWindowAttributes[20];
   changeWindowAttributes[0] = 0b00000010;     // Opcode 2
   changeWindowAttributes[1] = 0;              //
   changeWindowAttributes[2] = 0b00000101;     // Request length ( n / 4)
   changeWindowAttributes[3] = 0;
-
   changeWindowAttributes[4] = windowID.one;
   changeWindowAttributes[5] = windowID.two;
   changeWindowAttributes[6] = windowID.three;
   changeWindowAttributes[7] = windowID.four;
-
   changeWindowAttributes[8] = 0b00000010;     // 2 CWBackPixel   - the background - defines which attributes are being>
   changeWindowAttributes[9] = 0b00001000;     // 8 CWBorderPixel - na
   changeWindowAttributes[10] = 0;
   changeWindowAttributes[11] = 0;
-
   changeWindowAttributes[12] = 0b11011100;    // B  Background color.
   changeWindowAttributes[13] = 0b11011100;    // G
   changeWindowAttributes[14] = 0b11011100;    // R
@@ -422,6 +461,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // KeyPress (0x00000001) + KeyRelease (0x00000002) = 0x00000003
   // ButtonPress (0x00000004) + ButtonRelease (0x00000008) = 0x0000000C
   // PointerMotion (Mouse movement) = 0x00000040
+  // This got altered to capture the 'Expose' event in the continuous loop 6).
   //changeWindowAttributes[16] = 0b01001111;
   //                           = 0;
   //                           ... etc
@@ -452,7 +492,18 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   overrideRedirect[14] = 0;
   overrideRedirect[15] = 0;
 
-  // opcode 55 -> change the color
+  // 4) Geometry packet.
+  unsigned char getGeometry[8];
+  getGeometry[0] = 14;
+  getGeometry[1] = 0;
+  getGeometry[2] = 0b00000010;
+  getGeometry[3] = 0;
+  getGeometry[4] = windowID.one;
+  getGeometry[5] = windowID.two;
+  getGeometry[6] = windowID.three;
+  getGeometry[7] = windowID.four;
+
+  // 4) opcode 55 change the rectangle fill color
   unsigned char createGC[20];
   createGC[0] = 55; // CreateGC
   createGC[1] = 0;
@@ -472,45 +523,111 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   createGC[14] = 0;
   createGC[15] = 0;
   // BGR color
-  createGC[16] = 220;
-  createGC[17] = 0;
-  createGC[18] = 0;
+  createGC[16] = 255;
+  createGC[17] = 255;
+  createGC[18] = 255;
   createGC[19] = 0;
 
-  // 4) 'polyRectangle' opcode 67 for border
-  unsigned char borderRectangle[20];
-  borderRectangle[0] = 67; // polyRectangle
-  borderRectangle[1] = 0;
-  borderRectangle[2] = 0b00000101;     // '5' Request length ( n / 4)
-  borderRectangle[3] = 0;
-  // Target Window ID
-  borderRectangle[4] = windowID.one;
-  borderRectangle[5] = windowID.two;
-  borderRectangle[6] = windowID.three;
-  borderRectangle[7] = windowID.four;
-  borderRectangle[8] = gcID.one;
-  borderRectangle[9] = gcID.two;
-  borderRectangle[10] = gcID.three;
-  borderRectangle[11] = gcID.four;
-  // Geometry data
-  // x
-  borderRectangle[12] = 1;
-  borderRectangle[13] = 0;
-  // y
-  borderRectangle[14] = 1;
-  borderRectangle[15] = 0;
-  // Width 128 + (0 * 256) = 128;
-  //borderRectangle[16] = 0b10000000;
-  borderRectangle[16] = 10;
-  borderRectangle[17] = 0;
-  // Height 128 + (0 * 256) = 128;
-  //borderRectangle[18] = 0b10000000;
-  borderRectangle[18] = 10;
-  borderRectangle[19] = 0;
+  // 5) Construct the MapWindow packet (Opcode 8)
+  unsigned char mapWindowBuffer[8];
+  mapWindowBuffer[0] = 0b00001000;      // Opcode 8
+  mapWindowBuffer[1] = 0;               // Unused padding byte
+  mapWindowBuffer[2] = 0b00000010;      // Request length low byte 2
+  mapWindowBuffer[3] = 0;               //
+  mapWindowBuffer[4] = windowID.one;    // New window ID
+  mapWindowBuffer[5] = windowID.two;    //
+  mapWindowBuffer[6] = windowID.three;  //
+  mapWindowBuffer[7] = windowID.four;   //
+  // the 32 byte response has 12-19 for x,y,width,height information.
 
-  // 4) Opcode 70 'polyFillRectangle' -> opcode 67 for border
+  // 5) 'polyRectangle' opcode 67 for border
+  int intButtonX = 100;
+  int intButtonXPlus = 100;
+  int intButtonY = 100;
+  int intButtonWidth = 50;
+  int intButtonHeight = 50;
+  int numberButtons = 21;
+  int buttonElements = 20;
+  int buttonXSpace = 60;
+  int buttonYSpace = 60;
+  // a  a  a  /
+  // 7  8  9  X
+  // 4  5  6  -
+  // 1  2  3  +
+  // (  )  0  =
+  // dynamic example:
+  // char (*arrays)[10] = malloc(N * sizeof(*arrays));
+  // 5 X 4 = 20 buttons
+  // Reused variables in the loop for the int to unsigned char overflow
+  int intButtonXPlusRemainder;
+  int intButtonXPlusDivision;
+  int intButtonYRemainder;
+  int intButtonYDivision;
+  unsigned char buttonBorder[numberButtons][buttonElements];
+  int i = 1;
+  int j = 0;
+  while (i < numberButtons) {
+    // Accounts for overflow since unsigned char range is 0-255
+    if (intButtonXPlus < 256) {
+      buttonBorder[i][12] = intButtonXPlus;
+      buttonBorder[i][13] = 0;
+    }
+    else {
+      intButtonXPlusRemainder = intButtonXPlus % 256;
+      intButtonXPlusDivision = intButtonXPlus / 256;
+      //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
+      //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+      buttonBorder[i][12] = intButtonXPlusRemainder;
+      buttonBorder[i][13] = intButtonXPlusDivision;
+    }
+    if (intButtonY < 256) {
+      buttonBorder[i][14] = intButtonY;
+      buttonBorder[i][15] = 0;
+    }
+    else {
+      intButtonYRemainder = intButtonY % 256;
+      intButtonYDivision = intButtonY / 256;
+      buttonBorder[i][14] = intButtonYRemainder;
+      buttonBorder[i][15] = intButtonYDivision;
+    }
+    printf("buttonBorder[%d][12]: %d\n  buttonBorder[%d][14]: %d\n\n", i, buttonBorder[i][12], i, buttonBorder[i][14]);
+    printf("buttonBorder[%d][13]: %d\n  buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][13], i, buttonBorder[i][15]);
+    while (j < buttonElements) {
+      buttonBorder[i][0] = 67;
+      buttonBorder[i][1] = 0;
+      buttonBorder[i][2] = 0b00000101;       // '5' Request length ( n / 4)
+      buttonBorder[i][3] = 0;
+      buttonBorder[i][4] = windowID.one;
+      buttonBorder[i][5] = windowID.two;
+      buttonBorder[i][6] = windowID.three;
+      buttonBorder[i][7] = windowID.four;
+      buttonBorder[i][8] = gcID.one;
+      buttonBorder[i][9] = gcID.two;
+      buttonBorder[i][10] = gcID.three;
+      buttonBorder[i][11] = gcID.four;
+      //              12
+      //              13
+      //              14
+      //              15
+      buttonBorder[i][16] = intButtonWidth;
+      buttonBorder[i][17] = 0;
+      buttonBorder[i][18] = intButtonHeight;
+      buttonBorder[i][19] = 0;
+      j++;
+    }
+    intButtonXPlus = intButtonXPlus + buttonXSpace;
+    if ((i % 4 == 0) && (i != 0)) {
+      //printf("\n\n");
+      intButtonXPlus = intButtonX;
+      intButtonY = intButtonY + buttonYSpace;
+    }
+    i++;
+    j = 0;
+  }
+
+  // 5) Opcode 70 'polyFillRectangle'
   unsigned char fillRectangle[20];
-  fillRectangle[0] = 70; // X_PolyFillRectangle
+  fillRectangle[0] = 70;             // polyFillRectangle
   fillRectangle[1] = 0;
   fillRectangle[2] = 0b00000101;     // '5' Request length ( n / 4)
   fillRectangle[3] = 0;
@@ -525,6 +642,19 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   fillRectangle[11] = gcID.four;
   // Geometry data
   // x
+  fillRectangle[12] = intButtonX;
+  fillRectangle[13] = 0;
+  // y
+  fillRectangle[14] = intButtonY;
+  fillRectangle[15] = 0;
+  // Width
+  fillRectangle[16] = intButtonWidth;
+  fillRectangle[17] = 0;
+  // Height
+  fillRectangle[18] = intButtonHeight;
+  fillRectangle[19] = 0;
+  /*
+  // x
   fillRectangle[12] = 1;
   fillRectangle[13] = 0;
   // y
@@ -538,30 +668,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   //fillRectangle[18] = 0b10000000;
   fillRectangle[18] = 10;
   fillRectangle[19] = 0;
-
-  // Geometry packet.
-  unsigned char getGeometry[8];
-  getGeometry[0] = 14;
-  getGeometry[1] = 0;
-  getGeometry[2] = 0b00000010;
-  getGeometry[3] = 0;
-  getGeometry[4] = windowID.one;
-  getGeometry[5] = windowID.two;
-  getGeometry[6] = windowID.three;
-  getGeometry[7] = windowID.four;
-
-  // 5) Construct the MapWindow packet (Opcode 8)
-  unsigned char mapWindowBuffer[8];
-  mapWindowBuffer[0] = 0b00001000;      // Opcode 8
-  mapWindowBuffer[1] = 0;               // Unused padding byte
-  mapWindowBuffer[2] = 0b00000010;      // Request length low byte 2
-  mapWindowBuffer[3] = 0;               //
-  mapWindowBuffer[4] = windowID.one;    // New window ID
-  mapWindowBuffer[5] = windowID.two;    //
-  mapWindowBuffer[6] = windowID.three;  //
-  mapWindowBuffer[7] = windowID.four;   //
-  // the 32 byte response has 12-19 for x,y,width,height information.
-
+  */
 
   // 5) Retains keyboard input from the window.
   unsigned char setInputFocus[12];
@@ -596,11 +703,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int intGeometryRead = read(sock, geometryRead, sizeof(geometryRead));
   printf("intGeometryRead: %d  geometryRead[0]: %d\n", intGeometryRead, geometryRead[0]);
 
-
-        // ?) 55 'createGC' - change the rectangle color.
-        int createGCWrite = write(sock, createGC, sizeof(createGC));
-
-
+  // 4) 55 'createGC' - change the rectangle color.
+  int createGCWrite = write(sock, createGC, sizeof(createGC));
 
   // The success packet "'geometryRead[0]': '1'" is sent back after the 'geometryWrite' instead
   // of the 'mapWindowBuffer'. 20260824.
@@ -610,124 +714,205 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // 5) 'write()' the 'mapWindowBuffer' socket request to view the window.
   int intMapWindow = write(sock, mapWindowBuffer, sizeof(mapWindowBuffer)); // 8
 
-  // opcode 67 borderRectangle
-  //int borderRectangleWrite = write(sock, borderRectangle, sizeof(borderRectangle));
-  // ?) 55 'createGC' - change the rectangle color.
-  //int createGCWrite = write(sock, createGC, sizeof(createGC));
-  //unsigned char createGCRead[32];
-  //int intCreateGCRead = read(sock, createGCRead, sizeof(createGCRead));
-  // ?) 70 'write()' the 'polyFillRectangle' to draw a button without a border.
-  //int fillRectangleWrite = write(sock, fillRectangle, sizeof(fillRectangle));
-  //unsigned char fillRectangleRead[32];
-  //int intFillRectangleRead = read(sock, fillRectangleRead, sizeof(fillRectangleRead));
-
+  //////////////
   // 5) 'write()' the 'setInputFocus' to retain keyboard input when the window
   // window manager is disabled.
   //int inputFocus = write(sock, setInputFocus, sizeof(setInputFocus));
   //unsigned char setInputFocusRead[32];
   //int intSetInputFocusRead = read(sock, setInputFocusRead, sizeof(setInputFocusRead));
 
-  // The variables are constant throughout each iteration.
-  // The first char[] uses: read(sock, responseWindowInput, 32);
-    //do you have to resize in the loop or blank here?
+  ////////////////////////////////
+  // This avoids redrawing the buttons everytime. The internet specifically said
+  // not to use any iterations in the mouse and keyboard input stream - the 'while'
+  // loop below 'intMapRead'.
+  unsigned char mapRead[32];
+  //int intMapRead; // = read(sock, mapRead, sizeof(mapRead));
+  // This was in a while (1) loop before, there might be cases when the second
+  // 'read()' [0] is not '12' but the third one is.
+  int intMapRead = read(sock, mapRead, sizeof(mapRead));
+
+  // Other windows clear the rectangles when dragged over, either write an OS and call this whenever the
+  // calculator window is blocked or insert in a loop and call at various intervals.
+  //numberButtons = 21
+  //buttonBorder[i][j]
+  int borderRectangleWrite;
+  unsigned char subsetButtonBorder[buttonElements];
+  i = 1;
+  if (mapRead[0] == 12) {
+    printf("mapRead[0] == 12 drawing rectangles\n");
+    // 6) 67 'borderRectangle' - rectangle outline.
+    while (i < numberButtons) {
+      j = 0;
+      while (j < sizeof(subsetButtonBorder)) {
+        subsetButtonBorder[j] = buttonBorder[i][j];
+        //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
+        j++;
+      }
+      //printf("\n");
+      borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+      i++;
+    }
+    // 6) 70 'write()' the 'polyFillRectangle' to draw a button without a border.
+    //int fillRectangleWrite = write(sock, fillRectangle, sizeof(fillRectangle));
+  }
+
+  // x  buttonXSpace
+  int buttonBorder1x = buttonBorder[1][12] + (buttonBorder[1][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder1y = buttonBorder[1][14] + (buttonBorder[1][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder2x = buttonBorder[2][12] + (buttonBorder[2][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder2y = buttonBorder[2][14] + (buttonBorder[2][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder3x = buttonBorder[3][12] + (buttonBorder[3][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder3y = buttonBorder[3][14] + (buttonBorder[3][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder4x = buttonBorder[4][12] + (buttonBorder[4][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder4y = buttonBorder[4][14] + (buttonBorder[4][15] * 255);
+
+  // x  buttonXSpace
+  int buttonBorder5x = buttonBorder[5][12] + (buttonBorder[5][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder5y = buttonBorder[5][14] + (buttonBorder[5][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder6x = buttonBorder[6][12] + (buttonBorder[6][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder6y = buttonBorder[6][14] + (buttonBorder[6][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder7x = buttonBorder[7][12] + (buttonBorder[7][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder7y = buttonBorder[7][14] + (buttonBorder[7][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder8x = buttonBorder[8][12] + (buttonBorder[8][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder8y = buttonBorder[8][14] + (buttonBorder[8][15] * 255);
+
+  // x  buttonXSpace
+  int buttonBorder9x = buttonBorder[9][12] + (buttonBorder[9][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder9y = buttonBorder[9][14] + (buttonBorder[9][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder10x = buttonBorder[10][12] + (buttonBorder[10][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder10y = buttonBorder[10][14] + (buttonBorder[10][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder11x = buttonBorder[11][12] + (buttonBorder[11][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder11y = buttonBorder[11][14] + (buttonBorder[11][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder12x = buttonBorder[12][12] + (buttonBorder[12][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder12y = buttonBorder[12][14] + (buttonBorder[12][15] * 255);
+
+  // x  buttonXSpace
+  int buttonBorder13x = buttonBorder[13][12] + (buttonBorder[13][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder13y = buttonBorder[13][14] + (buttonBorder[13][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder14x = buttonBorder[14][12] + (buttonBorder[14][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder14y = buttonBorder[14][14] + (buttonBorder[14][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder15x = buttonBorder[15][12] + (buttonBorder[15][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder15y = buttonBorder[15][14] + (buttonBorder[15][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder16x = buttonBorder[16][12] + (buttonBorder[16][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder16y = buttonBorder[16][14] + (buttonBorder[16][15] * 255);
+
+  // x  buttonXSpace
+  int buttonBorder17x = buttonBorder[17][12] + (buttonBorder[17][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder17y = buttonBorder[17][14] + (buttonBorder[17][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder18x = buttonBorder[18][12] + (buttonBorder[18][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder18y = buttonBorder[18][14] + (buttonBorder[18][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder19x = buttonBorder[19][12] + (buttonBorder[19][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder19y = buttonBorder[19][14] + (buttonBorder[19][15] * 255);
+  // x  buttonXSpace
+  int buttonBorder20x = buttonBorder[20][12] + (buttonBorder[20][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  int buttonBorder20y = buttonBorder[20][14] + (buttonBorder[20][15] * 255);
+
+
+
+  // The first char[] used in: read(sock, responseWindowInput, 32);
+  // every loop iteration to return input.
   unsigned char responseWindowInput[32];
   // Holds the size of the previous char[].
   int changeWindowInput;
-  // The next variable uses: responseWindowInput[0]; to route the intitial if/else.
   int eventCode;
-  // Physical key matrix index
-  // 'X11' is not used in recent ubuntu or debian distributions anymore since it was
-  // replaced by 'Wayland'. Linux on 'X11' regardless of hardware mostly uses 'ASCII - 39' for
-  // number entries. One way is to make a char[] but loops in the continuing 'while' loop is
-  // computational expensive. Since a calculator only needs numerical input, a conditional
-  // will be used to hardcode each number. The concept is similar to hardware with limited
-  // space for transistors but is probably more like the hardware instructions.
-  // responseWindowInput[1] + 39;
-  // i.e.  10               + 39 = 49
-  //                             = 1
   int keyInput;
-  // 36 = enter
-  // 9 = esc
-  // 61 = delete
-  // GetKeyboardMapping also exists to avoid hardcoding for other keyboards.
-
-  // You could probably alter the standard library to bypass the 'enter' requirement
-  // for 'getchar();' and do something similar but 'C' and linux versions change very often.
-
-  // todo
-  // responseWindowInput[1];
-  // 1 = Left Click, 2 = Middle, 3 = Right
   int button;
-  // Extract mouse X and Y coordinates (Bytes 24-27)
-    // responseWindowInput[24] | (responseWindowInput[25] << 8);
-    // responseWindowInput[26] | (responseWindowInput[27] << 8);
   int mouseX;
   int mouseY;
-
   if (geometryRead[0] == 1) {
-    //if (geometryRead[0] == 0) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
     while (1) {
+      // responseWindowInput[0]; to route the intitial if/else.
       responseWindowInput[32];
       changeWindowInput = read(sock, responseWindowInput, 32);
       eventCode = responseWindowInput[0];
-      printf("eventCode: %d\n", eventCode);
-
+      //printf("eventCode: %d\n", eventCode);
       if (eventCode == 0) {
-        int i = 0;
-        while (i < 32) {
-          printf("responseWindowInput[%d]: %d\n", i, responseWindowInput[i]);
-          i++;
+        // Prints the error packet.
+        int k = 0;
+        while (k < 32) {
+          printf("responseWindowInput[%d]: %d\n", k, responseWindowInput[k]);
+          k++;
         }
       }
-      else if (eventCode == 12) {
-        printf("               eventCode: %d\n", eventCode);
-        // ?) 67 'borderRectangle' - rectangle outline.
-        int borderRectangleWrite = write(sock, borderRectangle, sizeof(borderRectangle));
-        // ?) 70 'write()' the 'polyFillRectangle' to draw a button without a border.
-        int fillRectangleWrite = write(sock, fillRectangle, sizeof(fillRectangle));
-      }
-      //printf("eventcode = %d\n", eventCode);
       // The 'keyInput' indicates the keyboard has been pressed.
       else if (eventCode == 2) {
         // Physical key matrix index
         keyInput = responseWindowInput[1] + 39;
         printf("keypress = %d\n", keyInput);
-        if (keyInput == 58) {
-          keyInput = keyInput - 10;
-          break;
-        }
         // int keyboard map.
-        if (keyInput > 47 && keyInput < 58) {
-          if (keyInput == 49) {
-            printf("a = %d\n", keyInput);
+        if (keyInput > 47 && keyInput < 59) {
+          // The first '48' 'esc' doesn't conflict with the second '48' '0' since
+          // the 'while' loop asks for input and overwrites 'keyInput'. Typing '0'
+          // doesn't escape the program.
+          if (keyInput == 48) {
+            printf("esc %d\n", keyInput);
+            break;
+          }
+          else if (keyInput == 49) {
+            printf("a = 1 %d\n", keyInput);
           }
           else if (keyInput == 50) {
-            printf("a = %d\n", keyInput);
+            printf("a = 2 %d\n", keyInput);
           }
           else if (keyInput == 51) {
-            printf("a = %d\n", keyInput);
+            printf("a = 3 %d\n", keyInput);
           }
           else if (keyInput == 52) {
-            printf("a = %d\n", keyInput);
+            printf("a = 4 %d\n", keyInput);
           }
           else if (keyInput == 53) {
-            printf("a = %d\n", keyInput);
+            printf("a = 5 %d\n", keyInput);
           }
           else if (keyInput == 54) {
-            printf("a = %d\n", keyInput);
+            printf("a = 6 %d\n", keyInput);
           }
           else if (keyInput == 55) {
-            printf("a = %d\n", keyInput);
+            printf("a = 7 %d\n", keyInput);
           }
           else if (keyInput == 56) {
-            printf("a = %d\n", keyInput);
+            printf("a = 8 %d\n", keyInput);
           }
           else if (keyInput == 57) {
-            printf("a = %d\n", keyInput);
+            printf("a = 9 %d\n", keyInput);
           }
-          else if (keyInput == 48) {
-            printf("a = %d\n", keyInput);
+          else if (keyInput == 58) {
+            keyInput = keyInput - 10;
+            printf("a = 0 %d\n", keyInput);
           }
         }
       }
@@ -743,15 +928,116 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         //mouseX = responseWindowInput[24] | (responseWindowInput[25] << 8);
         //mouseY = responseWindowInput[26] | (responseWindowInput[27] << 8);
 
-        printf("button = %d\n", button);
+        //printf("button = %d\n", button);
         //printf("mouseX = %d\n", mouseX);
         //printf("mouseY = %d\n", mouseY);
 
         // Drawing window from the top left (or right).
-        printf("X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
-        printf("X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
-        printf("Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
-        printf("Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
+        //printf("X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
+        //printf("X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
+        //printf("Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
+        //printf("Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
+        // The button coordinates.
+        //intButtonY = 100;
+        intButtonHeight = 50;
+        //printf("intButtonX: %d  intButtonWidth: %d\n", intButtonX, intButtonX + intButtonWidth);
+        //printf("intButtonY: %d  intButtonHeight: %d\n", intButtonY, intButtonY + intButtonHeight);
+
+
+            //printf("    X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
+            //printf("    X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
+            //printf("    Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
+            //printf("    Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
+
+        // buttonBorder[i][j] x 12 13    y 14 15
+        //printf("low\n");
+        //printf("x buttonBorder[1][12] %d, buttonBorder[1][13] %d\n", buttonBorder[1][12], buttonBorder[1][13]);
+        //printf("y buttonBorder[1][14] %d, buttonBorder[1][15] %d\n", buttonBorder[1][14], buttonBorder[1][15]);
+        //printf("high\n");
+        //printf("x buttonBorder[1][12] + intButtonWidth %d, buttonBorder[1][13] %d\n", buttonBorder[1][12] + intButtonWidth, buttonBorder[1][13]);
+        //printf("y buttonBorder[1][14] + intButtonHeight %d, buttonBorder[1][15] %d\n", buttonBorder[1][14] + intButtonHeight, buttonBorder[1][15]);
+
+        // method 0: convert char[] to int
+
+        // 2 char[] elements to 1 int
+        //  intButtonXPlusRemainder = intButtonXPlus % 256;
+        //  intButtonXPlusDivision = intButtonXPlus / 256;
+
+        // x
+        //int buttonBorder19 = buttonBorder[19][12] + (buttonBorder[19][13] * 255);
+        // y
+        //buttonBorder[19][14];
+        //buttonBorder[19][15]
+
+
+        //if ((responseWindowInput[24] > buttonBorder[1][12]) && (responseWindowInput[24] < (buttonBorder[1][12] + intButtonWidth))) {          // x
+        //  if ((responseWindowInput[26] > buttonBorder[1][14]) && (responseWindowInput[26] < (buttonBorder[1][14] + intButtonHeight))) {       // y
+        //    printf("Screen button press: 0\n");
+        //  }
+        //}
+
+
+        // x
+        int mouseClickX = responseWindowInput[24] + (responseWindowInput[25] * 255);
+        // y
+        int mouseClickY = responseWindowInput[26] + (responseWindowInput[27] * 255);
+        printf("mouseClickX %d  mouseClickY %d\n", mouseClickX, mouseClickY);
+
+        printf("low\n");
+        printf("buttonBorder19x %d  buttonBorder19y %d\n", buttonBorder19x, buttonBorder19y);
+        printf("high\n");
+        printf("buttonBorder19x+width %d  buttonBorder19y+height %d\n", buttonBorder19x+intButtonWidth, buttonBorder19y+intButtonHeight);
+
+
+
+        // =
+        if ((mouseClickX > buttonBorder19x) && (mouseClickX < (buttonBorder19x + intButtonWidth))) {          // x
+          if ((mouseClickY > buttonBorder19y) && (mouseClickY < (buttonBorder19y + intButtonHeight))) {       // y
+            printf("Button press: =\n");
+          }
+        }
+
+
+
+
+        // x
+        //int buttonBorder19x = buttonBorder[19][12] + (buttonBorder[19][13] * 255);
+        // y
+        //int buttonBorder19y = buttonBorder[19][14] + (buttonBorder[19][15] * 255);
+
+
+        //else if ((responseWindowInput[24] > buttonBorder[19][12]) && (responseWindowInput[24] < (buttonBorder[19][12] + intButtonWidth))) {     // x
+        //  if ((responseWindowInput[26] > buttonBorder[19][14]) && (responseWindowInput[26] < (buttonBorder[19][14] + intButtonHeight))) {       // y
+        //    printf("Screen button press: =\n");
+        //  }
+        //}
+
+
+
+
+
+        /*
+          intButtonXPlusRemainder = intButtonXPlus % 256;
+          intButtonXPlusDivision = intButtonXPlus / 256;
+          //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
+          //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+          buttonBorder[i][12] = intButtonXPlusRemainder;
+          buttonBorder[i][13] = intButtonXPlusDivision;
+
+  // variable reference
+  // x
+  borderRectangle[12] = intButtonX;
+  borderRectangle[13] = 0;
+  // y
+  borderRectangle[14] = intButtonY;
+  borderRectangle[15] = 0;
+  // Width
+  borderRectangle[16] = intButtonWidth;
+  borderRectangle[17] = 0;
+  // Height
+  borderRectangle[18] = intButtonHeight;
+  borderRectangle[19] = 0;
+        */
       }
     }
   }
