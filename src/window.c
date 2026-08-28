@@ -546,7 +546,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int intButtonY = 100;
   int intButtonWidth = 50;
   int intButtonHeight = 50;
-  int numberButtons = 21;
+  int numberButtons = 21; // n - 1
   int buttonElements = 20;
   int buttonXSpace = 60;
   int buttonYSpace = 60;
@@ -558,7 +558,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // dynamic example:
   // char (*arrays)[10] = malloc(N * sizeof(*arrays));
   // 5 X 4 = 20 buttons
-  // Reused variables in the loop for the int to unsigned char overflow
+  // Reused variables in the loop for the int to unsigned char 'buttonBorder[12]-[15]' overflow.
   int intButtonXPlusRemainder;
   int intButtonXPlusDivision;
   int intButtonYRemainder;
@@ -566,13 +566,32 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   unsigned char buttonBorder[numberButtons][buttonElements];
   int i = 1;
   int j = 0;
+  int k = 0;
+
+  // Reused variables in the loop for the int to unsigned char 'buttonBorderXXYY[0]-[3]' overflow.
+  int buttonBorderXDivision;
+  int buttonBorderXRemainder;
+  int buttonBorderX12;
+  int buttonBorderX13;
+  int buttonBorderYDivision;
+  int buttonBorderYRemainder;
+  int buttonBorderY14;
+  int buttonBorderY15;
+  // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
+  char buttonBorderXXYY[80];
+
   while (i < numberButtons) {
-    // Accounts for overflow since unsigned char range is 0-255
+    // Accounts for overflow since unsigned char range is 0-255.
+    // Each int coordinate is represented with two sequential bytes in the char[].
+    // The X or horizontal coordinate.
     if (intButtonXPlus < 256) {
       buttonBorder[i][12] = intButtonXPlus;
       buttonBorder[i][13] = 0;
     }
     else {
+      // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
+      // i.e. buttonBorder[i][12] = 'value'; // below 256
+      //      buttonBorder[i][13] = 'value' * 256;
       intButtonXPlusRemainder = intButtonXPlus % 256;
       intButtonXPlusDivision = intButtonXPlus / 256;
       //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
@@ -580,6 +599,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       buttonBorder[i][12] = intButtonXPlusRemainder;
       buttonBorder[i][13] = intButtonXPlusDivision;
     }
+    // The Y or vertical coordinate is calculated identical to the X.
     if (intButtonY < 256) {
       buttonBorder[i][14] = intButtonY;
       buttonBorder[i][15] = 0;
@@ -590,8 +610,53 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       buttonBorder[i][14] = intButtonYRemainder;
       buttonBorder[i][15] = intButtonYDivision;
     }
-    printf("buttonBorder[%d][12]: %d\n  buttonBorder[%d][14]: %d\n\n", i, buttonBorder[i][12], i, buttonBorder[i][14]);
-    printf("buttonBorder[%d][13]: %d\n  buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][13], i, buttonBorder[i][15]);
+    printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
+    printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
+
+    // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorder[1][16]'.
+    // Mouse click input is defined in the while (1) loop and formatted
+    // as a 2 byte overflow since 'read()' uses 'char[]'.
+      // X [24] and [25]
+      // Y [26] and [27]
+    // if '[12] + width' is > 255, add overflow to '[13]'.
+      // useful if you resize the initial window.
+    //printf("width: 50  buttonBorder[1][16]: %d\n", buttonBorder[1][16]);
+    //printf("height: 50  buttonBorder[1][18]: %d\n", buttonBorder[1][18]);
+    // The logic is similar to the 2 byte for one int from above for 'buttonBorder[i][12]-[15]'.
+    // 'k' is used to increment elements for 'buttonBorderXXYY[0] - [79]'.
+    k = (i - 1) * 4;
+    if ((buttonBorder[i][12] + buttonBorder[1][16]) > 256) {
+      buttonBorderXDivision = (buttonBorder[i][12] + buttonBorder[1][16]) / 256;
+      buttonBorderXRemainder = (buttonBorder[i][12] + buttonBorder[1][16]) % 256;
+
+      buttonBorderX12 = buttonBorderXRemainder;
+      buttonBorderX13 = buttonBorder[i][13] + buttonBorderXDivision;
+    }
+    else {
+      buttonBorderX12 = buttonBorder[i][12] + buttonBorder[1][16];
+      buttonBorderX13 = buttonBorder[i][13];
+    }
+    buttonBorderXXYY[k] = buttonBorderX12;
+    buttonBorderXXYY[k + 1] = buttonBorderX13;
+    printf("high\nx buttonBorderXXYY[%d]: %d buttonBorderXXYY[%d+1]: %d\n", k, buttonBorderXXYY[k], k, buttonBorderXXYY[k+1]);
+    // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorder[1][16]'.
+    if ((buttonBorder[i][14] + buttonBorder[1][18]) > 256) {
+      buttonBorderYDivision = (buttonBorder[i][14] + buttonBorder[1][18]) / 256;
+      buttonBorderYRemainder = (buttonBorder[i][14] + buttonBorder[1][18]) % 256;
+
+      buttonBorderY14 = buttonBorderYRemainder;
+      buttonBorderY15 = buttonBorder[i][15] + buttonBorderYDivision;
+    }
+    else {
+      buttonBorderY14 = buttonBorder[i][14] + buttonBorder[1][18];
+      buttonBorderY15 = buttonBorder[i][15];
+    }
+    buttonBorderXXYY[k + 2] = buttonBorderY14;
+    buttonBorderXXYY[k + 3] = buttonBorderY15;
+
+    printf("y buttonBorderXXYY[%d+2]: %d buttonBorderXXYY[%d+3]: %d\n\n", k, buttonBorderXXYY[k+2], k, buttonBorderXXYY[k+3]);
+
+    // Uses repeating 'j' to assign default values from 0-19 excluding 12-15 since those were previously calculated.
     while (j < buttonElements) {
       buttonBorder[i][0] = 67;
       buttonBorder[i][1] = 0;
@@ -725,14 +790,13 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // This avoids redrawing the buttons everytime. The internet specifically said
   // not to use any iterations in the mouse and keyboard input stream - the 'while'
   // loop below 'intMapRead'.
+  // Other windows clear the rectangles when dragged over, either write an OS and call this whenever the
+  // calculator window is blocked or insert in a loop and call at various intervals.
   unsigned char mapRead[32];
   //int intMapRead; // = read(sock, mapRead, sizeof(mapRead));
   // This was in a while (1) loop before, there might be cases when the second
   // 'read()' [0] is not '12' but the third one is.
   int intMapRead = read(sock, mapRead, sizeof(mapRead));
-
-  // Other windows clear the rectangles when dragged over, either write an OS and call this whenever the
-  // calculator window is blocked or insert in a loop and call at various intervals.
   //numberButtons = 21
   //buttonBorder[i][j]
   int borderRectangleWrite;
@@ -756,92 +820,24 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     //int fillRectangleWrite = write(sock, fillRectangle, sizeof(fillRectangle));
   }
 
-  // x  buttonXSpace
-  int buttonBorder1x = buttonBorder[1][12] + (buttonBorder[1][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder1y = buttonBorder[1][14] + (buttonBorder[1][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder2x = buttonBorder[2][12] + (buttonBorder[2][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder2y = buttonBorder[2][14] + (buttonBorder[2][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder3x = buttonBorder[3][12] + (buttonBorder[3][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder3y = buttonBorder[3][14] + (buttonBorder[3][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder4x = buttonBorder[4][12] + (buttonBorder[4][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder4y = buttonBorder[4][14] + (buttonBorder[4][15] * 255);
-
-  // x  buttonXSpace
-  int buttonBorder5x = buttonBorder[5][12] + (buttonBorder[5][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder5y = buttonBorder[5][14] + (buttonBorder[5][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder6x = buttonBorder[6][12] + (buttonBorder[6][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder6y = buttonBorder[6][14] + (buttonBorder[6][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder7x = buttonBorder[7][12] + (buttonBorder[7][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder7y = buttonBorder[7][14] + (buttonBorder[7][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder8x = buttonBorder[8][12] + (buttonBorder[8][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder8y = buttonBorder[8][14] + (buttonBorder[8][15] * 255);
-
-  // x  buttonXSpace
-  int buttonBorder9x = buttonBorder[9][12] + (buttonBorder[9][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder9y = buttonBorder[9][14] + (buttonBorder[9][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder10x = buttonBorder[10][12] + (buttonBorder[10][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder10y = buttonBorder[10][14] + (buttonBorder[10][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder11x = buttonBorder[11][12] + (buttonBorder[11][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder11y = buttonBorder[11][14] + (buttonBorder[11][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder12x = buttonBorder[12][12] + (buttonBorder[12][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder12y = buttonBorder[12][14] + (buttonBorder[12][15] * 255);
-
-  // x  buttonXSpace
-  int buttonBorder13x = buttonBorder[13][12] + (buttonBorder[13][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder13y = buttonBorder[13][14] + (buttonBorder[13][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder14x = buttonBorder[14][12] + (buttonBorder[14][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder14y = buttonBorder[14][14] + (buttonBorder[14][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder15x = buttonBorder[15][12] + (buttonBorder[15][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder15y = buttonBorder[15][14] + (buttonBorder[15][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder16x = buttonBorder[16][12] + (buttonBorder[16][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder16y = buttonBorder[16][14] + (buttonBorder[16][15] * 255);
-
-  // x  buttonXSpace
-  int buttonBorder17x = buttonBorder[17][12] + (buttonBorder[17][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder17y = buttonBorder[17][14] + (buttonBorder[17][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder18x = buttonBorder[18][12] + (buttonBorder[18][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder18y = buttonBorder[18][14] + (buttonBorder[18][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder19x = buttonBorder[19][12] + (buttonBorder[19][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder19y = buttonBorder[19][14] + (buttonBorder[19][15] * 255);
-  // x  buttonXSpace
-  int buttonBorder20x = buttonBorder[20][12] + (buttonBorder[20][13] * 255) + buttonXSpace;
-  // y  buttonYSpace
-  int buttonBorder20y = buttonBorder[20][14] + (buttonBorder[20][15] * 255);
 
 
+  // x  buttonXSpace - not used
+  //int buttonBorder20x = buttonBorder[20][12] + (buttonBorder[20][13] * 255) + buttonXSpace;
+  // y  buttonYSpace
+  //int buttonBorder20y = buttonBorder[20][14] + (buttonBorder[20][15] * 255);
+
+  // replace the '20' with 'i' for the loop.
+  /*
+  int buttonBorderXDivision20;
+  int buttonBorderXRemainder20;
+  int buttonBorderX2012;
+  int buttonBorderX2013;
+  int buttonBorderYDivision20;
+  int buttonBorderYRemainder20;
+  int buttonBorderY2014;
+  int buttonBorderY2015;
+  */
 
   // The first char[] used in: read(sock, responseWindowInput, 32);
   // every loop iteration to return input.
@@ -920,10 +916,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         // ButtonPress (Mouse click) occurred.
         // Right handed: 1 = Left Click, 2 = Middle, 3 = Right
         button = responseWindowInput[1];
-        //if (button == 3) {
-        //  printf("button = %d\n", button);
-        //  break;
-        //}
         // Extract mouse X and Y coordinates (Bytes 24-27)
         //mouseX = responseWindowInput[24] | (responseWindowInput[25] << 8);
         //mouseY = responseWindowInput[26] | (responseWindowInput[27] << 8);
@@ -937,108 +929,181 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         //printf("X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
         //printf("Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
         //printf("Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
-        // The button coordinates.
-        //intButtonY = 100;
-        intButtonHeight = 50;
         //printf("intButtonX: %d  intButtonWidth: %d\n", intButtonX, intButtonX + intButtonWidth);
         //printf("intButtonY: %d  intButtonHeight: %d\n", intButtonY, intButtonY + intButtonHeight);
 
-
-            //printf("    X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
-            //printf("    X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
-            //printf("    Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
-            //printf("    Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
-
-        // buttonBorder[i][j] x 12 13    y 14 15
-        //printf("low\n");
-        //printf("x buttonBorder[1][12] %d, buttonBorder[1][13] %d\n", buttonBorder[1][12], buttonBorder[1][13]);
-        //printf("y buttonBorder[1][14] %d, buttonBorder[1][15] %d\n", buttonBorder[1][14], buttonBorder[1][15]);
-        //printf("high\n");
-        //printf("x buttonBorder[1][12] + intButtonWidth %d, buttonBorder[1][13] %d\n", buttonBorder[1][12] + intButtonWidth, buttonBorder[1][13]);
-        //printf("y buttonBorder[1][14] + intButtonHeight %d, buttonBorder[1][15] %d\n", buttonBorder[1][14] + intButtonHeight, buttonBorder[1][15]);
-
-        // method 0: convert char[] to int
-
-        // 2 char[] elements to 1 int
-        //  intButtonXPlusRemainder = intButtonXPlus % 256;
-        //  intButtonXPlusDivision = intButtonXPlus / 256;
-
-        // x
-        //int buttonBorder19 = buttonBorder[19][12] + (buttonBorder[19][13] * 255);
-        // y
-        //buttonBorder[19][14];
-        //buttonBorder[19][15]
-
-
-        //if ((responseWindowInput[24] > buttonBorder[1][12]) && (responseWindowInput[24] < (buttonBorder[1][12] + intButtonWidth))) {          // x
-        //  if ((responseWindowInput[26] > buttonBorder[1][14]) && (responseWindowInput[26] < (buttonBorder[1][14] + intButtonHeight))) {       // y
-        //    printf("Screen button press: 0\n");
-        //  }
-        //}
-
-
-        // x
-        int mouseClickX = responseWindowInput[24] + (responseWindowInput[25] * 255);
-        // y
-        int mouseClickY = responseWindowInput[26] + (responseWindowInput[27] * 255);
-        printf("mouseClickX %d  mouseClickY %d\n", mouseClickX, mouseClickY);
-
-        printf("low\n");
-        printf("buttonBorder19x %d  buttonBorder19y %d\n", buttonBorder19x, buttonBorder19y);
-        printf("high\n");
-        printf("buttonBorder19x+width %d  buttonBorder19y+height %d\n", buttonBorder19x+intButtonWidth, buttonBorder19y+intButtonHeight);
+        /*
+            printf("    X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
+            printf("    X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
+            printf("    Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
+            printf("    Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
+        */
 
 
 
-        // =
-        if ((mouseClickX > buttonBorder19x) && (mouseClickX < (buttonBorder19x + intButtonWidth))) {          // x
-          if ((mouseClickY > buttonBorder19y) && (mouseClickY < (buttonBorder19y + intButtonHeight))) {       // y
-            printf("Button press: =\n");
+
+        // Calculates the X limit border for the '20' buttons.
+        // new char 4 * (20)
+        // [12] and [13] have overflow accounted for x
+        // [14] and [15] have overflow accounted for y
+        // if '[12] + width' is > 255, add overflow to '[13]'.
+          // useful if you resize the initial window.
+        //printf("width: 50  buttonBorder[1][16]: %d\n", buttonBorder[1][16]);
+        //printf("height: 50  buttonBorder[1][18]: %d\n", buttonBorder[1][18]);
+        //char buttonBorderXXYY[40];
+
+        // buttonBorderXXYY
+        // this code * 20 for each button.
+
+        // a  a  a  /
+        // 7  8  9  X
+        // 4  5  6  -
+        // 1  2  3  +
+        // (  )  0  =
+
+        // '0' button mouse click.
+        printf("input: x responseWindowInput[24] %d  responseWindowInput[25] %d\n", responseWindowInput[24], responseWindowInput[25]);
+        //printf("high x buttonBorderXXYY[72]: %d\nbuttonBorderXXYY[73]: %d\n", buttonBorderXXYY[72], buttonBorderXXYY[73]);
+        printf("input: y responseWindowInput[26] %d  responseWindowInput[27] %d\n", responseWindowInput[26], responseWindowInput[27]);
+        //printf("high y buttonBorderXXYY[74]: %d\nbuttonBorderXXYY[75]: %d\n", buttonBorderXXYY[74], buttonBorderXXYY[75]);
+        // x low is default [24] and [25]
+
+        // 2 divisions are 0(n) for worst case which is more than comparions for 0(logn)
+        // Accounts for if 'x2' input is greater than the 'x2' low boundary but 'x1' is less than the 'x1' boundary.
+           // hypothetical not tested until the window and button xy coordinates are expanded to the screen widths
+        if (responseWindowInput[25] == buttonBorder[19][13]) {         // x2 0    = 0
+          if (responseWindowInput[24] > buttonBorder[19][12]) {        // x1 255  > 220
+            // Tests the x2 against the high boundary.
+            if (responseWindowInput[25] == buttonBorderXXYY[73]) {     // x2 0    = 1  // no
+              if (responseWindowInput[24] < buttonBorderXXYY[72]) {
+                // x works because x2 input is the same as the low and high x2 boundary (0 and 3 if)
+                //                 x1 input is greater than low and less than high x1 boundary
+                //printf("1st if, 1st nested: x within boundary\n");
+
+
+
+                ///////////////////////////todo same as the other y boundary if
+                // test for y low
+                if (responseWindowInput[27] == buttonBorder[19][15]) {  // y2 1   = 1
+                  if (responseWindowInput[26] > buttonBorder[19][14]) { // y1 109 > 84
+                    printf("y within boundary\n");
+                  }
+                }
+                //////////////////////////////
+
+
+              }
+            }
+            else if (responseWindowInput[25] < buttonBorderXXYY[73]) { // x2 0   < 1   // yes
+              // input: x responseWindowInput[24] 225  responseWindowInput[25] 0
+              if (responseWindowInput[24] > buttonBorderXXYY[72]) {   // x1 255 > 14  // or?
+                // x works because x2 input is the same as the low and high x2 boundary (0 and 3 if)
+                //                 x1 input is greater than low and less than high x1 boundary
+                //printf("1st if, 2nd nested: x within boundary\n");
+
+
+                ///////////////////////////////// todo - copy into the other two x coordinate blocks
+                // The y low
+                if (responseWindowInput[27] == buttonBorder[19][15]) {  // y2 1   = 1
+                  if (responseWindowInput[26] > buttonBorder[19][14]) { // y1 109 > 84
+                    //printf("y within boundary - 1st if, 2nd nested\n");
+                    // test for y high
+                    if (responseWindowInput[27] == buttonBorderXXYY[75]) {  // y2 1   = 1
+                      if (responseWindowInput[26] < buttonBorderXXYY[74]) { // y1 109 < 134
+                        printf("y2 within boundary when y2 is equal\n");
+                      }
+                    }
+                    // probably dont need this one
+                    //if (responseWindowInput[27] < buttonBorderXXYY[75]) {   // y2 0   < 1
+                    //  if (responseWindowInput[26] < buttonBorderXXYY[74]) { // y1 109 < 134
+                    //    printf("y within boundary - 1st if, 2nd nested, 2nd nested\n");
+                    //  }
+                    //}
+                  }
+                }
+                // hypothetical not tested until the window and button xy coordinates are expanded to the screen widths
+                else if (responseWindowInput[27] < buttonBorder[19][15]) {  // y2 0   < 1
+                  if (responseWindowInput[26] > buttonBorder[19][14]) {     // y1 109 > 84
+                    // test for y high
+                    if (responseWindowInput[27] == buttonBorderXXYY[75]) {  // y2 0   = 1    // no
+                      if (responseWindowInput[26] < buttonBorderXXYY[74]) {
+                        printf("y2 within boundary when y2 is greater than low\n");
+                      }
+                    }
+                    //
+                    if (responseWindowInput[27] < buttonBorderXXYY[75]) {   // y2 0   < 1
+                      if (responseWindowInput[26] < buttonBorderXXYY[74]) { // y1 109 < 134
+                        printf("y2 within boundary when y2 greater than low and less than high\n");
+                      }
+                    }
+                  }
+                }
+                /////////////////////////////////////
+
+
+              }
+            }
+          }
+        }
+        // x2 greater than the low
+        else if (responseWindowInput[25] > buttonBorder[19][13]) {   // x2 1 >  0
+          // dont have to test x1 against x1 low
+          // is x2 less than high x2
+          if (responseWindowInput[25] <= buttonBorderXXYY[73]) {     // x2 1 <= 1
+            // x1 less than high x1
+            if (responseWindowInput[24] < buttonBorderXXYY[72]) {    // x1 9 <  14
+              //printf("2nd if: x within boundary\n");
+
+
+
+              //////////////////////////////////////////////////
+              // todo y boundary
+              ///////////////////////////////////
+
+
+
+            }
+          }
+        }
+/*
+// these were the coordinates that worked for the 19th button or '0'
+input: y responseWindowInput[26] 109  responseWindowInput[27] 1
+low
+x buttonBorder[19][12]: 220 buttonBorder[19][13]: 0
+y buttonBorder[19][14]: 84 buttonBorder[19][15]: 1
+high
+x buttonBorderXXYY[72]: 14 buttonBorderXXYY[72+1]: 1
+y buttonBorderXXYY[72+2]: 134 buttonBorderXXYY[72+3]: 1
+input: x responseWindowInput[24] 255  responseWindowInput[25] 0
+input: y responseWindowInput[26] 107  responseWindowInput[27] 1
+///////////////// hypothetical not tested until the window and button xy coordinates are expanded to the screen widths
+*/
+
+
+
+        // '=' button mouse click.
+        //printf("input: responseWindowInput[24] %d  responseWindowInput[25] %d\n", responseWindowInput[24], responseWindowInput[25]);
+        //printf("buttonBorder2012: %d\nbuttonBorder2013: %d\n", buttonBorderX2012, buttonBorderX2013);
+        //printf("buttonBorderXXYY[76]: %d\nbuttonBorderXXYY[77]: %d\n", buttonBorderXXYY[76], buttonBorderXXYY[77]);
+        // x low is default [24] and [25]
+        if ((responseWindowInput[24] > buttonBorder[20][12]) && (responseWindowInput[25] == buttonBorder[20][13])) {
+          // x high is the converted Division and Remainder
+          if ((responseWindowInput[24] < buttonBorderXXYY[76]) && (responseWindowInput[25] == buttonBorderXXYY[77])) {
+            //printf("x '  =  ' works\n");
+            // y low is default [26] and [27]
+            if ((responseWindowInput[26] > buttonBorder[20][14]) && (responseWindowInput[27] == buttonBorder[20][15])) {
+              // y high is the converted Division and Remainder
+              if ((responseWindowInput[26] < buttonBorderXXYY[78]) && (responseWindowInput[27] == buttonBorderXXYY[79])) {
+                printf("button '  =  '\n");
+              }
+            }
           }
         }
 
 
-
-
-        // x
-        //int buttonBorder19x = buttonBorder[19][12] + (buttonBorder[19][13] * 255);
-        // y
-        //int buttonBorder19y = buttonBorder[19][14] + (buttonBorder[19][15] * 255);
-
-
-        //else if ((responseWindowInput[24] > buttonBorder[19][12]) && (responseWindowInput[24] < (buttonBorder[19][12] + intButtonWidth))) {     // x
-        //  if ((responseWindowInput[26] > buttonBorder[19][14]) && (responseWindowInput[26] < (buttonBorder[19][14] + intButtonHeight))) {       // y
-        //    printf("Screen button press: =\n");
-        //  }
-        //}
-
-
-
-
-
-        /*
-          intButtonXPlusRemainder = intButtonXPlus % 256;
-          intButtonXPlusDivision = intButtonXPlus / 256;
-          //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
-          //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
-          buttonBorder[i][12] = intButtonXPlusRemainder;
-          buttonBorder[i][13] = intButtonXPlusDivision;
-
-  // variable reference
-  // x
-  borderRectangle[12] = intButtonX;
-  borderRectangle[13] = 0;
-  // y
-  borderRectangle[14] = intButtonY;
-  borderRectangle[15] = 0;
-  // Width
-  borderRectangle[16] = intButtonWidth;
-  borderRectangle[17] = 0;
-  // Height
-  borderRectangle[18] = intButtonHeight;
-  borderRectangle[19] = 0;
-        */
+        // event code 4 else close
       }
+      // while close
     }
   }
 
