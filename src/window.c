@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "arithmaticSteps.h"
+#include "binaryChar.h"
 #include "struct.h"
 #include "utility.h"
 /*
@@ -906,7 +907,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   //int intSetInputFocusRead = read(sock, setInputFocusRead, sizeof(setInputFocusRead));
   //////////////
 
-
   // The internet said not to use any iterations in the mouse and keyboard input stream.
   // Other windows clear the rectangles when dragged over and this 'write()' loop is
   // copied in the feedback loop.
@@ -1026,9 +1026,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   clearArea[5] = windowID.two;
   clearArea[6] = windowID.three;
   clearArea[7] = windowID.four;
-  // 8 - 15 set when 'eventCode == 22'.
+  // clearArea[8] - [15] set when 'eventCode == 22'.
 
-
+  // Convert decimal to binary 'int' and use the 'bit shifting shortcut' to find the width divided by the
+  // number of button columns (4) ignoring the remainders. Time complexity is O(1).
+  struct threeInt intBinaryWidthLow;
+  struct threeInt intBinaryWidthHigh;
+  struct threeInt intBinaryHeightLow;
+  struct threeInt intBinaryHeightHigh;
 
   if (geometryRead[0] == 1) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
@@ -1040,12 +1045,11 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       changeWindowInput = read(sock, responseWindowInput, 32);
       //printf("responseWindowInput[0]: %d\n", responseWindowInput[0]);
       eventCode = responseWindowInput[0];
-
-      while (windowCheck < 10) {
+      // Similar to a 'wait' function otherwise the 'sock()' continuously returns 'eventCode == 12'.
+      if (windowCheck < 3) {
         windowCheck++;
       }
       //printf("windowCheck: %d\n", windowCheck);
-
       if (eventCode == 0) {
         // Prints the error packet.
         printf("Error: read sock\n");
@@ -1058,8 +1062,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       // 'ExposureMask (Window needs to redraw)' defined in 'opcode 2' changeWindowAttributes.
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-      else if ((eventCode == 12 && windowCheck == 10) && (responseWindowInput[16] == 0 && responseWindowInput[17] == 0)) {
-        //printf("eventCode 12\n");
+      else if ((eventCode == 12 && windowCheck > 1) && (responseWindowInput[16] == 0 && responseWindowInput[17] == 0)) {
+        printf("eventCode 12\n");
         // Used in 2 char elements representing a precise int in screen size '0.)'
         screenCheckZero = 0;
         // Define the current X,Y, width, and height to 'write()' the 'clearArea' packet.
@@ -1078,19 +1082,38 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         //clearArea[15] = responseWindowInput[15];
         // Clear the window with opcode 61.
         //clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-
+        geometryWrite = write(sock, getGeometry, sizeof(getGeometry));
+        geometryRead[32];
+        intGeometryRead = read(sock, geometryRead, sizeof(geometryRead));
+        //printf("intGeometryRead: %d  geometryRead[0]: %d\n", intGeometryRead, geometryRead[0]);
+        printf("low  geometryRead[16]: %d   high   geometryRead[17]: %d\n", geometryRead[16], geometryRead[17]);
+        //printf("low  responseWindowInput[12]: %d   high   responseWindowInput[13]: %d\n", responseWindowInput[12], responseWindowInput[13]);
+        if (geometryRead[16] == 0 && geometryRead[17] == 0) {
+          while (1) {
+            geometryWrite = write(sock, getGeometry, sizeof(getGeometry));
+            geometryRead[32];
+            intGeometryRead = read(sock, geometryRead, sizeof(geometryRead));
+            //printf("intGeometryRead: %d  geometryRead[0]: %d\n", intGeometryRead, geometryRead[0]);
+            printf("low  geometryRead[16]: %d   high   geometryRead[17]: %d\n", geometryRead[16], geometryRead[17]);
+            if (geometryRead[16] != 0 || geometryRead[17] != 0) {
+              break;
+            }
+          }
+        }
+        printf("aaaaaaaa\n");
         // Used in 2 char elements representing a precise int in screen size '0.)'
-        screenCheckZero = 0;
-        if (responseWindowInput[12] == windowLowWidthTwo && responseWindowInput[13] == windowHighWidthTwo) { // the maximum dimensions of the screen
+        //screenCheckZero = 0;
+        if (geometryRead[16] == windowLowWidthTwo && geometryRead[17] == windowHighWidthTwo) { // the maximum dimensions of the screen
           // resize the buttons to 2.)
           printf("todo resize buttons to 2.)\n");
         }
-        else if (responseWindowInput[13] > windowHighWidthOne && responseWindowInput[13] < windowHighWidthTwo) {
+        else if (geometryRead[17] > windowHighWidthOne && geometryRead[17] < windowHighWidthTwo) {
           //printf("buttons 1.) width\n");
-          if (responseWindowInput[15] >= windowHighHeightOne && responseWindowInput[15] < windowHighHeightTwo) {
+          //if (responseWindowInput[23] >= windowHighHeightOne && responseWindowInput[23] < windowHighHeightTwo) {
+          if (geometryRead[19] >= 0 && geometryRead[19] < windowHighHeightTwo) {
             // the commented out space and size are if they need to be resized and spaced for this dimensions
             // +20 additional buttons
-            printf("resize buttons to 1.)\n");
+            printf("    resize buttons to 1.)\n");
             //int windowLowHeightTwo = 34; // Maximum screen height.
             //int windowHighHeightTwo = 4;
             //int windowLowHeightOne = 10; // Scientific height.
@@ -1244,18 +1267,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           }
         }
         // Switch to 0.) screen
-        else if (responseWindowInput[13] <= windowHighWidthOne) {
+        else if (geometryRead[17] <= windowHighWidthOne) {
           screenCheckZero = 1;
-          // stopped working between button 0.) and 1.) resize
-          ////////////////////////////////////////////////////////////////////////////////////////////////////
-          // *
-          if (responseWindowInput[13] == windowHighWidthOne && responseWindowInput[12] <= windowLowWidthOne) {
+          if (geometryRead[17] == windowHighWidthOne && geometryRead[16] <= windowLowWidthOne) {
             screenCheckZero = 1;
           }
-          else if (responseWindowInput[13] == windowHighWidthOne) {
+          else if (geometryRead[17] == windowHighWidthOne) {
             screenCheckZero = 1;
           }
-          // * /
           if (screenCheckZero == 1) {
             printf("screen 0\n");
             // Clear the window with opcode 61.
@@ -1428,6 +1447,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       else if (eventCode == 22) { // not the first 10 'eventCode' 'read()'
+        windowCheck = 0;
+        printf("responseWindowInput[20] %d  responseWindowInput[21] %d\n", responseWindowInput[20], responseWindowInput[21]);
         // XY coordinates
         //printf("responseWindowInput[%d]\n", responseWindowInput[16]);
         //printf("responseWindowInput[%d]\n", responseWindowInput[17]);
@@ -1439,8 +1460,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         // height
         //printf("responseWindowInput[22] %d\n", responseWindowInput[22]);
         //printf("responseWindowInput[23] %d\n", responseWindowInput[23]);
-        // Define the current X,Y. - used in eventCode = 12 window blocking -> results in infinite redrawing
-        //////////////////////////////////
         // Redefine the 'clearArea' opcode 61 packet to the current specifications.
         clearArea[8] = responseWindowInput[16];
         clearArea[9] = responseWindowInput[17];
@@ -1450,7 +1469,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         clearArea[13] = responseWindowInput[21];
         clearArea[14] = responseWindowInput[22];
         clearArea[15] = responseWindowInput[23];
-        // Used in 2 char elements representing a precise int in screen size '0.)'
+        // Used in 2 char elements representing a larger int in screen size '0.)'
         screenCheckZero = 0;
         printf("eventCode == 22\n");
         if (responseWindowInput[20] == windowLowWidthTwo && responseWindowInput[21] == windowHighWidthTwo) { // the maximum dimensions of the screen
@@ -1461,7 +1480,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         }
         else if (responseWindowInput[21] > windowHighWidthOne && responseWindowInput[21] < windowHighWidthTwo) {
           //printf("buttons 1.) width\n");
-          if (responseWindowInput[23] >= windowHighHeightOne && responseWindowInput[23] < windowHighHeightTwo) {
+          //if (responseWindowInput[23] >= windowHighHeightOne && responseWindowInput[23] < windowHighHeightTwo) {
+          if (responseWindowInput[23] >= 0 && responseWindowInput[23] < windowHighHeightTwo) {
             // Clear the window with opcode 61.
             clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
             // the commented out space and size are if they need to be resized and spaced for this dimensions
@@ -1644,19 +1664,53 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             clearArea[14] = responseWindowInput[22];
             clearArea[15] = responseWindowInput[23];
             clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+
+
+
+
+              // width
+              //printf("responseWindowInput[20] %d\n", responseWindowInput[20]);
+              //printf("responseWindowInput[21] %d\n\n", responseWindowInput[21]);
+              // height
+              //printf("responseWindowInput[22] %d\n", responseWindowInput[22]);
+              //printf("responseWindowInput[23] %d\n", responseWindowInput[23]);
+
+              // int windowLowWidth = 74;   // Defined at the begining of 'drawWindow()'.
+              // int windowHighWidth = 1;
+              // int windowLowHeight = 184; // Height of the window.
+              // int windowHighHeight = 1;
+
             // Resize the buttons to 0.) with the same values.
             //buttonBorderXXYY[80];
             // size
+                // 'maxBinaryLength' is used in "binaryChar.c" 'binaryAddition()' -> this is declared in 'main.c'
+            int maxBinaryLength = 17; // 'const int ..' tbd remove
+            intBinaryWidthLow = decimal2intBinary(responseWindowInput[20], maxBinaryLength);
+            intBinaryWidthHigh = decimal2intBinary(responseWindowInput[21], maxBinaryLength);
+            intBinaryHeightLow = decimal2intBinary(responseWindowInput[22], maxBinaryLength);
+            intBinaryHeightHigh = decimal2intBinary(responseWindowInput[23], maxBinaryLength);
+
+            printf("intBinaryWidthLow %d\n", intBinaryWidthLow.two);
+
             //intButtonX = 50;       // New row X
             intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+            //intButtonXPlus = 100;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
             intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
             //intButtonWidth = 50;   // First button width
+            //intButtonWidth = 100;   // First button width
             //intButtonHeight = 50;  // First button height
             numberButtons = 21;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 4 buttons (the loop uses 'i < numberButtons' )
             buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
             //buttonXSpace = 60;     // Space between buttons.
+            //buttonXSpace = 110;     // Space between buttons.
             //buttonYSpace = 60;
             buttonColumns = 4;
+
+
+
+
+
+
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
             i = 1;
@@ -1753,6 +1807,32 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               buttonBorder[i][17] = 0;
               buttonBorder[i][18] = intButtonHeight;
               buttonBorder[i][19] = 0;
+
+
+
+
+
+              // width
+              //printf("responseWindowInput[20] %d\n", responseWindowInput[20]);
+              //printf("responseWindowInput[21] %d\n\n", responseWindowInput[21]);
+              // height
+              //printf("responseWindowInput[22] %d\n", responseWindowInput[22]);
+              //printf("responseWindowInput[23] %d\n", responseWindowInput[23]);
+
+              // int windowLowWidth = 74;   // Defined at the begining of 'drawWindow()'.
+              // int windowHighWidth = 1;
+              // int windowLowHeight = 184; // Height of the window.
+              // int windowHighHeight = 1;
+
+              // int windowLowHeightOne = 10;  // Scientific height.
+              // int windowHighHeightOne = 2;
+              // int windowLowWidthOne = 250;  // Scientific button arrangement width.
+              // int windowHighWidthOne = 2;
+
+              // sci button max width = 760
+              //            125 = 100(*4)          ( 100 + 10) ;
+              // intButtonXPlus = intButtonXPlus + buttonXSpace;
+
               // Buttons 0 through 'buttonElement' space is incremented.
               // The last button space is from the edge of the window defined in Opcode 1.
               if (i < buttonElements) {
@@ -1764,6 +1844,11 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                 intButtonXPlus = intButtonX;
                 intButtonY = intButtonY + buttonYSpace;
               }
+
+
+
+
+
               //printf("i: %d k: %d\n", i, k);
               //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
               i++;
