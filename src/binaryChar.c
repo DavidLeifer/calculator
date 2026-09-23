@@ -164,7 +164,8 @@ int binary2Decimal(char charBinaryAdd[], int binaryAddOne) {
     j++;
     i--;
   }
-  free(charBinaryAdd);
+  // Removed 20260921. Have to free 'malloc()' heap pointer after input.
+  //free(charBinaryAdd);
   return decimal;
 }
 

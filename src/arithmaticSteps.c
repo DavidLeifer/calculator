@@ -49,6 +49,7 @@ int addition(int integerOne, int integerTwo) {
 
   // Converts the char[] binary sum to decimal.
   int intDecimalAdd = binary2Decimal(binaryAdd.string, binaryAdd.one);
+  free(binaryAdd.string);
   return intDecimalAdd;
 }
 
@@ -152,6 +153,7 @@ int subtraction(int integerOne, int integerTwo) {
   }
   // Converts the char[] binary sum to decimal from "binaryChar.c".
   int intDecimalAdd = binary2Decimal(binaryDifference.string, binaryDifference.one);
+  free(binaryDifference.string);
   return intDecimalAdd;
 }
 
@@ -379,14 +381,6 @@ int multiplication(int integerOne, int integerTwo) {
     // Adding the first two binary rows determined from steps 0 and 1 requires finding the initial two rows.
     // If the first two '0' occur from right to left 'previousChar' is used and vice versa for two '1'.
 
-
-
-
-
-
-
-
-
     // The last conditional calculates the first two rows if they are '0' and '1' or '1' and '0' based
     // on the value of 'stepZeroExists' or 'stepOneExists'.
     int freeCheck = 0;
@@ -394,16 +388,21 @@ int multiplication(int integerOne, int integerTwo) {
       //printf("first addition: %d\n  'previousSum': %s\n", i, previousChar);
       // Returns length of the longest of the two binary digits, difference, and check value used in 'binaryAddition()'.
       //struct threeInt intBinaryGreat = intBinaryCheck(intBinaryOne, intBinaryTwo);
-      // 'intBinaryGreat' can be avoided with the length of 'previousChar' (shorter), difference with the next binary (1),
+      // 'intBinaryCheck()' can be avoided with the length of 'previousChar' (shorter), difference with the next binary (1),
       // and check value in a 'struct threeInt intBinaryGreat.
-      //struct threeInt intBinaryGreatTwo;
+
+      // The difference is always 1.
+      intBinaryGreatTwo.two = 1;
+      // Check value '1' indicates the first or most recent char is larger.
+      intBinaryGreatTwo.three = 1;
+
       // The longest is the most recent char and the difference is '1'.
       if (stepZeroExists == 2) {
         intBinaryGreatTwo.one = j;
         // The difference is always 1.
-        intBinaryGreatTwo.two = 1;
+        //intBinaryGreatTwo.two = 1;
         // Check value '1' indicates the first or most recent char is larger.
-        intBinaryGreatTwo.three = 1;
+        //intBinaryGreatTwo.three = 1;
         //intBinaryGreatTwo.string = '\0';
         // Adds the two binary char and returns struct with char pointer binary sum and length.
         // 'binaryAddition()' no longer 'free()'s 'binaryOne' and 'binaryTwo' for this step.
@@ -412,9 +411,9 @@ int multiplication(int integerOne, int integerTwo) {
       else if (stepOneExists == 2) {
         intBinaryGreatTwo.one = k;
         // The difference is always 1.
-        intBinaryGreatTwo.two = 1;
+        //intBinaryGreatTwo.two = 1;
         // Check value '1' indicates the first or most recent char is larger.
-        intBinaryGreatTwo.three = 1;
+        //intBinaryGreatTwo.three = 1;
         //intBinaryGreatTwo.string = '\0';
         // Adds the two binary char and returns struct with char pointer binary sum and length.
         // 'binaryAddition()' no longer 'free()'s 'binaryOne' and 'binaryTwo' for this step.
@@ -425,9 +424,9 @@ int multiplication(int integerOne, int integerTwo) {
         if (binaryTwo[i] == '0') {
           intBinaryGreatTwo.one = j;
           // The difference is always 1.
-          intBinaryGreatTwo.two = 1;
+          //intBinaryGreatTwo.two = 1;
           // Check value '1' indicates the first or most recent char is larger.
-          intBinaryGreatTwo.three = 1;
+          //intBinaryGreatTwo.three = 1;
           // Adds the two binary char and returns struct with char pointer binary sum and length.
           // 'binaryAddition()' no longer 'free()'s 'binaryOne' and 'binaryTwo' for this step.
           binaryAdd = binaryAddition(zeroStep, oneStep, intBinaryGreatTwo, freeCheck);
@@ -436,9 +435,9 @@ int multiplication(int integerOne, int integerTwo) {
         else if (binaryTwo[i] == '1') {
           intBinaryGreatTwo.one = k;
           // The difference is always 1.
-          intBinaryGreatTwo.two = 1;
+          //intBinaryGreatTwo.two = 1;
           // Check value '1' indicates the first or most recent char is larger.
-          intBinaryGreatTwo.three = 1;
+          //intBinaryGreatTwo.three = 1;
           // Adds the two binary char and returns struct with char pointer binary sum and length.
           // 'binaryAddition()' no longer 'free()'s 'binaryOne' and 'binaryTwo' for this step.
           binaryAdd = binaryAddition(oneStep, zeroStep, intBinaryGreatTwo, freeCheck);
@@ -451,6 +450,10 @@ int multiplication(int integerOne, int integerTwo) {
     }
     // Step 3b) Uses 'binaryAddCheck' to add 'binaryAdd.string' (the sum of the first two binary) with either 'zeroStep' or 'oneStep'.
     else if (i < (intBinaryTwo.one - 2)) {
+      // The difference is always 1.
+      intBinaryGreatTwo.two = 1;
+      // Check value '1' indicates the first or most recent char is larger.
+      intBinaryGreatTwo.three = 1;
       // Returns length of the longest of the two binary digits, difference, and check value for 'binaryAdditionTwo()'.
       //struct threeInt intBinaryGreat = intBinaryCheck(intBinaryOne, intBinaryTwo);
       /////////////////////////////////////////////////////
@@ -458,8 +461,8 @@ int multiplication(int integerOne, int integerTwo) {
       // in addition to 'struct threeInt binaryAdd' which also exists the entire time.
       // 'binaryAdd.string' and either 'zeroStep' or 'oneStep' are the same length
       intBinaryGreatTwo.one = notZero;
-      intBinaryGreatTwo.two = 1;
-      intBinaryGreatTwo.three = 1;
+      //intBinaryGreatTwo.two = 1;
+      //intBinaryGreatTwo.three = 1;
       if (binaryAdd.one == notZero) {
         intBinaryGreatTwo.three = 0;
       }
@@ -486,7 +489,7 @@ int multiplication(int integerOne, int integerTwo) {
   // 'binaryAdd.string' is 'free()' in 'binary2Decimal()'.
   int intDecimalAdd =  binary2Decimal(binaryAdd.string, binaryAdd.one);
   //printf("%d x %d = %d\n", integerOne, integerTwo, intDecimalAdd);
-  //free(binaryAdd.string);
+  free(binaryAdd.string);
   return intDecimalAdd;
 }
 
