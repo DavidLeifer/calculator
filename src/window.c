@@ -1035,8 +1035,11 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // number of button columns (4) ignoring the remainders. Has to be powers of '2'. Time complexity is O(1).
 
   int currentWidthLowHigh;
+  int currentHeightLowHigh;
   struct threeInt intBinaryWidthLowHigh;
+  struct threeInt intBinaryHeightLowHigh;
   char *charBinaryWidthLowHigh;
+  char *charBinaryHeightLowHigh;
   int maxBinaryLength;
   int digitRemove;
   int dividedLength;
@@ -1045,6 +1048,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // char charBinaryButtonColumnsWidthLow[maxBinaryLength];
   int intBinaryButtonColumnsWidthLowHigh;
   int currentWindowWidthHigh;
+  int currentWindowHeightHigh;
+  int buttonRows;
+  int rowHeightLowHigh;
+
 
   if (geometryRead[0] == 1) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
@@ -1462,6 +1469,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       else if (eventCode == 22) { // not the first 10 'eventCode' 'read()'
         windowCheck = 0;
         printf("responseWindowInput[20] %d  responseWindowInput[21] %d\n", responseWindowInput[20], responseWindowInput[21]);
+        printf("responseWindowInput[22] %d  responseWindowInput[23] %d\n", responseWindowInput[22], responseWindowInput[23]);
         // XY coordinates
         //printf("responseWindowInput[%d]\n", responseWindowInput[16]);
         //printf("responseWindowInput[%d]\n", responseWindowInput[17]);
@@ -1677,10 +1685,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             clearArea[14] = responseWindowInput[22];
             clearArea[15] = responseWindowInput[23];
             clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-
-
-
-
               // width
               //printf("responseWindowInput[20] %d\n", responseWindowInput[20]);
               //printf("responseWindowInput[21] %d\n\n", responseWindowInput[21]);
@@ -1696,17 +1700,13 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // Resize the buttons to 0.) with the same values.
             //buttonBorderXXYY[80];
             // size
-
-            //intButtonWidth = 50;   // First button width
-            //intButtonWidth = 100;   // First button width
-            //intButtonHeight = 50;  // First button height
+            intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'\
+            intButtonX = 50;       // New row X
             numberButtons = 21;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 4 buttons (the loop uses 'i < numberButtons' )
             buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
-            //buttonXSpace = 60;     // Space between buttons.
-            //buttonXSpace = 110;     // Space between buttons.
-            //buttonYSpace = 60;
             buttonColumns = 4;    // Uses the right bit shifting shortcut division and has to be powers of 2.
                                   // i.e.'2, 4, 8, 16...'
+            buttonRows = 5;
             // One way is to convert with multiplication in a loop, add low and high values, and divide.
             // This way is hardcoded to avoid nested while loops.
               // Also divide the screensize by 2 and place the buttons from the center.
@@ -1717,7 +1717,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             //  |      |      |
             //  |      |      |
             //   -------------
-            currentWindowWidthHigh;
             if (responseWindowInput[21] == 1) {
               currentWindowWidthHigh = 255;
             }
@@ -1753,7 +1752,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             maxBinaryLength = 17; // 'const int ..' tbd remove
             // Combined low and high width. Accounts for window edge to first button/last button to edge and space between inner buttons (n-1).
             currentWidthLowHigh = currentWindowWidthHigh + responseWindowInput[20] - (intButtonX * 2) - (10 * (buttonColumns-1) );          // responseWindowInput[21] + responseWindowInput[20]
-            printf("currentWindowWidthHigh  %d  +  responseWindowInput[20]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, responseWindowInput[20], currentWidthLowHigh);
+            //printf("currentWindowWidthHigh  %d  +  responseWindowInput[20]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, responseWindowInput[20], currentWidthLowHigh);
             intBinaryWidthLowHigh = decimal2intBinary(currentWidthLowHigh, maxBinaryLength);
             charBinaryWidthLowHigh = intBinary2Char(intBinaryWidthLowHigh);
             if (responseWindowInput[20] > buttonColumns) {
@@ -1801,30 +1800,111 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                 }
                 m--;
               }
-              //printf("responseWindowInput[20] %d  /  buttonColumns: %d  =  %d\n", responseWindowInput[20], buttonColumns, (responseWindowInput[20] / buttonColumns));
+                //printf("responseWindowInput[20] %d  /  buttonColumns: %d  =  %d\n", responseWindowInput[20], buttonColumns, (responseWindowInput[20] / buttonColumns));
               //printf("charBinaryWidthLow: %s  charBinaryButtonColumnsWidthLow: %s\n", charBinaryWidthLow, charBinaryButtonColumnsWidthLow);
               //printf("\n");
               // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
                 // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
               intBinaryButtonColumnsWidthLowHigh = binary2Decimal(charBinaryButtonColumnsWidthLowHigh, (dividedLength + 1));
-              printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
-              //
-              //
-              //
-              // resize button width:
-              //
-
-                //intButtonX = 50;       // New row X
-              intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
-              intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
+                //printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
+              ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+              // Calculate the height.
+              if (responseWindowInput[23] == 1) {
+                currentWindowHeightHigh = 255;
+              }
+              else if (responseWindowInput[23] == 2) {
+                currentWindowHeightHigh = 510;
+              }
+              else if (responseWindowInput[23] == 3) {
+                currentWindowHeightHigh = 765;
+              }
+              else if (responseWindowInput[23] == 4) {
+                currentWindowHeightHigh = 1020;
+              }
+              else if (responseWindowInput[23] == 5) {
+                currentWindowHeightHigh = 1275;
+              }
+              else if (responseWindowInput[23] == 6) {
+                currentWindowHeightHigh = 1530;
+              }
+              else if (responseWindowInput[23] == 7) {
+                currentWindowHeightHigh = 1785;
+              }
+              else if (responseWindowInput[23] == 8) {
+                currentWindowHeightHigh = 2040;
+              }
+              else if (responseWindowInput[23] == 9) {
+                currentWindowHeightHigh = 2295;
+              }
+              //printf("currentWindowHeightHigh: %d\n", currentWindowHeightHigh);
+                // 'maxBinaryLength' is used in "binaryChar.c" 'binaryAddition()' -> this is declared in 'main.c'
+                //maxBinaryLength = 17; // 'const int ..' tbd remove
+              // Combined low and high width. Accounts for window edge to top button button to edge, space above/below inner buttons (n-1) and bottom edge.
+                                                                 //  textBorder[18] = 30; + 60 <= the buttonYSpace
+              currentHeightLowHigh = currentWindowHeightHigh + responseWindowInput[22] - 90 - (10 * (buttonRows-1) - 50);          // responseWindowInput[23] + responseWindowInput[22]
+              printf("currentWindowHeightHigh  %d  +  responseWindowInput[22]  = %d  currentHeightLowHigh  %d\n", currentWindowHeightHigh, responseWindowInput[22], currentHeightLowHigh);
+              //intBinaryHeightLowHigh = decimal2intBinary(currentHeightLowHigh, maxBinaryLength);
+              //charBinaryHeightLowHigh = intBinary2Char(intBinaryHeightLowHigh);
+              // 'buttonRows' ^ 'buttonRowsTwoPower <- exponents for use in the bit shifting shortcut division to ignore remainders.
+              //                    buttonRowsTwoPower = 1, 2, 3, 4, etc.
+              // e.g. 2^1=2, 2^2=4, 2^3=8, ... n
+              rowHeightLowHigh = 0;
+              if (buttonRows == 5) {
+                // Rounds 'currentHeightLowHigh' down to multiples of 50. 'rowHeightLowHigh' is incremented by 10:
+                // currentHeightLowHigh =  50 / 5 = 10
+                                       // 100 / 5 = 20
+                                       // 150 / 5 = 30
+                                       // 200 / 5 = 40
+                                       // 250 / 5 = 50
+                // Not a complete answer since it doesn't use division, banking on the user dragging the window to display the entire button.
+                m = 50;
+                int p = 50;
+                while (m < 2295) {
+                  printf("m + 50: %d\n", m);
+                  if ( (currentHeightLowHigh < (p + m)) && (currentHeightLowHigh >= (0 + m)) ) {
+                    currentHeightLowHigh = m;
+                    break;
+                  }
+                  rowHeightLowHigh = rowHeightLowHigh + 10;
+                  m = m + p;
+                }
+                //printf("currentHeightLowHigh: %d  rowHeightLowHigh: %d\n\n", currentHeightLowHigh, rowHeightLowHigh);
+              }
+              /*
+                   // delete buttonRowsTwoPower = 1;
+                delete these variables
+              // 'm' is the length of the binary - 1
+              m = intBinaryHeightLowHigh.one - 1;
+              // 'heightDigitRemove' is the number of digits to remove from the right side of the binary char[].
+              heightDigitRemove = 1;
+              // 'heightDividedLength' is the new length of the divided number.
+              heightDividedLength = m - buttonRowsTwoPower;
+              char charBinaryButtonRowsHeightLowHigh[heightDividedLength];
+              while (0 <= m) {
+                //printf("heightDigitRemove: %d   m: %d    buttonRowsTwoPower: %d\n", heightDigitRemove, m, buttonRowsTwoPower);
+                // Increment 'heightDigitRemove' until it reaches the number of digits to remove.
+                if (heightDigitRemove < buttonRowsTwoPower) {
+                  heightDigitRemove++;
+                }
+                else if (m <= heightDividedLength) {
+                  // Set the remaining digits without the removed right bits.
+                  charBinaryButtonRowsHeightLowHigh[m] = charBinaryHeightLowHigh[m];
+                }
+                m--;
+              }
+              printf("currentHeightLowHigh %d  /  buttonRows: %d  =  %d\n", currentHeightLowHigh, buttonRows, (currentHeightLowHigh / buttonRows));
+              printf("charBinaryHeightLowHigh: %s  charBinaryButtonRowsHeightLowHigh: %s\n", charBinaryHeightLowHigh, charBinaryButtonRowsHeightLowHigh);
+              // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
+                // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
+              intBinaryButtonRowsHeightLowHigh = binary2Decimal(charBinaryButtonRowsHeightLowHigh, (heightDividedLength + 1));
+              printf("intBinaryButtonRowsHeightLowHigh: %d  =  charBinaryButtonRowsHeightLowHigh: %s\n", intBinaryButtonRowsHeightLowHigh, charBinaryButtonRowsHeightLowHigh);
+              printf("\n");
+              */
+              //intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
               intButtonWidth = intBinaryButtonColumnsWidthLowHigh;   // First button width
-              //intButtonWidth = 100;   // First button width
-                //intButtonHeight = 50;  // First button height
-                //numberButtons = 21;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 4 buttons (the loop uses 'i < numberButtons' )
-                //buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
+              intButtonHeight = rowHeightLowHigh; //intBinaryButtonRowsHeightLowHigh;  // First button height
               buttonXSpace = intBinaryButtonColumnsWidthLowHigh + 10;     // Space between buttons.
-                //buttonXSpace = 110;     // Space between buttons.
-                //buttonYSpace = 60;
+              buttonYSpace = rowHeightLowHigh + 10; //intBinaryButtonRowsHeightLowHigh + 10;
             }
 
 
