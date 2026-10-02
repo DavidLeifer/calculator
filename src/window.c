@@ -1007,9 +1007,15 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // Used in 'eventcode == 22' to resize and rearrange the buttons when the
   // screen is resized using the same comparison if/else as 'eventCode == 4'
   // that returns mouse input and uses 2+ char elements to represent a larger int.
-  // int screenCheckTwo; // <- todo
-  int screenCheckOne;      // not used for button graphic packets, only mouse click feedback.
-  int screenCheckZero = 1; // Used in the initial graphic packet and mouse click feedback.
+
+  int screenCheckZero = 1;     // Used in the initial graphic packet and mouse click feedback.
+  int screenCheckOne = 0;      // not used for button graphic packets, only mouse click feedback.
+  int screenCheckTwo = 0;
+
+  int screenCheckWidthZero = 0;
+  int screenCheckWidthOne = 0;
+  int screenCheckWidthTwo = 0;
+
   int windowCheck = 0;
 
   // Clear the screen.
@@ -1080,23 +1086,11 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       else if ((eventCode == 12 && windowCheck > 1) && (responseWindowInput[16] == 0 && responseWindowInput[17] == 0)) {
-        //printf("eventCode 12\n");
+        printf("eventCode 12\n");
         // Define the current X,Y, width, and height to 'write()' the 'clearArea' packet.
           // This is used in 'eventCode == 22' but for some reason spams 'eventCode == 12' in this conditional. Not sure if it draws polyRectangle
           // numbers over the existing pixel memory registers. 'responseWindowInput[16] == 0' ... n is specified as the 'count' of rectangle
           // quadrants from left to right in one definition of the 'read()' packet i.e.  'n ... 3, 2, 1, 0'. The maximum value might be '4'.
-        // XY
-        //clearArea[8] = responseWindowInput[8];
-        //clearArea[9] = responseWindowInput[9];
-        //clearArea[10] = responseWindowInput[10];
-        //clearArea[11] = responseWindowInput[11];
-        // width, height
-        //clearArea[12] = responseWindowInput[12];
-        //clearArea[13] = responseWindowInput[13];
-        //clearArea[14] = responseWindowInput[14];
-        //clearArea[15] = responseWindowInput[15];
-        // Clear the window with opcode 61.
-        //clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
         // The first 'geometryRead' width and height is before the 'keyboard input' 'while' loop and has the original size.
         geometryWrite = write(sock, getGeometry, sizeof(getGeometry));
         geometryRead[32];
@@ -1118,440 +1112,807 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
           }
         }
+        // XY
+        /*
+        clearArea[8] = responseWindowInput[8];
+        clearArea[9] = responseWindowInput[9];
+        clearArea[10] = responseWindowInput[10];
+        clearArea[11] = responseWindowInput[11];
+        clearArea[12] = responseWindowInput[12];
+        clearArea[13] = responseWindowInput[13];
+        clearArea[14] = responseWindowInput[14];
+        clearArea[15] = responseWindowInput[15];
+        */
+        clearArea[8] = geometryRead[16];
+        clearArea[9] = geometryRead[17];
+        clearArea[10] = geometryRead[18];
+        clearArea[11] = geometryRead[19];
+        clearArea[12] = geometryRead[20];
+        clearArea[13] = geometryRead[21];
+        clearArea[14] = geometryRead[22];
+        clearArea[15] = geometryRead[23];
+        // Clear the window with opcode 61.
+        clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
         // screenCheckTwo = 0; // <- todo
         screenCheckOne = 0;    // <- not used for button graphic packets, only mouse click feedback.
         screenCheckZero = 0;   // <- used in both button graphics and mouse click feedback.
-        // Resize the buttons to 2.)
-        if (geometryRead[16] == windowLowWidthTwo && geometryRead[17] == windowHighWidthTwo) { // the maximum dimensions of the screen
-          //printf("todo resize buttons to 2.)\n");
+
+        screenCheckWidthZero = 0;
+        screenCheckWidthOne = 0;
+        screenCheckWidthTwo = 0;
+        // Determines the screen size and button orientation. To reduce 8 int (8 * 4 bytes), nest the height conditionals in the width and repeat the entire
+        // code block every time but that is overkill. The width splits based on 'responseWindowInput[20]' the '1-255' number when the
+        // 'responseWindowInput[21]' '1-10' number is equal to 'windowHighWidthOne'.
+        printf("geometryRead[17]: %d == windowHighWidthOne:  %d\n", geometryRead[17], windowHighWidthOne);
+        printf("  geometryRead[16]: %d <= windowLowWidthOne:  %d\n", geometryRead[16], windowLowWidthOne);
+        if (geometryRead[17] == windowHighWidthOne) {
+          if (geometryRead[16] <= windowLowWidthOne) {
+            screenCheckWidthZero = 1;
+          }
+          else if (geometryRead[16] > windowLowWidthOne) {
+            screenCheckWidthOne = 1;
+          }
+        }
+        else if (geometryRead[17] < windowHighWidthOne) {
+          screenCheckWidthZero = 1;
+        }
+        else if (geometryRead[17] > windowHighWidthOne) {
+          screenCheckWidthOne = 1;
+        }
+        else if (geometryRead[17] == windowHighWidthTwo) {
+          screenCheckWidthTwo = 1;
+        }
+        printf("eventCode 22  screenCheckWidthZero: %d\n", screenCheckWidthZero);
+        printf("eventCode 22  screenCheckWidthOne: %d\n", screenCheckWidthOne);
+        printf("eventCode 22  screenCheckWidthTwo: %d\n", screenCheckWidthTwo);
+        // Switch to 0.) screen
+        if (screenCheckWidthZero == 1) {
+          screenCheckZero = 1;
+          //printf("screen 0\n");
+          // Clear the window with opcode 61.
+          //clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+
+          // Resize the buttons to 0.) with the same values.
+          //buttonBorderXXYY[80];
+          // size
+          //intButtonX = 50;       // New row X
+          intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+          intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
+          //intButtonWidth = 50;   // First button width
+          //intButtonHeight = 50;  // First button height
+          numberButtons = 21;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 4 buttons (the loop uses 'i < numberButtons' )
+          buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
+          //buttonXSpace = 60;     // Space between buttons.
+          //buttonYSpace = 60;
+          buttonColumns = 4;
+          // The screen size is the original arrangement with 20 buttons.
+          //unsigned char buttonBorderXXYY[80];                           // 4 (k, k+1, k+2, etc.) measurements X 40 buttons
+          //unsigned char buttonBorder[numberButtons][buttonElements];
+          //unsigned char subsetButtonBorder[buttonElements];
+          // One way is to convert with multiplication in a loop, add low and high values, and divide.
+          // This way is hardcoded to avoid nested while loops.
+            // Also divide the screensize by 2 and place the buttons from the center.
+          //   _____________
+          //  |      |      |
+          //  |   <- | ->   |
+          //  | \/   |   \/ |
+          //  |      |      |
+          //  |      |      |
+          //   -------------
+          if (geometryRead[17] == 1) {
+            currentWindowWidthHigh = 255;
+          }
+          else if (geometryRead[17] == 2) {
+            currentWindowWidthHigh = 510;
+          }
+          else if (geometryRead[17] == 3) {
+            currentWindowWidthHigh = 765;
+          }
+          else if (geometryRead[17] == 4) {
+            currentWindowWidthHigh = 1020;
+          }
+          else if (geometryRead[17] == 5) {
+            currentWindowWidthHigh = 1275;
+          }
+          else if (geometryRead[17] == 6) {
+            currentWindowWidthHigh = 1530;
+          }
+          else if (geometryRead[17] == 7) {
+            currentWindowWidthHigh = 1785;
+          }
+          else if (geometryRead[17] == 8) {
+            currentWindowWidthHigh = 2040;
+          }
+          else if (geometryRead[17] == 9) {
+            currentWindowWidthHigh = 2295;
+          }
+          //printf("currentWindowWidthHigh: %d\n", currentWindowWidthHigh);
+          // todo you have to use the low and high
+             // if the 'buttonColumns' is less than the width
+          // Combined low and high width. Accounts for window edge to first button/last button to edge and space between inner buttons (n-1).
+          currentWidthLowHigh = currentWindowWidthHigh + geometryRead[16] - (intButtonX * 2) - (10 * (buttonColumns-1) );          // geometryRead[17] + geometryRead[16]
+          //printf("currentWindowWidthHigh  %d  +  geometryRead[16]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, geometryRead[16], currentWidthLowHigh);
+          intBinaryWidthLowHigh = decimal2intBinary(currentWidthLowHigh, maxBinaryLength);
+          charBinaryWidthLowHigh = intBinary2Char(intBinaryWidthLowHigh);
+          if (geometryRead[16] > buttonColumns) {
+            //printf("intBinaryWidthLow.two %d\n", intBinaryWidthLow.two);
+            //printf("intBinaryWidthLow.one %d\n", intBinaryWidthLow.one); // length of the binary
+            // 'buttonColumns' ^ 'buttonColumnsTwoPower <- exponents for use in the bit shifting shortcut division to ignore remainders.
+            //                    buttonColumnsTwoPower = 1, 2, 3, 4, etc.
+            // e.g. 2^1=2, 2^2=4, 2^3=8, ... n
+            buttonColumnsTwoPower;
+            if (buttonColumns == 2) {
+              buttonColumnsTwoPower = 1;
+            }
+            else if (buttonColumns == 4) {
+              buttonColumnsTwoPower = 2;
+            }
+            else if (buttonColumns == 8) {
+              buttonColumnsTwoPower = 3;
+            }
+            else if (buttonColumns == 16) {
+              buttonColumnsTwoPower = 4;
+            }
+            else if (buttonColumns == 32) {
+              buttonColumnsTwoPower = 5;
+            }
+            else if (buttonColumns == 64) {
+              buttonColumnsTwoPower = 6;
+            }
+            // 'm' is the length of the binary - 1
+            m = intBinaryWidthLowHigh.one - 1;
+            // 'digitRemove' is the number of digits to remove from the right side of the binary char[].
+            digitRemove = 1;
+            // 'dividedLength' is the new length of the divided number.
+            dividedLength = m - buttonColumnsTwoPower;
+            unsigned char charBinaryButtonColumnsWidthLowHigh[dividedLength];
+            while (0 <= m) {
+              //printf("digitRemove: %d   m: %d    buttonColumnsTwoPower: %d\n", digitRemove, m, buttonColumnsTwoPower);
+              // Increment 'digitRemove' until it reaches the number of digits to remove.
+              if (digitRemove < buttonColumnsTwoPower) {
+                digitRemove++;
+              }
+              else if (m <= dividedLength) {
+                // Set the remaining digits without the removed right bits.
+                charBinaryButtonColumnsWidthLowHigh[m] = charBinaryWidthLowHigh[m];
+                //printf("charBinaryWidthLow[%d]:  %c  charBinaryButtonColumnsWidthLow[%d]:  %c\n", m, charBinaryWidthLow[m], m, charBinaryButtonColumnsWidthLow[m]);
+              }
+              m--;
+            }
+              //printf("geometryRead[16] %d  /  buttonColumns: %d  =  %d\n", geometryRead[16], buttonColumns, (geometryRead[16] / buttonColumns));
+            //printf("charBinaryWidthLow: %s  charBinaryButtonColumnsWidthLow: %s\n", charBinaryWidthLow, charBinaryButtonColumnsWidthLow);
+            //printf("\n");
+            // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
+              // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
+            intBinaryButtonColumnsWidthLowHigh = binary2Decimal(charBinaryButtonColumnsWidthLowHigh, (dividedLength + 1));
+              //printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
+            // Calculate the height.
+            if (geometryRead[19] == 1) {
+              currentWindowHeightHigh = 255;
+            }
+            else if (geometryRead[19] == 2) {
+              currentWindowHeightHigh = 510;
+            }
+            else if (geometryRead[19] == 3) {
+              currentWindowHeightHigh = 765;
+            }
+            else if (geometryRead[19] == 4) {
+              currentWindowHeightHigh = 1020;
+            }
+            else if (geometryRead[19] == 5) {
+              currentWindowHeightHigh = 1275;
+            }
+            else if (geometryRead[19] == 6) {
+              currentWindowHeightHigh = 1530;
+            }
+            else if (geometryRead[19] == 7) {
+              currentWindowHeightHigh = 1785;
+            }
+            else if (geometryRead[19] == 8) {
+              currentWindowHeightHigh = 2040;
+            }
+            else if (geometryRead[19] == 9) {
+              currentWindowHeightHigh = 2295;
+            }
+            //printf("currentWindowHeightHigh: %d\n", currentWindowHeightHigh);
+            // Combined low and high width. Accounts for window edge to top button button to edge, space above/below inner buttons (n-1) and bottom edge.
+                                                               //  textBorder[18] = 30; + 60 <= the buttonYSpace
+            currentHeightLowHigh = currentWindowHeightHigh + geometryRead[18] - 90 - (10 * (buttonRows-1) - 50);          // geometryRead[19] + geometryRead[18]
+            //printf("currentWindowHeightHigh  %d  +  geometryRead[18]  = %d  currentHeightLowHigh  %d\n", currentWindowHeightHigh, geometryRead[18], currentHeightLowHigh);
+            rowHeightLowHigh = 0;
+            if (buttonRows == 5) {
+              // Rounds 'currentHeightLowHigh' down to multiples of 50. 'rowHeightLowHigh' is incremented by 'm' + 'p' or '2 + 1':
+              // currentHeightLowHigh =  50 / 5 = 10    25 / 5 =  5    2 / 2 = 1
+                                     // 100 / 5 = 20    50 / 5 = 10    4 / 2 = 2
+                                     // 150 / 5 = 30                   6 / 2 = 3
+                                     // 200 / 5 = 40
+                                     // 250 / 5 = 50
+              // Not a complete answer since it doesn't use division.
+               // currentHeightLowHigh
+              //m = 75;
+              //int p = 25;
+              m = 75;
+              p = 25;
+              while (m < 2295) {
+                //printf("m + 5: %d  rowHeightLowHigh: %d\n", m+p, rowHeightLowHigh);
+                if ( (currentHeightLowHigh < (p + m)) && (currentHeightLowHigh >= (0 + m)) ) {
+                  currentHeightLowHigh = m;
+                  break;
+                }
+                rowHeightLowHigh = rowHeightLowHigh + 5;  // '5' is the button height's incrementor.
+                m = m + p;
+              }
+              //rowHeightLowHigh = rowHeightLowHigh - 5;
+              //printf("currentHeightLowHigh: %d  rowHeightLowHigh: %d\n\n", currentHeightLowHigh, rowHeightLowHigh);
+            }
+            // 'rowHeightLowHigh' remains the same (50 in the example) if below the first button's starting 'intButtonX' coordinate.
+            if (rowHeightLowHigh < intButtonX) {
+              rowHeightLowHigh = intButtonX;
+            }
+            //intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+            intButtonWidth = intBinaryButtonColumnsWidthLowHigh;   // First button width
+            intButtonHeight = rowHeightLowHigh; //intBinaryButtonRowsHeightLowHigh;  // First button height
+            buttonXSpace = intBinaryButtonColumnsWidthLowHigh + 10;     // Space between buttons.
+            // '10' is the space between buttons and includes the height of the button for 'buttonYSpace'.
+            buttonYSpace = rowHeightLowHigh + 10; //intBinaryButtonRowsHeightLowHigh + 10;
+          }
+          i = 1;
+          k = 0;
+          // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
+          while (i < numberButtons) {
+            // 'k' is used to increment elements for 'buttonBorderXXYY[0] - [79]'.
+            k = (i - 1) * 4;
+            // Accounts for overflow since unsigned char range is 0-255.
+            // Each int coordinate is represented with two sequential bytes in the char[].
+            // The X or horizontal coordinate.
+            if (intButtonXPlus < 256) {
+              buttonBorder[i][12] = intButtonXPlus;
+              buttonBorder[i][13] = 0;
+            }
+            else {
+              // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
+              // i.e. buttonBorder[i][12] = 'value'; // below 256
+              //      buttonBorder[i][13] = 'value' * 256;
+              intButtonXPlusRemainder = intButtonXPlus % 256;
+              intButtonXPlusDivision = intButtonXPlus / 256;
+              //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
+              //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              buttonBorder[i][12] = intButtonXPlusRemainder;
+              buttonBorder[i][13] = intButtonXPlusDivision;
+            }
+            // The Y or vertical coordinate is calculated identical to the X.
+            if (intButtonY < 256) {
+              buttonBorder[i][14] = intButtonY;
+              buttonBorder[i][15] = 0;
+            }
+            else {
+              intButtonYRemainder = intButtonY % 256;
+              intButtonYDivision = intButtonY / 256;
+              buttonBorder[i][14] = intButtonYRemainder;
+              buttonBorder[i][15] = intButtonYDivision;
+            }
+            //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
+            //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
+            // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorder[1][16]'.
+            // Mouse click input is defined in the while (1) loop and formatted
+            // as a 2 byte overflow since 'read()' uses 'char[]'.
+              // X [24] and [25]
+              // Y [26] and [27]
+            // if '[12] + width' is > 255, add overflow to '[13]'.
+              // useful if you resize the initial window.
+            // The logic is similar to the 2 byte for one int from above for 'buttonBorder[i][12]-[15]'.
+            if ((buttonBorder[i][12] + intButtonWidth) > 256) {
+              buttonBorderXDivision = (buttonBorder[i][12] + intButtonWidth) / 256;
+              buttonBorderXRemainder = (buttonBorder[i][12] + intButtonWidth) % 256;
+              buttonBorderX12 = buttonBorderXRemainder;
+              buttonBorderX13 = buttonBorder[i][13] + buttonBorderXDivision;
+            }
+            else {
+              buttonBorderX12 = buttonBorder[i][12] + intButtonWidth;
+              buttonBorderX13 = buttonBorder[i][13];
+              //printf("buttonBorderX12 %d = buttonBorder[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorder[i][12], intButtonWidth);
+            }
+            buttonBorderXXYY[k] = buttonBorderX12;
+            buttonBorderXXYY[k + 1] = buttonBorderX13;
+            //printf("high\nx buttonBorderXXYY[%d]: %d buttonBorderXXYY[%d+1]: %d\n", k, buttonBorderXXYY[k], k, buttonBorderXXYY[k+1]);
+            // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorder[1][16]'.
+            if ((buttonBorder[i][14] + intButtonHeight) > 256) {
+              buttonBorderYDivision = (buttonBorder[i][14] + intButtonHeight) / 256;
+              buttonBorderYRemainder = (buttonBorder[i][14] + intButtonHeight) % 256;
+              buttonBorderY14 = buttonBorderYRemainder;
+              buttonBorderY15 = buttonBorder[i][15] + buttonBorderYDivision;
+            }
+            else {
+              buttonBorderY14 = buttonBorder[i][14] + intButtonHeight;
+              buttonBorderY15 = buttonBorder[i][15];
+            }
+            buttonBorderXXYY[k + 2] = buttonBorderY14;
+            buttonBorderXXYY[k + 3] = buttonBorderY15;
+            //printf("y buttonBorderXXYY[%d+2]: %d buttonBorderXXYY[%d+3]: %d\n\n", k, buttonBorderXXYY[k+2], k, buttonBorderXXYY[k+3]);
+            // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
+            buttonBorder[i][0] = 67;
+            buttonBorder[i][1] = 0;
+            buttonBorder[i][2] = 0b00000101;       // '5' Request length ( n / 4)
+            buttonBorder[i][3] = 0;
+            buttonBorder[i][4] = windowID.one;
+            buttonBorder[i][5] = windowID.two;
+            buttonBorder[i][6] = windowID.three;
+            buttonBorder[i][7] = windowID.four;
+            buttonBorder[i][8] = gcID.one;
+            buttonBorder[i][9] = gcID.two;
+            buttonBorder[i][10] = gcID.three;
+            buttonBorder[i][11] = gcID.four;
+            //              12
+            //              13
+            //              14
+            //              15
+            buttonBorder[i][16] = intButtonWidth;
+            buttonBorder[i][17] = 0;
+            buttonBorder[i][18] = intButtonHeight;
+            buttonBorder[i][19] = 0;
+            // Buttons 0 through 'buttonElement' space is incremented.
+            // The last button space is from the edge of the window defined in Opcode 1.
+            if (i < buttonElements) {
+              intButtonXPlus = intButtonXPlus + buttonXSpace;
+            }
+            // Uses the remainder to start a new row based on 'buttonColumns'.
+            if ((i % buttonColumns == 0) && (i != 0)) {
+              //printf("\n\n");
+              intButtonXPlus = intButtonX;
+              intButtonY = intButtonY + buttonYSpace;
+            }
+            //printf("i: %d k: %d\n", i, k);
+            //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
+            i++;
+          }
+          // 6) 67 'borderRectangle' - rectangle outline.
+          // Input and display box.
+          intButtonColumnWidth = intButtonWidth * buttonColumns;
+          // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
+          if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
+            textButtonHighWidth = 0;
+            textButtonLowWidth = intButtonColumnWidth;
+          }
+          else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
+            textButtonHighWidth = 1;
+            textButtonLowWidth = intButtonColumnWidth - 255;
+          }
+          else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
+            textButtonHighWidth = 2;
+            textButtonLowWidth = intButtonColumnWidth - 510;
+          }
+          else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
+            textButtonHighWidth = 3;
+            textButtonLowWidth = intButtonColumnWidth - 765;
+          }
+          else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
+            textButtonHighWidth = 4;
+            textButtonLowWidth = intButtonColumnWidth - 1020;
+          }
+          else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
+            textButtonHighWidth = 5;
+            textButtonLowWidth = intButtonColumnWidth - 1275;
+          }
+          else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
+            textButtonHighWidth = 6;
+            textButtonLowWidth = intButtonColumnWidth - 1530;
+          }
+          else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
+            textButtonHighWidth = 7;
+            textButtonLowWidth = intButtonColumnWidth - 1785;
+          }
+          else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
+            textButtonHighWidth = 8;
+            textButtonLowWidth = intButtonColumnWidth - 2040;
+          }
+          else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
+            textButtonHighWidth = 9;
+            textButtonLowWidth = intButtonColumnWidth - 2295;
+          }
+          // '30' is the padding between the four button collums.
+          textButtonLowWidth = textButtonLowWidth + 30;
+          // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
+          if (textButtonLowWidth > 255) {
+            textButtonLowWidth = textButtonLowWidth - 255;
+            textButtonHighWidth = textButtonHighWidth + 1;
+          }
+          textBorder[16] = textButtonLowWidth;
+          textBorder[17] = textButtonHighWidth;
+          textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+          j = 0;
+          i = 1;
+          while (i < numberButtons) {
+            j = 0;
+            while (j < sizeof(subsetButtonBorder)) {
+              subsetButtonBorder[j] = buttonBorder[i][j];
+              //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
+              j++;
+            }
+            //printf("\n");
+            borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            i++;
+          }
         }
         // Resize the buttons to 1.)
-        else if (geometryRead[17] > windowHighWidthOne && geometryRead[17] < windowHighWidthTwo) {
-          //printf("buttons 1.) width\n");
-          //if (responseWindowInput[23] >= windowHighHeightOne && responseWindowInput[23] < windowHighHeightTwo) {
-          if (geometryRead[19] >= 0 && geometryRead[19] < windowHighHeightTwo) {
-            screenCheckOne = 1;
-            // the commented out space and size are if they need to be resized and spaced for this dimensions
-            // +20 additional buttons
-            //printf("    resize buttons to 1.)\n");
-            //int windowLowHeightTwo = 34; // Maximum screen height.
-            //int windowHighHeightTwo = 4;
-            //int windowLowHeightOne = 10; // Scientific height.
-            //int windowHighHeightOne = 2;            // Number of buttons.
-            numberButtons = 41;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 8 buttons (the loop uses 'i < numberButtons' )
-            buttonElements = 20;   //                - used in the packet 'buttonBorderOne[numberButtons][buttonElements]' and other functions:
-            // size
-            //intButtonX = 50;       // New row X
-            intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
-            intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
-            //intButtonWidth = 50;   // First button width
-            //intButtonHeight = 50;  // First button height
-            // Space between buttons.
-            //buttonXSpace = 60;
-            //buttonYSpace = 60;
-            buttonColumns = 8;
-            // The char packets to change the arrangement of the polygon buttons when the screen is
-            // resized to the '1.)' dimensions.
-            // +20 additional buttons
-            //unsigned char buttonBorderXXYYOne[160]; // 4 (k, k+1, k+2, etc.) measurements X 40 buttons
-            //unsigned char buttonBorderOne[numberButtons][buttonElements];
-            //unsigned char subsetButtonBorder[buttonElements];
-            i = 1;
-            k = 0;
-            // Second 'while' to resize and move buttons continuously for padding. The previous conditionals are to
-            // reset the arrangement and add 20 buttons. May or maynot have to resize buttons.
-            while (i < numberButtons) {
-              //printf("i: %d\n", i);
-              //printf("k: %d\n", k);
-              // 'k' is used to increment elements for 'buttonBorderXXYYOne[0] - [160]'.
-              k = (i - 1) * 4;
-              // Accounts for overflow since unsigned char range is 0-255.
-              // Each int coordinate is represented with two sequential bytes in the char[].
-              // The X or horizontal coordinate.
-              if (intButtonXPlus < 256) {
-                buttonBorderOne[i][12] = intButtonXPlus;
-                buttonBorderOne[i][13] = 0;
-              }
-              else {
-                // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
-                // i.e. buttonBorderOne[i][12] = 'value'; // below 256
-                //      buttonBorderOne[i][13] = 'value' * 256;
-                intButtonXPlusRemainder = intButtonXPlus % 256;
-                intButtonXPlusDivision = intButtonXPlus / 256;
-                //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
-                //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
-                buttonBorderOne[i][12] = intButtonXPlusRemainder;
-                buttonBorderOne[i][13] = intButtonXPlusDivision;
-              }
-              // The Y or vertical coordinate is calculated identical to the X.
-              if (intButtonY < 256) {
-                buttonBorderOne[i][14] = intButtonY;
-                buttonBorderOne[i][15] = 0;
-              }
-              else {
-                intButtonYRemainder = intButtonY % 256;
-                intButtonYDivision = intButtonY / 256;
-                buttonBorderOne[i][14] = intButtonYRemainder;
-                buttonBorderOne[i][15] = intButtonYDivision;
-              }
-              //printf("low\nx buttonBorderOne[%d][12]: %d buttonBorderOne[%d][13]: %d\n", i, buttonBorderOne[i][12], i, buttonBorderOne[i][13]);
-              //printf("y buttonBorderOne[%d][14]: %d buttonBorderOne[%d][15]: %d\n\n", i, buttonBorderOne[i][14], i, buttonBorderOne[i][15]);
-              //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-              // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorderOne[1][16]'.
-                // Mouse click input is defined in the while (1) loop and formatted
-                // as a 2 byte overflow since 'read()' uses 'char[]'.
-                  // X [24] and [25]
-                  // Y [26] and [27]
-              // if '[12] + width' is > 255, add overflow to '[13]'.
-              // useful if you resize the initial window.
-              // The logic is similar to the 2 byte for one int from above for 'buttonBorderOne[i][12]-[15]'.
-              if ((buttonBorderOne[i][12] + intButtonWidth) > 256) {
-                buttonBorderXDivision = (buttonBorderOne[i][12] + intButtonWidth) / 256;
-                buttonBorderXRemainder = (buttonBorderOne[i][12] + intButtonWidth) % 256;
-                buttonBorderX12 = buttonBorderXRemainder;
-                buttonBorderX13 = buttonBorderOne[i][13] + buttonBorderXDivision;
-              }
-              else {
-                buttonBorderX12 = buttonBorderOne[i][12] + intButtonWidth;
-                buttonBorderX13 = buttonBorderOne[i][13];
-                //printf("buttonBorderX12 %d = buttonBorderOne[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorderOne[i][12], intButtonWidth);
-              }
-              buttonBorderXXYYOne[k] = buttonBorderX12;
-              buttonBorderXXYYOne[k + 1] = buttonBorderX13;
-              //printf("high\nx buttonBorderXXYYOne[%d]: %d buttonBorderXXYYOne[%d+1]: %d\n", k, buttonBorderXXYYOne[k], k, buttonBorderXXYYOne[k+1]);
-              // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorderOne[1][16]'.
-              if ((buttonBorderOne[i][14] + intButtonHeight) > 256) {
-                buttonBorderYDivision = (buttonBorderOne[i][14] + intButtonHeight) / 256;
-                buttonBorderYRemainder = (buttonBorderOne[i][14] + intButtonHeight) % 256;
-                buttonBorderY14 = buttonBorderYRemainder;
-                buttonBorderY15 = buttonBorderOne[i][15] + buttonBorderYDivision;
-              }
-              else {
-                buttonBorderY14 = buttonBorderOne[i][14] + intButtonHeight;
-                buttonBorderY15 = buttonBorderOne[i][15];
-              }
-              buttonBorderXXYYOne[k + 2] = buttonBorderY14;
-              buttonBorderXXYYOne[k + 3] = buttonBorderY15;
-              //printf("y buttonBorderXXYYOne[%d+2]: %d buttonBorderXXYYOne[%d+3]: %d\n\n", k, buttonBorderXXYYOne[k+2], k, buttonBorderXXYYOne[k+3]);
-              // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
-              buttonBorderOne[i][0] = 67;
-              buttonBorderOne[i][1] = 0;
-              buttonBorderOne[i][2] = 0b00000101;       // '5' Request length ( n / 4)
-              buttonBorderOne[i][3] = 0;
-              buttonBorderOne[i][4] = windowID.one;
-              buttonBorderOne[i][5] = windowID.two;
-              buttonBorderOne[i][6] = windowID.three;
-              buttonBorderOne[i][7] = windowID.four;
-              buttonBorderOne[i][8] = gcID.one;
-              buttonBorderOne[i][9] = gcID.two;
-              buttonBorderOne[i][10] = gcID.three;
-              buttonBorderOne[i][11] = gcID.four;
-              //              12
-              //              13
-              //              14
-              //              15
-              buttonBorderOne[i][16] = intButtonWidth;
-              buttonBorderOne[i][17] = 0;
-              buttonBorderOne[i][18] = intButtonHeight;
-              buttonBorderOne[i][19] = 0;
-              // Buttons 0 through 'numberButtons' space is incremented.
-              // The last button space is from the edge of the window defined in Opcode 1.
-              if (i < numberButtons) {
-                intButtonXPlus = intButtonXPlus + buttonXSpace;
-              }
-              //printf("i: %d  buttonBorderOne[i][12] %d, buttonBorderOne[i][13] %d, buttonBorderOne[i][14] %d, buttonBorderOne[i][15] %d\n", i, buttonBorderOne[i][12], buttonBorderOne[i][13], buttonBorderOne[i][14], buttonBorderOne[i][15]);
-              // Uses the remainder to start a new row based on 'buttonColumns'.
-              if ((i % buttonColumns == 0) && (i != 0)) {
-                //printf("\n");
-                intButtonXPlus = intButtonX;
-                intButtonY = intButtonY + buttonYSpace;
-              }
-              //printf("i: %d k: %d\n", i, k);
-              //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
-              i++;
-            }
-            // 6) 67 'borderRectangle' - rectangle outline.
-            // Input and display box.
-            intButtonColumnWidth = intButtonWidth * buttonColumns;
-            // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
-            if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
-              textButtonHighWidth = 0;
-              textButtonLowWidth = intButtonColumnWidth;
-            }
-            else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
-              textButtonHighWidth = 1;
-              textButtonLowWidth = intButtonColumnWidth - 255;
-            }
-            else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
-              textButtonHighWidth = 2;
-              textButtonLowWidth = intButtonColumnWidth - 510;
-            }
-            else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
-              textButtonHighWidth = 3;
-              textButtonLowWidth = intButtonColumnWidth - 765;
-            }
-            else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
-              textButtonHighWidth = 4;
-              textButtonLowWidth = intButtonColumnWidth - 1020;
-            }
-            else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
-              textButtonHighWidth = 5;
-              textButtonLowWidth = intButtonColumnWidth - 1275;
-            }
-            else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
-              textButtonHighWidth = 6;
-              textButtonLowWidth = intButtonColumnWidth - 1530;
-            }
-            else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
-              textButtonHighWidth = 7;
-              textButtonLowWidth = intButtonColumnWidth - 1785;
-            }
-            else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
-              textButtonHighWidth = 8;
-              textButtonLowWidth = intButtonColumnWidth - 2040;
-            }
-            else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
-              textButtonHighWidth = 9;
-              textButtonLowWidth = intButtonColumnWidth - 2295;
-            }
-            // '60' is the padding between the eight button collums.
-            textButtonLowWidth = textButtonLowWidth + 60;
-            // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
-            if (textButtonLowWidth > 255) {
-              textButtonLowWidth = textButtonLowWidth - 255;
-              textButtonHighWidth = textButtonHighWidth + 1;
-            }
-            textBorderWrite = write(sock, textBorder, sizeof(textBorder));
-            j = 0;
-            i = 1;
-            while (i < numberButtons) {
-              j = 0;
-              while (j < sizeof(subsetButtonBorder)) {
-                subsetButtonBorder[j] = buttonBorderOne[i][j];
-                //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
-                j++;
-              }
-              //printf("\n");
-              borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
-              i++;
-            }
+        else if (screenCheckWidthOne == 1) {
+          screenCheckOne = 1;
+          // +20 additional buttons
+          //printf("    resize buttons to 1.)\n");
+          //int windowLowHeightTwo = 34; // Maximum screen height.
+          //int windowHighHeightTwo = 4;
+          //int windowLowHeightOne = 10; // Scientific height.
+          //int windowHighHeightOne = 2;            // Number of buttons.
+          numberButtons = 41;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 8 buttons (the loop uses 'i < numberButtons' )
+          buttonElements = 20;   //                - used in the packet 'buttonBorderOne[numberButtons][buttonElements]' and other functions:
+          // size
+          //intButtonX = 50;       // New row X
+          intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+          intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
+          //intButtonWidth = 50;   // First button width
+          //intButtonHeight = 50;  // First button height
+          // Space between buttons.
+          //buttonXSpace = 60;
+          //buttonYSpace = 60;
+          buttonColumns = 8;
+          // The char packets to change the arrangement of the polygon buttons when the screen is
+          // resized to the '1.)' dimensions.
+          // +20 additional buttons
+          //unsigned char buttonBorderXXYYOne[160]; // 4 (k, k+1, k+2, etc.) measurements X 40 buttons
+          //unsigned char buttonBorderOne[numberButtons][buttonElements];
+          //unsigned char subsetButtonBorder[buttonElements];
+          // One way is to convert with multiplication in a loop, add low and high values, and divide.
+          // This way is hardcoded to avoid nested while loops.
+            // Also divide the screensize by 2 and place the buttons from the center.
+          //   _____________
+          //  |      |      |
+          //  |   <- | ->   |
+          //  | \/   |   \/ |
+          //  |      |      |
+          //  |      |      |
+          //   -------------
+          if (geometryRead[17] == 1) {
+            currentWindowWidthHigh = 255;
           }
-        }
-        // Switch to 0.) screen
-        else if (geometryRead[17] <= windowHighWidthOne) {
-          screenCheckZero = 1;
-          if (geometryRead[17] == windowHighWidthOne && geometryRead[16] <= windowLowWidthOne) {
-            screenCheckZero = 1;
+          else if (geometryRead[17] == 2) {
+            currentWindowWidthHigh = 510;
           }
-          else if (geometryRead[17] == windowHighWidthOne) {
-            screenCheckZero = 1;
+          else if (geometryRead[17] == 3) {
+            currentWindowWidthHigh = 765;
           }
-          if (screenCheckZero == 1) {
-            //printf("screen 0\n");
-            // Clear the window with opcode 61.
-            clearArea[8] = responseWindowInput[8];
-            clearArea[9] = responseWindowInput[9];
-            clearArea[10] = responseWindowInput[10];
-            clearArea[11] = responseWindowInput[11];
-            clearArea[12] = responseWindowInput[12];
-            clearArea[13] = responseWindowInput[13];
-            clearArea[14] = responseWindowInput[14];
-            clearArea[15] = responseWindowInput[15];
-            //clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+          else if (geometryRead[17] == 4) {
+            currentWindowWidthHigh = 1020;
+          }
+          else if (geometryRead[17] == 5) {
+            currentWindowWidthHigh = 1275;
+          }
+          else if (geometryRead[17] == 6) {
+            currentWindowWidthHigh = 1530;
+          }
+          else if (geometryRead[17] == 7) {
+            currentWindowWidthHigh = 1785;
+          }
+          else if (geometryRead[17] == 8) {
+            currentWindowWidthHigh = 2040;
+          }
+          else if (geometryRead[17] == 9) {
+            currentWindowWidthHigh = 2295;
+          }
+          //printf("currentWindowWidthHigh: %d\n", currentWindowWidthHigh);
+          // Combined low and high width. Accounts for window edge to first button/last button to edge and space between inner buttons (n-1).
+          currentWidthLowHigh = currentWindowWidthHigh + geometryRead[16] - (intButtonX * 2) - (10 * (buttonColumns-1) );          // geometryRead[17] + geometryRead[16]
+          //printf("currentWindowWidthHigh  %d  +  geometryRead[16]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, geometryRead[16], currentWidthLowHigh);
+          intBinaryWidthLowHigh = decimal2intBinary(currentWidthLowHigh, maxBinaryLength);
+          charBinaryWidthLowHigh = intBinary2Char(intBinaryWidthLowHigh);
+          if (geometryRead[16] > buttonColumns) {
+            //printf("intBinaryWidthLow.two %d\n", intBinaryWidthLow.two);
+            //printf("intBinaryWidthLow.one %d\n", intBinaryWidthLow.one); // length of the binary
+            // 'buttonColumns' ^ 'buttonColumnsTwoPower <- exponents for use in the bit shifting shortcut division to ignore remainders.
+            //                    buttonColumnsTwoPower = 1, 2, 3, 4, etc.
+            // e.g. 2^1=2, 2^2=4, 2^3=8, ... n
+            buttonColumnsTwoPower;
+            if (buttonColumns == 2) {
+              buttonColumnsTwoPower = 1;
+            }
+            else if (buttonColumns == 4) {
+              buttonColumnsTwoPower = 2;
+            }
+            else if (buttonColumns == 8) {
+              buttonColumnsTwoPower = 3;
+            }
+            else if (buttonColumns == 16) {
+              buttonColumnsTwoPower = 4;
+            }
+            else if (buttonColumns == 32) {
+              buttonColumnsTwoPower = 5;
+            }
+            else if (buttonColumns == 64) {
+              buttonColumnsTwoPower = 6;
+            }
+            // 'm' is the length of the binary - 1
+            m = intBinaryWidthLowHigh.one - 1;
+            // 'digitRemove' is the number of digits to remove from the right side of the binary char[].
+            digitRemove = 1;
+            // 'dividedLength' is the new length of the divided number.
+            dividedLength = m - buttonColumnsTwoPower;
+            unsigned char charBinaryButtonColumnsWidthLowHigh[dividedLength];
+            while (0 <= m) {
+              //printf("digitRemove: %d   m: %d    buttonColumnsTwoPower: %d\n", digitRemove, m, buttonColumnsTwoPower);
+              // Increment 'digitRemove' until it reaches the number of digits to remove.
+              if (digitRemove < buttonColumnsTwoPower) {
+                digitRemove++;
+              }
+              else if (m <= dividedLength) {
+                // Set the remaining digits without the removed right bits.
+                charBinaryButtonColumnsWidthLowHigh[m] = charBinaryWidthLowHigh[m];
+                //printf("charBinaryWidthLow[%d]:  %c  charBinaryButtonColumnsWidthLow[%d]:  %c\n", m, charBinaryWidthLow[m], m, charBinaryButtonColumnsWidthLow[m]);
+              }
+              m--;
+            }
+              //printf("geometryRead[16] %d  /  buttonColumns: %d  =  %d\n", geometryRead[16], buttonColumns, (geometryRead[16] / buttonColumns));
+            //printf("charBinaryWidthLow: %s  charBinaryButtonColumnsWidthLow: %s\n", charBinaryWidthLow, charBinaryButtonColumnsWidthLow);
+            //printf("\n");
+            // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
+              // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
+            intBinaryButtonColumnsWidthLowHigh = binary2Decimal(charBinaryButtonColumnsWidthLowHigh, (dividedLength + 1));
+              //printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
+            // Calculate the height.
+            if (geometryRead[19] == 1) {
+              currentWindowHeightHigh = 255;
+            }
+            else if (geometryRead[19] == 2) {
+              currentWindowHeightHigh = 510;
+            }
+            else if (geometryRead[19] == 3) {
+              currentWindowHeightHigh = 765;
+            }
+            else if (geometryRead[19] == 4) {
+              currentWindowHeightHigh = 1020;
+            }
+            else if (geometryRead[19] == 5) {
+              currentWindowHeightHigh = 1275;
+            }
+            else if (geometryRead[19] == 6) {
+              currentWindowHeightHigh = 1530;
+            }
+            else if (geometryRead[19] == 7) {
+              currentWindowHeightHigh = 1785;
+            }
+            else if (geometryRead[19] == 8) {
+              currentWindowHeightHigh = 2040;
+            }
+            else if (geometryRead[19] == 9) {
+              currentWindowHeightHigh = 2295;
+            }
+            //printf("currentWindowHeightHigh: %d\n", currentWindowHeightHigh);
+            // Combined low and high width. Accounts for window edge to top button button to edge, space above/below inner buttons (n-1) and bottom edge.
+                                                               //  textBorder[18] = 30; + 60 <= the buttonYSpace
+            currentHeightLowHigh = currentWindowHeightHigh + geometryRead[18] - 90 - (10 * (buttonRows-1) - 50);          // geometryRead[19] + geometryRead[18]
+            //printf("currentWindowHeightHigh  %d  +  geometryRead[18]  = %d  currentHeightLowHigh  %d\n", currentWindowHeightHigh, geometryRead[18], currentHeightLowHigh);
+            rowHeightLowHigh = 0;
+            if (buttonRows == 5) {
+              // Rounds 'currentHeightLowHigh' down to multiples of 50. 'rowHeightLowHigh' is incremented by 'm' + 'p' or '2 + 1':
+              // currentHeightLowHigh =  50 / 5 = 10    25 / 5 =  5    2 / 2 = 1
+                                     // 100 / 5 = 20    50 / 5 = 10    4 / 2 = 2
+                                     // 150 / 5 = 30                   6 / 2 = 3
+                                     // 200 / 5 = 40
+                                     // 250 / 5 = 50
+              // Not a complete answer since it doesn't use division.
+               // currentHeightLowHigh
+              //m = 75;
+              //int p = 25;
+              m = 75;
+              p = 25;
+              while (m < 2295) {
+                //printf("m + 5: %d  rowHeightLowHigh: %d\n", m+p, rowHeightLowHigh);
+                if ( (currentHeightLowHigh < (p + m)) && (currentHeightLowHigh >= (0 + m)) ) {
+                  currentHeightLowHigh = m;
+                  break;
+                }
+                rowHeightLowHigh = rowHeightLowHigh + 5;  // '5' is the button height's incrementor.
+                m = m + p;
+              }
+              //rowHeightLowHigh = rowHeightLowHigh - 5;
+              //printf("currentHeightLowHigh: %d  rowHeightLowHigh: %d\n\n", currentHeightLowHigh, rowHeightLowHigh);
+            }
+            // 'rowHeightLowHigh' remains the same (50 in the example) if below the first button's starting 'intButtonX' coordinate.
+            if (rowHeightLowHigh < intButtonX) {
+              rowHeightLowHigh = intButtonX;
+            }
+            //intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+            intButtonWidth = intBinaryButtonColumnsWidthLowHigh;   // First button width
+            intButtonHeight = rowHeightLowHigh; //intBinaryButtonRowsHeightLowHigh;  // First button height
+            buttonXSpace = intBinaryButtonColumnsWidthLowHigh + 10;     // Space between buttons.
+            // '10' is the space between buttons and includes the height of the button for 'buttonYSpace'.
+            buttonYSpace = rowHeightLowHigh + 10; //intBinaryButtonRowsHeightLowHigh + 10;
+          }
 
-            // Resize the buttons to 0.) with the same values.
-            //buttonBorderXXYY[80];
-            // size
-            //intButtonX = 50;       // New row X
-            intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
-            intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
-            //intButtonWidth = 50;   // First button width
-            //intButtonHeight = 50;  // First button height
-            numberButtons = 21;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 4 buttons (the loop uses 'i < numberButtons' )
-            buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
-            //buttonXSpace = 60;     // Space between buttons.
-            //buttonYSpace = 60;
-            buttonColumns = 4;
-            // The screen size is the original arrangement with 20 buttons.
-            //unsigned char buttonBorderXXYY[80];                           // 4 (k, k+1, k+2, etc.) measurements X 40 buttons
-            //unsigned char buttonBorder[numberButtons][buttonElements];
-            //unsigned char subsetButtonBorder[buttonElements];
-            i = 1;
-            k = 0;
-            // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
-            while (i < numberButtons) {
-              // 'k' is used to increment elements for 'buttonBorderXXYY[0] - [79]'.
-              k = (i - 1) * 4;
-              // Accounts for overflow since unsigned char range is 0-255.
-              // Each int coordinate is represented with two sequential bytes in the char[].
-              // The X or horizontal coordinate.
-              if (intButtonXPlus < 256) {
-                buttonBorder[i][12] = intButtonXPlus;
-                buttonBorder[i][13] = 0;
-              }
-              else {
-                // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
-                // i.e. buttonBorder[i][12] = 'value'; // below 256
-                //      buttonBorder[i][13] = 'value' * 256;
-                intButtonXPlusRemainder = intButtonXPlus % 256;
-                intButtonXPlusDivision = intButtonXPlus / 256;
-                //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
-                //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
-                buttonBorder[i][12] = intButtonXPlusRemainder;
-                buttonBorder[i][13] = intButtonXPlusDivision;
-              }
-              // The Y or vertical coordinate is calculated identical to the X.
-              if (intButtonY < 256) {
-                buttonBorder[i][14] = intButtonY;
-                buttonBorder[i][15] = 0;
-              }
-              else {
-                intButtonYRemainder = intButtonY % 256;
-                intButtonYDivision = intButtonY / 256;
-                buttonBorder[i][14] = intButtonYRemainder;
-                buttonBorder[i][15] = intButtonYDivision;
-              }
-              //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
-              //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
-              // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorder[1][16]'.
+          i = 1;
+          k = 0;
+          // Second 'while' to resize and move buttons continuously for padding. The previous conditionals are to
+          // reset the arrangement and add 20 buttons. May or maynot have to resize buttons.
+          while (i < numberButtons) {
+            //printf("i: %d\n", i);
+            //printf("k: %d\n", k);
+            // 'k' is used to increment elements for 'buttonBorderXXYYOne[0] - [160]'.
+            k = (i - 1) * 4;
+            // Accounts for overflow since unsigned char range is 0-255.
+            // Each int coordinate is represented with two sequential bytes in the char[].
+            // The X or horizontal coordinate.
+            if (intButtonXPlus < 256) {
+              buttonBorderOne[i][12] = intButtonXPlus;
+              buttonBorderOne[i][13] = 0;
+            }
+            else {
+              // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
+              // i.e. buttonBorderOne[i][12] = 'value'; // below 256
+              //      buttonBorderOne[i][13] = 'value' * 256;
+              intButtonXPlusRemainder = intButtonXPlus % 256;
+              intButtonXPlusDivision = intButtonXPlus / 256;
+              //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
+              //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              buttonBorderOne[i][12] = intButtonXPlusRemainder;
+              buttonBorderOne[i][13] = intButtonXPlusDivision;
+            }
+            // The Y or vertical coordinate is calculated identical to the X.
+            if (intButtonY < 256) {
+              buttonBorderOne[i][14] = intButtonY;
+              buttonBorderOne[i][15] = 0;
+            }
+            else {
+              intButtonYRemainder = intButtonY % 256;
+              intButtonYDivision = intButtonY / 256;
+              buttonBorderOne[i][14] = intButtonYRemainder;
+              buttonBorderOne[i][15] = intButtonYDivision;
+            }
+            //printf("low\nx buttonBorderOne[%d][12]: %d buttonBorderOne[%d][13]: %d\n", i, buttonBorderOne[i][12], i, buttonBorderOne[i][13]);
+            //printf("y buttonBorderOne[%d][14]: %d buttonBorderOne[%d][15]: %d\n\n", i, buttonBorderOne[i][14], i, buttonBorderOne[i][15]);
+            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorderOne[1][16]'.
               // Mouse click input is defined in the while (1) loop and formatted
               // as a 2 byte overflow since 'read()' uses 'char[]'.
                 // X [24] and [25]
                 // Y [26] and [27]
-              // if '[12] + width' is > 255, add overflow to '[13]'.
-                // useful if you resize the initial window.
-              // The logic is similar to the 2 byte for one int from above for 'buttonBorder[i][12]-[15]'.
-              if ((buttonBorder[i][12] + intButtonWidth) > 256) {
-                buttonBorderXDivision = (buttonBorder[i][12] + intButtonWidth) / 256;
-                buttonBorderXRemainder = (buttonBorder[i][12] + intButtonWidth) % 256;
-                buttonBorderX12 = buttonBorderXRemainder;
-                buttonBorderX13 = buttonBorder[i][13] + buttonBorderXDivision;
-              }
-              else {
-                buttonBorderX12 = buttonBorder[i][12] + intButtonWidth;
-                buttonBorderX13 = buttonBorder[i][13];
-                //printf("buttonBorderX12 %d = buttonBorder[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorder[i][12], intButtonWidth);
-              }
-              buttonBorderXXYY[k] = buttonBorderX12;
-              buttonBorderXXYY[k + 1] = buttonBorderX13;
-              //printf("high\nx buttonBorderXXYY[%d]: %d buttonBorderXXYY[%d+1]: %d\n", k, buttonBorderXXYY[k], k, buttonBorderXXYY[k+1]);
-              // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorder[1][16]'.
-              if ((buttonBorder[i][14] + intButtonHeight) > 256) {
-                buttonBorderYDivision = (buttonBorder[i][14] + intButtonHeight) / 256;
-                buttonBorderYRemainder = (buttonBorder[i][14] + intButtonHeight) % 256;
-                buttonBorderY14 = buttonBorderYRemainder;
-                buttonBorderY15 = buttonBorder[i][15] + buttonBorderYDivision;
-              }
-              else {
-                buttonBorderY14 = buttonBorder[i][14] + intButtonHeight;
-                buttonBorderY15 = buttonBorder[i][15];
-              }
-              buttonBorderXXYY[k + 2] = buttonBorderY14;
-              buttonBorderXXYY[k + 3] = buttonBorderY15;
-              //printf("y buttonBorderXXYY[%d+2]: %d buttonBorderXXYY[%d+3]: %d\n\n", k, buttonBorderXXYY[k+2], k, buttonBorderXXYY[k+3]);
-              // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
-              buttonBorder[i][0] = 67;
-              buttonBorder[i][1] = 0;
-              buttonBorder[i][2] = 0b00000101;       // '5' Request length ( n / 4)
-              buttonBorder[i][3] = 0;
-              buttonBorder[i][4] = windowID.one;
-              buttonBorder[i][5] = windowID.two;
-              buttonBorder[i][6] = windowID.three;
-              buttonBorder[i][7] = windowID.four;
-              buttonBorder[i][8] = gcID.one;
-              buttonBorder[i][9] = gcID.two;
-              buttonBorder[i][10] = gcID.three;
-              buttonBorder[i][11] = gcID.four;
-              //              12
-              //              13
-              //              14
-              //              15
-              buttonBorder[i][16] = intButtonWidth;
-              buttonBorder[i][17] = 0;
-              buttonBorder[i][18] = intButtonHeight;
-              buttonBorder[i][19] = 0;
-              // Buttons 0 through 'buttonElement' space is incremented.
-              // The last button space is from the edge of the window defined in Opcode 1.
-              if (i < buttonElements) {
-                intButtonXPlus = intButtonXPlus + buttonXSpace;
-              }
-              // Uses the remainder to start a new row based on 'buttonColumns'.
-              if ((i % buttonColumns == 0) && (i != 0)) {
-                //printf("\n\n");
-                intButtonXPlus = intButtonX;
-                intButtonY = intButtonY + buttonYSpace;
-              }
-              //printf("i: %d k: %d\n", i, k);
-              //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
-              i++;
+            // if '[12] + width' is > 255, add overflow to '[13]'.
+            // useful if you resize the initial window.
+            // The logic is similar to the 2 byte for one int from above for 'buttonBorderOne[i][12]-[15]'.
+            if ((buttonBorderOne[i][12] + intButtonWidth) > 256) {
+              buttonBorderXDivision = (buttonBorderOne[i][12] + intButtonWidth) / 256;
+              buttonBorderXRemainder = (buttonBorderOne[i][12] + intButtonWidth) % 256;
+              buttonBorderX12 = buttonBorderXRemainder;
+              buttonBorderX13 = buttonBorderOne[i][13] + buttonBorderXDivision;
             }
-            // 6) 67 'borderRectangle' - rectangle outline.
-            // Input and display box.
-            intButtonColumnWidth = intButtonWidth * buttonColumns;
-            // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
-            if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
-              textButtonHighWidth = 0;
-              textButtonLowWidth = intButtonColumnWidth;
+            else {
+              buttonBorderX12 = buttonBorderOne[i][12] + intButtonWidth;
+              buttonBorderX13 = buttonBorderOne[i][13];
+              //printf("buttonBorderX12 %d = buttonBorderOne[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorderOne[i][12], intButtonWidth);
             }
-            else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
-              textButtonHighWidth = 1;
-              textButtonLowWidth = intButtonColumnWidth - 255;
+            buttonBorderXXYYOne[k] = buttonBorderX12;
+            buttonBorderXXYYOne[k + 1] = buttonBorderX13;
+            //printf("high\nx buttonBorderXXYYOne[%d]: %d buttonBorderXXYYOne[%d+1]: %d\n", k, buttonBorderXXYYOne[k], k, buttonBorderXXYYOne[k+1]);
+            // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorderOne[1][16]'.
+            if ((buttonBorderOne[i][14] + intButtonHeight) > 256) {
+              buttonBorderYDivision = (buttonBorderOne[i][14] + intButtonHeight) / 256;
+              buttonBorderYRemainder = (buttonBorderOne[i][14] + intButtonHeight) % 256;
+              buttonBorderY14 = buttonBorderYRemainder;
+              buttonBorderY15 = buttonBorderOne[i][15] + buttonBorderYDivision;
             }
-            else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
-              textButtonHighWidth = 2;
-              textButtonLowWidth = intButtonColumnWidth - 510;
+            else {
+              buttonBorderY14 = buttonBorderOne[i][14] + intButtonHeight;
+              buttonBorderY15 = buttonBorderOne[i][15];
             }
-            else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
-              textButtonHighWidth = 3;
-              textButtonLowWidth = intButtonColumnWidth - 765;
+            buttonBorderXXYYOne[k + 2] = buttonBorderY14;
+            buttonBorderXXYYOne[k + 3] = buttonBorderY15;
+            //printf("y buttonBorderXXYYOne[%d+2]: %d buttonBorderXXYYOne[%d+3]: %d\n\n", k, buttonBorderXXYYOne[k+2], k, buttonBorderXXYYOne[k+3]);
+            // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
+            buttonBorderOne[i][0] = 67;
+            buttonBorderOne[i][1] = 0;
+            buttonBorderOne[i][2] = 0b00000101;       // '5' Request length ( n / 4)
+            buttonBorderOne[i][3] = 0;
+            buttonBorderOne[i][4] = windowID.one;
+            buttonBorderOne[i][5] = windowID.two;
+            buttonBorderOne[i][6] = windowID.three;
+            buttonBorderOne[i][7] = windowID.four;
+            buttonBorderOne[i][8] = gcID.one;
+            buttonBorderOne[i][9] = gcID.two;
+            buttonBorderOne[i][10] = gcID.three;
+            buttonBorderOne[i][11] = gcID.four;
+            //              12
+            //              13
+            //              14
+            //              15
+            buttonBorderOne[i][16] = intButtonWidth;
+            buttonBorderOne[i][17] = 0;
+            buttonBorderOne[i][18] = intButtonHeight;
+            buttonBorderOne[i][19] = 0;
+            // Buttons 0 through 'numberButtons' space is incremented.
+            // The last button space is from the edge of the window defined in Opcode 1.
+            if (i < numberButtons) {
+              intButtonXPlus = intButtonXPlus + buttonXSpace;
             }
-            else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
-              textButtonHighWidth = 4;
-              textButtonLowWidth = intButtonColumnWidth - 1020;
-            }
-            else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
-              textButtonHighWidth = 5;
-              textButtonLowWidth = intButtonColumnWidth - 1275;
-            }
-            else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
-              textButtonHighWidth = 6;
-              textButtonLowWidth = intButtonColumnWidth - 1530;
-            }
-            else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
-              textButtonHighWidth = 7;
-              textButtonLowWidth = intButtonColumnWidth - 1785;
-            }
-            else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
-              textButtonHighWidth = 8;
-              textButtonLowWidth = intButtonColumnWidth - 2040;
-            }
-            else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
-              textButtonHighWidth = 9;
-              textButtonLowWidth = intButtonColumnWidth - 2295;
-            }
-            // '30' is the padding between the four button collums.
-            textButtonLowWidth = textButtonLowWidth + 30;
-            // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
-            if (textButtonLowWidth > 255) {
-              textButtonLowWidth = textButtonLowWidth - 255;
-              textButtonHighWidth = textButtonHighWidth + 1;
-            }
-            textBorderWrite = write(sock, textBorder, sizeof(textBorder));
-
-            j = 0;
-            i = 1;
-            while (i < numberButtons) {
-              j = 0;
-              while (j < sizeof(subsetButtonBorder)) {
-                subsetButtonBorder[j] = buttonBorder[i][j];
-                //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
-                j++;
-              }
+            //printf("i: %d  buttonBorderOne[i][12] %d, buttonBorderOne[i][13] %d, buttonBorderOne[i][14] %d, buttonBorderOne[i][15] %d\n", i, buttonBorderOne[i][12], buttonBorderOne[i][13], buttonBorderOne[i][14], buttonBorderOne[i][15]);
+            // Uses the remainder to start a new row based on 'buttonColumns'.
+            if ((i % buttonColumns == 0) && (i != 0)) {
               //printf("\n");
-              borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
-              i++;
+              intButtonXPlus = intButtonX;
+              intButtonY = intButtonY + buttonYSpace;
             }
+            //printf("i: %d k: %d\n", i, k);
+            //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
+            i++;
           }
+          // 6) 67 'borderRectangle' - rectangle outline.
+          // Input and display box.
+          intButtonColumnWidth = intButtonWidth * buttonColumns;
+          // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
+          if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
+            textButtonHighWidth = 0;
+            textButtonLowWidth = intButtonColumnWidth;
+          }
+          else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
+            textButtonHighWidth = 1;
+            textButtonLowWidth = intButtonColumnWidth - 255;
+          }
+          else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
+            textButtonHighWidth = 2;
+            textButtonLowWidth = intButtonColumnWidth - 510;
+          }
+          else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
+            textButtonHighWidth = 3;
+            textButtonLowWidth = intButtonColumnWidth - 765;
+          }
+          else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
+            textButtonHighWidth = 4;
+            textButtonLowWidth = intButtonColumnWidth - 1020;
+          }
+          else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
+            textButtonHighWidth = 5;
+            textButtonLowWidth = intButtonColumnWidth - 1275;
+          }
+          else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
+            textButtonHighWidth = 6;
+            textButtonLowWidth = intButtonColumnWidth - 1530;
+          }
+          else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
+            textButtonHighWidth = 7;
+            textButtonLowWidth = intButtonColumnWidth - 1785;
+          }
+          else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
+            textButtonHighWidth = 8;
+            textButtonLowWidth = intButtonColumnWidth - 2040;
+          }
+          else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
+            textButtonHighWidth = 9;
+            textButtonLowWidth = intButtonColumnWidth - 2295;
+          }
+          // '70' is the padding between the eight button collums.
+          textButtonLowWidth = textButtonLowWidth + 70;
+          // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
+          if (textButtonLowWidth > 255) {
+            textButtonLowWidth = textButtonLowWidth - 255;
+            textButtonHighWidth = textButtonHighWidth + 1;
+          }
+          textBorder[16] = textButtonLowWidth;
+          textBorder[17] = textButtonHighWidth;
+          textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+          j = 0;
+          i = 1;
+          while (i < numberButtons) {
+            j = 0;
+            while (j < sizeof(subsetButtonBorder)) {
+              subsetButtonBorder[j] = buttonBorderOne[i][j];
+              //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
+              j++;
+            }
+            //printf("\n");
+            borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            i++;
+          }
+        }
+        // Switch to 2.) screen
+        else if (screenCheckWidthTwo == 1) {
+          // Clear the window with opcode 61.
+          clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+          printf("Resized buttons to 2.)\n");
         }
       }
       // Resize and redraw the buttons when the window is resized.
@@ -1565,11 +1926,13 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         //printf("responseWindowInput[%d]\n", responseWindowInput[18]);
         //printf("responseWindowInput[%d]\n", responseWindowInput[19]);
         // width
+        printf("eventCode == 22\n");
         //printf("responseWindowInput[20] %d\n", responseWindowInput[20]);
         //printf("responseWindowInput[21] %d\n\n", responseWindowInput[21]);
         // height
         //printf("responseWindowInput[22] %d\n", responseWindowInput[22]);
         //printf("responseWindowInput[23] %d\n", responseWindowInput[23]);
+
         // Redefine the 'clearArea' opcode 61 packet to the current specifications.
         clearArea[8] = responseWindowInput[16];
         clearArea[9] = responseWindowInput[17];
@@ -1579,818 +1942,793 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         clearArea[13] = responseWindowInput[21];
         clearArea[14] = responseWindowInput[22];
         clearArea[15] = responseWindowInput[23];
-        printf("eventCode == 22\n");
-        // screenCheckTwo = 0; // <- todo
-        screenCheckOne = 0;    // <- not used for button graphic packets, only mouse click feedback.
-        screenCheckZero = 0;   // <- used in both button graphics and mouse click feedback.
-        // Switch to 2.) screen
-        if (responseWindowInput[20] == windowLowWidthTwo && responseWindowInput[21] == windowHighWidthTwo) { // the maximum dimensions of the screen
-          // resize the buttons to 2.)
+
+        screenCheckWidthZero = 0;
+        screenCheckWidthOne = 0;
+        screenCheckWidthTwo = 0;
+        // Determines the screen size and button orientation. To reduce 8 int (8 * 4 bytes), nest the height conditionals in the width and repeat the entire
+        // code block every time but that is overkill. The width splits based on 'responseWindowInput[20]' the '1-255' number when the
+        // 'responseWindowInput[21]' '1-10' number is equal to 'windowHighWidthOne'.
+            // int windowLowWidth = 74;   // Defined at the begining of 'drawWindow()'.
+            // int windowHighWidth = 1;
+            // int windowLowHeight = 184; // Height of the window.
+            // int windowHighHeight = 1;
+
+            // int windowLowHeightOne = 10;  // Scientific height.
+            // int windowHighHeightOne = 2;
+            // int windowLowWidthOne = 250;  // Scientific button arrangement width.
+            // int windowHighWidthOne = 2;
+        //printf("responseWindowInput[21]: %d == windowHighWidthOne:  %d\n", responseWindowInput[21], windowHighWidthOne);
+        //printf("  responseWindowInput[20]: %d <= windowLowWidthOne:  %d\n", responseWindowInput[20], windowLowWidthOne);
+        if (responseWindowInput[21] == windowHighWidthOne) {
+          if (responseWindowInput[20] <= windowLowWidthOne) {
+            screenCheckWidthZero = 1;
+          }
+          else if (responseWindowInput[20] > windowLowWidthOne) {
+            screenCheckWidthOne = 1;
+          }
+        }
+        else if (responseWindowInput[21] < windowHighWidthOne) {
+          screenCheckWidthZero = 1;
+        }
+        else if (responseWindowInput[21] > windowHighWidthOne) {
+          screenCheckWidthOne = 1;
+        }
+        else if (responseWindowInput[21] == windowHighWidthTwo) {
+          screenCheckWidthTwo = 1;
+        }
+        printf("eventCode 22  screenCheckWidthZero: %d\n", screenCheckWidthZero);
+        printf("eventCode 22  screenCheckWidthOne: %d\n", screenCheckWidthOne);
+        printf("eventCode 22  screenCheckWidthTwo: %d\n", screenCheckWidthTwo);
+        // Switch to 0.) screen
+        if (screenCheckWidthZero == 1) {
+          screenCheckZero = 1;
+          printf("screen 0\n");
           // Clear the window with opcode 61.
           clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-          printf("todo resize buttons to 2.)\n");
-        }
-        // Switch to 1.) screen
-        else if (responseWindowInput[21] > windowHighWidthOne && responseWindowInput[21] < windowHighWidthTwo) {
-            //   todo the low/high and the text box input dimensions
-          //printf("buttons 1.) width\n");
-          //if (responseWindowInput[23] >= windowHighHeightOne && responseWindowInput[23] < windowHighHeightTwo) {
-          if (responseWindowInput[23] >= 0 && responseWindowInput[23] < windowHighHeightTwo) {
-            screenCheckOne = 1;
-            // Clear the window with opcode 61.
-            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-            // the commented out space and size are if they need to be resized and spaced for this dimensions
-            // +20 additional buttons
-            printf("resize buttons to 1.)\n");
-            // Resize the buttons to 1.) with the same values.
-            //int windowLowHeightTwo = 34; // Maximum screen height.
-            //int windowHighHeightTwo = 4;
-            //int windowLowHeightOne = 10; // Scientific height.
-            //int windowHighHeightOne = 2;            // Number of buttons.
-            numberButtons = 41;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 8 buttons (the loop uses 'i < numberButtons' )
-            buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
-            intButtonX = 50;       // New row X
-            intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
-            intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
-            //intButtonWidth = 50;   // First button width
-            //intButtonHeight = 50;  // First button height
-            // size
-            buttonColumns = 8;    // Uses the right bit shifting shortcut division and has to be powers of 2.
-                                  // i.e.'2, 4, 8, 16...'
-            buttonRows = 5;
-            // The char packets to change the arrangement of the polygon buttons when the screen is
-            // resized to the '1.)' dimensions.
-            // +20 additional buttons
-            //unsigned char buttonBorderXXYYOne[160]; // 4 (k, k+1, k+2, etc.) measurements X 40 'numberButtons'.
-            //unsigned char buttonBorderOne[numberButtons][buttonElements];
-            //unsigned char subsetButtonBorder[buttonElements];
-            //printf("sizeof(buttonBorderOne): %d\n", sizeof(buttonBorderOne));
-            //printf("sizeof(buttonBorderXXYYOne): %d\n", sizeof(buttonBorderXXYYOne));
-            // One way is to convert with multiplication in a loop, add low and high values, and divide.
-            // This way is hardcoded to avoid nested while loops.
-              // Also divide the screensize by 2 and place the buttons from the center.
-            //   _____________
-            //  |      |      |
-            //  |   <- | ->   |
-            //  | \/   |   \/ |
-            //  |      |      |
-            //  |      |      |
-            //   -------------
-            if (responseWindowInput[21] == 1) {
-              currentWindowWidthHigh = 255;
+          //buttonBorderXXYY[80];
+          // size
+          intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'\
+          intButtonX = 50;       // New row X
+          numberButtons = 21;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 4 buttons (the loop uses 'i < numberButtons' )
+          buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
+          buttonColumns = 4;    // Uses the right bit shifting shortcut division and has to be powers of 2.
+                                // i.e.'2, 4, 8, 16...'
+          buttonRows = 5;
+          // The original 20 buttons for 0.) screen size.
+          // One way is to convert with multiplication in a loop, add low and high values, and divide.
+          // This way is hardcoded to avoid nested while loops.
+            // Another method is to divide the screensize by 2 and place the buttons from the center similar to a book.
+          //   _____________
+          //  |      |      |
+          //  |   <- | ->   |
+          //  | \/   |   \/ |
+          //  |      |      |
+          //  |      |      |
+          //   -------------
+          if (responseWindowInput[21] == 1) {
+            currentWindowWidthHigh = 255;
+          }
+          else if (responseWindowInput[21] == 2) {
+            currentWindowWidthHigh = 510;
+          }
+          else if (responseWindowInput[21] == 3) {
+            currentWindowWidthHigh = 765;
+          }
+          else if (responseWindowInput[21] == 4) {
+            currentWindowWidthHigh = 1020;
+          }
+          else if (responseWindowInput[21] == 5) {
+            currentWindowWidthHigh = 1275;
+          }
+          else if (responseWindowInput[21] == 6) {
+            currentWindowWidthHigh = 1530;
+          }
+          else if (responseWindowInput[21] == 7) {
+            currentWindowWidthHigh = 1785;
+          }
+          else if (responseWindowInput[21] == 8) {
+            currentWindowWidthHigh = 2040;
+          }
+          else if (responseWindowInput[21] == 9) {
+            currentWindowWidthHigh = 2295;
+          }
+          // Combined low and high width. Accounts for window edge to first button/last button to edge and space between inner buttons (n-1).
+          currentWidthLowHigh = currentWindowWidthHigh + responseWindowInput[20] - (intButtonX * 2) - (10 * (buttonColumns-1) );          // responseWindowInput[21] + responseWindowInput[20]
+          //printf("currentWindowWidthHigh  %d  +  responseWindowInput[20]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, responseWindowInput[20], currentWidthLowHigh);
+          intBinaryWidthLowHigh = decimal2intBinary(currentWidthLowHigh, maxBinaryLength);
+          charBinaryWidthLowHigh = intBinary2Char(intBinaryWidthLowHigh);
+          // if the 'buttonColumns' is less than the width
+          if (responseWindowInput[20] > buttonColumns) {
+                                        // 'buttonColumns' ^ 'buttonColumnsTwoPower <- exponents for use in the bit shifting shortcut division to ignore remainders.
+                                        //                    buttonColumnsTwoPower = 1, 2, 3, 4, etc.
+                                        // e.g. 2^1=2, 2^2=4, 2^3=8, ... n
+            buttonColumnsTwoPower;
+            if (buttonColumns == 2) {
+              buttonColumnsTwoPower = 1;
             }
-            else if (responseWindowInput[21] == 2) {
-              currentWindowWidthHigh = 510;
+            else if (buttonColumns == 4) {
+              buttonColumnsTwoPower = 2;
             }
-            else if (responseWindowInput[21] == 3) {
-              currentWindowWidthHigh = 765;
+            else if (buttonColumns == 8) {
+              buttonColumnsTwoPower = 3;
             }
-            else if (responseWindowInput[21] == 4) {
-              currentWindowWidthHigh = 1020;
+            else if (buttonColumns == 16) {
+              buttonColumnsTwoPower = 4;
             }
-            else if (responseWindowInput[21] == 5) {
-              currentWindowWidthHigh = 1275;
+            else if (buttonColumns == 32) {
+              buttonColumnsTwoPower = 5;
             }
-            else if (responseWindowInput[21] == 6) {
-              currentWindowWidthHigh = 1530;
+            else if (buttonColumns == 64) {
+              buttonColumnsTwoPower = 6;
             }
-            else if (responseWindowInput[21] == 7) {
-              currentWindowWidthHigh = 1785;
-            }
-            else if (responseWindowInput[21] == 8) {
-              currentWindowWidthHigh = 2040;
-            }
-            else if (responseWindowInput[21] == 9) {
-              currentWindowWidthHigh = 2295;
-            }
-            //printf("currentWindowWidthHigh: %d\n", currentWindowWidthHigh);
-            // todo you have to use the low and high
-               // if the 'buttonColumns' is less than the width
-            // Combined low and high width. Accounts for window edge to first button/last button to edge and space between inner buttons (n-1).
-            currentWidthLowHigh = currentWindowWidthHigh + responseWindowInput[20] - (intButtonX * 2) - (10 * (buttonColumns-1) );          // responseWindowInput[21] + responseWindowInput[20]
-            //printf("currentWindowWidthHigh  %d  +  responseWindowInput[20]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, responseWindowInput[20], currentWidthLowHigh);
-            intBinaryWidthLowHigh = decimal2intBinary(currentWidthLowHigh, maxBinaryLength);
-            charBinaryWidthLowHigh = intBinary2Char(intBinaryWidthLowHigh);
-            if (responseWindowInput[20] > buttonColumns) {
-              //printf("intBinaryWidthLow.two %d\n", intBinaryWidthLow.two);
-              //printf("intBinaryWidthLow.one %d\n", intBinaryWidthLow.one); // length of the binary
-              // 'buttonColumns' ^ 'buttonColumnsTwoPower <- exponents for use in the bit shifting shortcut division to ignore remainders.
-              //                    buttonColumnsTwoPower = 1, 2, 3, 4, etc.
-              // e.g. 2^1=2, 2^2=4, 2^3=8, ... n
-              buttonColumnsTwoPower;
-              if (buttonColumns == 2) {
-                buttonColumnsTwoPower = 1;
+            // 'm' is the length of the binary - 1
+            m = intBinaryWidthLowHigh.one - 1;
+            // 'digitRemove' is the number of digits to remove from the right side of the binary char[].
+            digitRemove = 1;
+            // 'dividedLength' is the new length of the divided number.
+            dividedLength = m - buttonColumnsTwoPower;
+            unsigned char charBinaryButtonColumnsWidthLowHigh[dividedLength];
+            while (0 <= m) {
+              //printf("digitRemove: %d   m: %d    buttonColumnsTwoPower: %d\n", digitRemove, m, buttonColumnsTwoPower);
+              // Increment 'digitRemove' until it reaches the number of digits to remove.
+              if (digitRemove < buttonColumnsTwoPower) {
+                digitRemove++;
               }
-              else if (buttonColumns == 4) {
-                buttonColumnsTwoPower = 2;
+              else if (m <= dividedLength) {
+                // Set the remaining digits without the removed right bits.
+                charBinaryButtonColumnsWidthLowHigh[m] = charBinaryWidthLowHigh[m];
+                //printf("charBinaryWidthLow[%d]:  %c  charBinaryButtonColumnsWidthLow[%d]:  %c\n", m, charBinaryWidthLow[m], m, charBinaryButtonColumnsWidthLow[m]);
               }
-              else if (buttonColumns == 8) {
-                buttonColumnsTwoPower = 3;
-              }
-              else if (buttonColumns == 16) {
-                buttonColumnsTwoPower = 4;
-              }
-              else if (buttonColumns == 32) {
-                buttonColumnsTwoPower = 5;
-              }
-              else if (buttonColumns == 64) {
-                buttonColumnsTwoPower = 6;
-              }
-              // 'm' is the length of the binary - 1
-              m = intBinaryWidthLowHigh.one - 1;
-              // 'digitRemove' is the number of digits to remove from the right side of the binary char[].
-              digitRemove = 1;
-              // 'dividedLength' is the new length of the divided number.
-              dividedLength = m - buttonColumnsTwoPower;
-              unsigned char charBinaryButtonColumnsWidthLowHigh[dividedLength];
-              while (0 <= m) {
-                //printf("digitRemove: %d   m: %d    buttonColumnsTwoPower: %d\n", digitRemove, m, buttonColumnsTwoPower);
-                // Increment 'digitRemove' until it reaches the number of digits to remove.
-                if (digitRemove < buttonColumnsTwoPower) {
-                  digitRemove++;
+              m--;
+            }
+              //printf("responseWindowInput[20] %d  /  buttonColumns: %d  =  %d\n", responseWindowInput[20], buttonColumns, (responseWindowInput[20] / buttonColumns));
+            //printf("charBinaryWidthLow: %s  charBinaryButtonColumnsWidthLow: %s\n", charBinaryWidthLow, charBinaryButtonColumnsWidthLow);
+            //printf("\n");
+            // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
+              // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
+            intBinaryButtonColumnsWidthLowHigh = binary2Decimal(charBinaryButtonColumnsWidthLowHigh, (dividedLength + 1));
+              //printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
+            // Calculate the height.
+            if (responseWindowInput[23] == 1) {
+              currentWindowHeightHigh = 255;
+            }
+            else if (responseWindowInput[23] == 2) {
+              currentWindowHeightHigh = 510;
+            }
+            else if (responseWindowInput[23] == 3) {
+              currentWindowHeightHigh = 765;
+            }
+            else if (responseWindowInput[23] == 4) {
+              currentWindowHeightHigh = 1020;
+            }
+            else if (responseWindowInput[23] == 5) {
+              currentWindowHeightHigh = 1275;
+            }
+            else if (responseWindowInput[23] == 6) {
+              currentWindowHeightHigh = 1530;
+            }
+            else if (responseWindowInput[23] == 7) {
+              currentWindowHeightHigh = 1785;
+            }
+            else if (responseWindowInput[23] == 8) {
+              currentWindowHeightHigh = 2040;
+            }
+            else if (responseWindowInput[23] == 9) {
+              currentWindowHeightHigh = 2295;
+            }
+            //printf("currentWindowHeightHigh: %d\n", currentWindowHeightHigh);
+            // Combined low and high width. Accounts for window edge to top button button to edge, space above/below inner buttons (n-1) and bottom edge.
+                                                               //  textBorder[18] = 30; + 60 <= the buttonYSpace
+            currentHeightLowHigh = currentWindowHeightHigh + responseWindowInput[22] - 90 - (10 * (buttonRows-1) - 50);          // responseWindowInput[23] + responseWindowInput[22]
+            //printf("currentWindowHeightHigh  %d  +  responseWindowInput[22]  = %d  currentHeightLowHigh  %d\n", currentWindowHeightHigh, responseWindowInput[22], currentHeightLowHigh);
+            rowHeightLowHigh = 0;
+            if (buttonRows == 5) {
+              // Rounds 'currentHeightLowHigh' down to multiples of 50. 'rowHeightLowHigh' is incremented by 'm' + 'p' or '2 + 1':
+              // currentHeightLowHigh =  50 / 5 = 10    25 / 5 =  5    2 / 2 = 1
+                                     // 100 / 5 = 20    50 / 5 = 10    4 / 2 = 2
+                                     // 150 / 5 = 30                   6 / 2 = 3
+                                     // 200 / 5 = 40
+                                     // 250 / 5 = 50
+              // Not a complete answer since it doesn't use division.
+               // currentHeightLowHigh
+              //m = 75;
+              //int p = 25;
+              m = 75;
+              p = 25;
+              while (m < 2295) {
+                //printf("m + 5: %d  rowHeightLowHigh: %d\n", m+p, rowHeightLowHigh);
+                if ( (currentHeightLowHigh < (p + m)) && (currentHeightLowHigh >= (0 + m)) ) {
+                  currentHeightLowHigh = m;
+                  break;
                 }
-                else if (m <= dividedLength) {
-                  // Set the remaining digits without the removed right bits.
-                  charBinaryButtonColumnsWidthLowHigh[m] = charBinaryWidthLowHigh[m];
-                  //printf("charBinaryWidthLow[%d]:  %c  charBinaryButtonColumnsWidthLow[%d]:  %c\n", m, charBinaryWidthLow[m], m, charBinaryButtonColumnsWidthLow[m]);
-                }
-                m--;
+                rowHeightLowHigh = rowHeightLowHigh + 5;  // '5' is the button height's incrementor.
+                m = m + p;
               }
-                //printf("responseWindowInput[20] %d  /  buttonColumns: %d  =  %d\n", responseWindowInput[20], buttonColumns, (responseWindowInput[20] / buttonColumns));
-              //printf("charBinaryWidthLow: %s  charBinaryButtonColumnsWidthLow: %s\n", charBinaryWidthLow, charBinaryButtonColumnsWidthLow);
-              //printf("\n");
-              // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
-                // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
-              intBinaryButtonColumnsWidthLowHigh = binary2Decimal(charBinaryButtonColumnsWidthLowHigh, (dividedLength + 1));
-                //printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
-              // Calculate the height.
-              if (responseWindowInput[23] == 1) {
-                currentWindowHeightHigh = 255;
-              }
-              else if (responseWindowInput[23] == 2) {
-                currentWindowHeightHigh = 510;
-              }
-              else if (responseWindowInput[23] == 3) {
-                currentWindowHeightHigh = 765;
-              }
-              else if (responseWindowInput[23] == 4) {
-                currentWindowHeightHigh = 1020;
-              }
-              else if (responseWindowInput[23] == 5) {
-                currentWindowHeightHigh = 1275;
-              }
-              else if (responseWindowInput[23] == 6) {
-                currentWindowHeightHigh = 1530;
-              }
-              else if (responseWindowInput[23] == 7) {
-                currentWindowHeightHigh = 1785;
-              }
-              else if (responseWindowInput[23] == 8) {
-                currentWindowHeightHigh = 2040;
-              }
-              else if (responseWindowInput[23] == 9) {
-                currentWindowHeightHigh = 2295;
-              }
-              //printf("currentWindowHeightHigh: %d\n", currentWindowHeightHigh);
-              // Combined low and high width. Accounts for window edge to top button button to edge, space above/below inner buttons (n-1) and bottom edge.
-                                                                 //  textBorder[18] = 30; + 60 <= the buttonYSpace
-              currentHeightLowHigh = currentWindowHeightHigh + responseWindowInput[22] - 90 - (10 * (buttonRows-1) - 50);          // responseWindowInput[23] + responseWindowInput[22]
-              //printf("currentWindowHeightHigh  %d  +  responseWindowInput[22]  = %d  currentHeightLowHigh  %d\n", currentWindowHeightHigh, responseWindowInput[22], currentHeightLowHigh);
-              rowHeightLowHigh = 0;
-              if (buttonRows == 5) {
-                // Rounds 'currentHeightLowHigh' down to multiples of 50. 'rowHeightLowHigh' is incremented by 'm' + 'p' or '2 + 1':
-                // currentHeightLowHigh =  50 / 5 = 10    25 / 5 =  5    2 / 2 = 1
-                                       // 100 / 5 = 20    50 / 5 = 10    4 / 2 = 2
-                                       // 150 / 5 = 30                   6 / 2 = 3
-                                       // 200 / 5 = 40
-                                       // 250 / 5 = 50
-                // Not a complete answer since it doesn't use division.
-                 // currentHeightLowHigh
-                //m = 75;
-                //int p = 25;
-                m = 75;
-                p = 25;
-                while (m < 2295) {
-                  //printf("m + 5: %d  rowHeightLowHigh: %d\n", m+p, rowHeightLowHigh);
-                  if ( (currentHeightLowHigh < (p + m)) && (currentHeightLowHigh >= (0 + m)) ) {
-                    currentHeightLowHigh = m;
-                    break;
-                  }
-                  rowHeightLowHigh = rowHeightLowHigh + 5;  // '5' is the button height's incrementor.
-                  m = m + p;
-                }
-                //rowHeightLowHigh = rowHeightLowHigh - 5;
-                //printf("currentHeightLowHigh: %d  rowHeightLowHigh: %d\n\n", currentHeightLowHigh, rowHeightLowHigh);
-              }
-              // 'rowHeightLowHigh' remains the same (50 in the example) if below the first button's starting 'intButtonX' coordinate.
-              if (rowHeightLowHigh < intButtonX) {
-                rowHeightLowHigh = intButtonX;
-              }
-              //intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
-              intButtonWidth = intBinaryButtonColumnsWidthLowHigh;   // First button width
-              intButtonHeight = rowHeightLowHigh; //intBinaryButtonRowsHeightLowHigh;  // First button height
-              buttonXSpace = intBinaryButtonColumnsWidthLowHigh + 10;     // Space between buttons.
-              // '10' is the space between buttons and includes the height of the button for 'buttonYSpace'.
-              buttonYSpace = rowHeightLowHigh + 10; //intBinaryButtonRowsHeightLowHigh + 10;
+              //rowHeightLowHigh = rowHeightLowHigh - 5;
+              //printf("currentHeightLowHigh: %d  rowHeightLowHigh: %d\n\n", currentHeightLowHigh, rowHeightLowHigh);
             }
-            i = 1;
-            k = 0;
-            // Second 'while' to resize and move buttons continuously for padding. The previous conditionals are to
-            // reset the arrangement and add 20 buttons. May or maynot have to resize buttons.
-            while (i < numberButtons) {
-              //printf("i: %d\n", i);
-              //printf("k: %d\n", k);
-              // 'k' is used to increment elements for 'buttonBorderXXYYOne[0] - [79]'.
-              k = (i - 1) * 4;
-              // Accounts for overflow since unsigned char range is 0-255.
-              // Each int coordinate is represented with two sequential bytes in the char[].
-              // The X or horizontal coordinate.
-              if (intButtonXPlus < 256) {
-                buttonBorderOne[i][12] = intButtonXPlus;
-                buttonBorderOne[i][13] = 0;
-              }
-              else {
-                // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
-                // i.e. buttonBorderOne[i][12] = 'value'; // below 256
-                //      buttonBorderOne[i][13] = 'value' * 256;
-                intButtonXPlusRemainder = intButtonXPlus % 256;
-                intButtonXPlusDivision = intButtonXPlus / 256;
-                //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
-                //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
-                buttonBorderOne[i][12] = intButtonXPlusRemainder;
-                buttonBorderOne[i][13] = intButtonXPlusDivision;
-              }
-              // The Y or vertical coordinate is calculated identical to the X.
-              if (intButtonY < 256) {
-                buttonBorderOne[i][14] = intButtonY;
-                buttonBorderOne[i][15] = 0;
-              }
-              else {
-                intButtonYRemainder = intButtonY % 256;
-                intButtonYDivision = intButtonY / 256;
-                buttonBorderOne[i][14] = intButtonYRemainder;
-                buttonBorderOne[i][15] = intButtonYDivision;
-              }
-              //printf("low\nx buttonBorderOne[%d][12]: %d buttonBorderOne[%d][13]: %d\n", i, buttonBorderOne[i][12], i, buttonBorderOne[i][13]);
-              //printf("y buttonBorderOne[%d][14]: %d buttonBorderOne[%d][15]: %d\n\n", i, buttonBorderOne[i][14], i, buttonBorderOne[i][15]);
-              //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-              // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorderOne[1][16]'.
-                // Mouse click input is defined in the while (1) loop and formatted
-                // as a 2 byte overflow since 'read()' uses 'char[]'.
-                  // X [24] and [25]
-                  // Y [26] and [27]
-              // if '[12] + width' is > 255, add overflow to '[13]'.
+            // 'rowHeightLowHigh' remains the same (50 in the example) if below the first button's starting 'intButtonX' coordinate.
+            if (rowHeightLowHigh < intButtonX) {
+              rowHeightLowHigh = intButtonX;
+            }
+            //intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+            intButtonWidth = intBinaryButtonColumnsWidthLowHigh;   // First button width
+            intButtonHeight = rowHeightLowHigh; //intBinaryButtonRowsHeightLowHigh;  // First button height
+            buttonXSpace = intBinaryButtonColumnsWidthLowHigh + 10;     // Space between buttons.
+            // '10' is the space between buttons and includes the height of the button for 'buttonYSpace'.
+            buttonYSpace = rowHeightLowHigh + 10; //intBinaryButtonRowsHeightLowHigh + 10;
+          }
+          i = 1;
+          k = 0;
+          // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
+          while (i < numberButtons) {
+            // 'k' is used to increment elements for 'buttonBorderXXYY[0] - [79]'.
+            k = (i - 1) * 4;
+            // Accounts for overflow since unsigned char range is 0-255.
+            // Each int coordinate is represented with two sequential bytes in the char[].
+            // The X or horizontal coordinate.
+            if (intButtonXPlus < 256) {
+              buttonBorder[i][12] = intButtonXPlus;
+              buttonBorder[i][13] = 0;
+            }
+            else {
+              // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
+              // i.e. buttonBorder[i][12] = 'value'; // below 256
+              //      buttonBorder[i][13] = 'value' * 256;
+              intButtonXPlusRemainder = intButtonXPlus % 256;
+              intButtonXPlusDivision = intButtonXPlus / 256;
+              //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
+              //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              buttonBorder[i][12] = intButtonXPlusRemainder;
+              buttonBorder[i][13] = intButtonXPlusDivision;
+            }
+            // The Y or vertical coordinate is calculated identical to the X.
+            if (intButtonY < 256) {
+              buttonBorder[i][14] = intButtonY;
+              buttonBorder[i][15] = 0;
+            }
+            else {
+              intButtonYRemainder = intButtonY % 256;
+              intButtonYDivision = intButtonY / 256;
+              buttonBorder[i][14] = intButtonYRemainder;
+              buttonBorder[i][15] = intButtonYDivision;
+            }
+            //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
+            //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
+            // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorder[1][16]'.
+            // Mouse click input is defined in the while (1) loop and formatted
+            // as a 2 byte overflow since 'read()' uses 'char[]'.
+              // X [24] and [25]
+              // Y [26] and [27]
+            // if '[12] + width' is > 255, add overflow to '[13]'.
               // useful if you resize the initial window.
-              // The logic is similar to the 2 byte for one int from above for 'buttonBorderOne[i][12]-[15]'.
-              if ((buttonBorderOne[i][12] + intButtonWidth) > 256) {
-                buttonBorderXDivision = (buttonBorderOne[i][12] + intButtonWidth) / 256;
-                buttonBorderXRemainder = (buttonBorderOne[i][12] + intButtonWidth) % 256;
-                buttonBorderX12 = buttonBorderXRemainder;
-                buttonBorderX13 = buttonBorderOne[i][13] + buttonBorderXDivision;
-              }
-              else {
-                buttonBorderX12 = buttonBorderOne[i][12] + intButtonWidth;
-                buttonBorderX13 = buttonBorderOne[i][13];
-                //printf("buttonBorderX12 %d = buttonBorderOne[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorderOne[i][12], intButtonWidth);
-              }
-              buttonBorderXXYYOne[k] = buttonBorderX12;
-              buttonBorderXXYYOne[k + 1] = buttonBorderX13;
-              //printf("high\nx buttonBorderXXYYOne[%d]: %d buttonBorderXXYYOne[%d+1]: %d\n", k, buttonBorderXXYYOne[k], k, buttonBorderXXYYOne[k+1]);
-              // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorderOne[1][16]'.
-              if ((buttonBorderOne[i][14] + intButtonHeight) > 256) {
-                buttonBorderYDivision = (buttonBorderOne[i][14] + intButtonHeight) / 256;
-                buttonBorderYRemainder = (buttonBorderOne[i][14] + intButtonHeight) % 256;
-                buttonBorderY14 = buttonBorderYRemainder;
-                buttonBorderY15 = buttonBorderOne[i][15] + buttonBorderYDivision;
-              }
-              else {
-                buttonBorderY14 = buttonBorderOne[i][14] + intButtonHeight;
-                buttonBorderY15 = buttonBorderOne[i][15];
-              }
-              buttonBorderXXYYOne[k + 2] = buttonBorderY14;
-              buttonBorderXXYYOne[k + 3] = buttonBorderY15;
-              //printf("y buttonBorderXXYYOne[%d+2]: %d buttonBorderXXYYOne[%d+3]: %d\n\n", k, buttonBorderXXYYOne[k+2], k, buttonBorderXXYYOne[k+3]);
-              // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
-              buttonBorderOne[i][0] = 67;
-              buttonBorderOne[i][1] = 0;
-              buttonBorderOne[i][2] = 0b00000101;       // '5' Request length ( n / 4)
-              buttonBorderOne[i][3] = 0;
-              buttonBorderOne[i][4] = windowID.one;
-              buttonBorderOne[i][5] = windowID.two;
-              buttonBorderOne[i][6] = windowID.three;
-              buttonBorderOne[i][7] = windowID.four;
-              buttonBorderOne[i][8] = gcID.one;
-              buttonBorderOne[i][9] = gcID.two;
-              buttonBorderOne[i][10] = gcID.three;
-              buttonBorderOne[i][11] = gcID.four;
-              //              12
-              //              13
-              //              14
-              //              15
-              buttonBorderOne[i][16] = intButtonWidth;
-              buttonBorderOne[i][17] = 0;
-              buttonBorderOne[i][18] = intButtonHeight;
-              buttonBorderOne[i][19] = 0;
-              // Buttons 0 through 'numberButtons' space is incremented.
-              // The last button space is from the edge of the window defined in Opcode 1.
-              if (i < numberButtons) {
-                intButtonXPlus = intButtonXPlus + buttonXSpace;
-              }
-              //printf("i: %d  buttonBorderOne[i][12] %d, buttonBorderOne[i][13] %d, buttonBorderOne[i][14] %d, buttonBorderOne[i][15] %d\n", i, buttonBorderOne[i][12], buttonBorderOne[i][13], buttonBorderOne[i][14], buttonBorderOne[i][15]);
-              // Uses the remainder to start a new row based on 'buttonColumns'.
-              if ((i % buttonColumns == 0) && (i != 0)) {
-                //printf("\n");
-                intButtonXPlus = intButtonX;
-                intButtonY = intButtonY + buttonYSpace;
-              }
-              //printf("i: %d k: %d\n", i, k);
-              //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
-              i++;
+            // The logic is similar to the 2 byte for one int from above for 'buttonBorder[i][12]-[15]'.
+            if ((buttonBorder[i][12] + intButtonWidth) > 256) {
+              buttonBorderXDivision = (buttonBorder[i][12] + intButtonWidth) / 256;
+              buttonBorderXRemainder = (buttonBorder[i][12] + intButtonWidth) % 256;
+              buttonBorderX12 = buttonBorderXRemainder;
+              buttonBorderX13 = buttonBorder[i][13] + buttonBorderXDivision;
             }
+            else {
+              buttonBorderX12 = buttonBorder[i][12] + intButtonWidth;
+              buttonBorderX13 = buttonBorder[i][13];
+              //printf("buttonBorderX12 %d = buttonBorder[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorder[i][12], intButtonWidth);
+            }
+            buttonBorderXXYY[k] = buttonBorderX12;
+            buttonBorderXXYY[k + 1] = buttonBorderX13;
+            //printf("high\nx buttonBorderXXYY[%d]: %d buttonBorderXXYY[%d+1]: %d\n", k, buttonBorderXXYY[k], k, buttonBorderXXYY[k+1]);
+            // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorder[1][16]'.
+            if ((buttonBorder[i][14] + intButtonHeight) > 256) {
+              buttonBorderYDivision = (buttonBorder[i][14] + intButtonHeight) / 256;
+              buttonBorderYRemainder = (buttonBorder[i][14] + intButtonHeight) % 256;
+              buttonBorderY14 = buttonBorderYRemainder;
+              buttonBorderY15 = buttonBorder[i][15] + buttonBorderYDivision;
+            }
+            else {
+              buttonBorderY14 = buttonBorder[i][14] + intButtonHeight;
+              buttonBorderY15 = buttonBorder[i][15];
+            }
+            buttonBorderXXYY[k + 2] = buttonBorderY14;
+            buttonBorderXXYY[k + 3] = buttonBorderY15;
+            //printf("y buttonBorderXXYY[%d+2]: %d buttonBorderXXYY[%d+3]: %d\n\n", k, buttonBorderXXYY[k+2], k, buttonBorderXXYY[k+3]);
+            // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
+            buttonBorder[i][0] = 67;
+            buttonBorder[i][1] = 0;
+            buttonBorder[i][2] = 0b00000101;       // '5' Request length ( n / 4)
+            buttonBorder[i][3] = 0;
+            buttonBorder[i][4] = windowID.one;
+            buttonBorder[i][5] = windowID.two;
+            buttonBorder[i][6] = windowID.three;
+            buttonBorder[i][7] = windowID.four;
+            buttonBorder[i][8] = gcID.one;
+            buttonBorder[i][9] = gcID.two;
+            buttonBorder[i][10] = gcID.three;
+            buttonBorder[i][11] = gcID.four;
+            //              12
+            //              13
+            //              14
+            //              15
+            buttonBorder[i][16] = intButtonWidth;
+            buttonBorder[i][17] = 0;
+            buttonBorder[i][18] = intButtonHeight;
+            buttonBorder[i][19] = 0;
 
-            // 6) 67 'borderRectangle' - rectangle outline.
-            // Input and display box.
-            intButtonColumnWidth = intButtonWidth * buttonColumns;
-            // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
-            if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
-              textButtonHighWidth = 0;
-              textButtonLowWidth = intButtonColumnWidth;
+            // sci button max width = 760
+            //            125 = 100(*4)          ( 100 + 10) ;
+            // intButtonXPlus = intButtonXPlus + buttonXSpace;
+
+            // Buttons 0 through 'buttonElement' space is incremented.
+            // The last button space is from the edge of the window defined in Opcode 1.
+            if (i < buttonElements) {
+              intButtonXPlus = intButtonXPlus + buttonXSpace;
             }
-            else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
-              textButtonHighWidth = 1;
-              textButtonLowWidth = intButtonColumnWidth - 255;
+            // Uses the remainder to start a new row based on 'buttonColumns'.
+            if ((i % buttonColumns == 0) && (i != 0)) {
+              //printf("\n\n");
+              intButtonXPlus = intButtonX;
+              intButtonY = intButtonY + buttonYSpace;
             }
-            else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
-              textButtonHighWidth = 2;
-              textButtonLowWidth = intButtonColumnWidth - 510;
-            }
-            else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
-              textButtonHighWidth = 3;
-              textButtonLowWidth = intButtonColumnWidth - 765;
-            }
-            else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
-              textButtonHighWidth = 4;
-              textButtonLowWidth = intButtonColumnWidth - 1020;
-            }
-            else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
-              textButtonHighWidth = 5;
-              textButtonLowWidth = intButtonColumnWidth - 1275;
-            }
-            else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
-              textButtonHighWidth = 6;
-              textButtonLowWidth = intButtonColumnWidth - 1530;
-            }
-            else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
-              textButtonHighWidth = 7;
-              textButtonLowWidth = intButtonColumnWidth - 1785;
-            }
-            else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
-              textButtonHighWidth = 8;
-              textButtonLowWidth = intButtonColumnWidth - 2040;
-            }
-            else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
-              textButtonHighWidth = 9;
-              textButtonLowWidth = intButtonColumnWidth - 2295;
-            }
-            // '60' is the padding between the eight button colums.
-            textButtonLowWidth = textButtonLowWidth + 60;
-            // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
-            if (textButtonLowWidth > 255) {
-              textButtonLowWidth = textButtonLowWidth - 255;
-              textButtonHighWidth = textButtonHighWidth + 1;
-            }
-            textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+            //printf("i: %d k: %d\n", i, k);
+            //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
+            i++;
+          }
+          // 6) 67 'borderRectangle' - rectangle outline.
+          // Input and display box.
+          textBorder[12] = intButtonX;      // x
+          textBorder[13] = 0;
+          // y - The 20 buttons row uses 'intButtonY' = 100
+          textBorder[14] = 50;
+          textBorder[15] = 0;
+          //windowLowWidth;      74
+          //windowHighWidth;      1
+          intButtonColumnWidth = intButtonWidth * buttonColumns;
+          // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
+          if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
+            textButtonHighWidth = 0;
+            textButtonLowWidth = intButtonColumnWidth;
+          }
+          else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
+            textButtonHighWidth = 1;
+            textButtonLowWidth = intButtonColumnWidth - 255;
+          }
+          else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
+            textButtonHighWidth = 2;
+            textButtonLowWidth = intButtonColumnWidth - 510;
+          }
+          else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
+            textButtonHighWidth = 3;
+            textButtonLowWidth = intButtonColumnWidth - 765;
+          }
+          else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
+            textButtonHighWidth = 4;
+            textButtonLowWidth = intButtonColumnWidth - 1020;
+          }
+          else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
+            textButtonHighWidth = 5;
+            textButtonLowWidth = intButtonColumnWidth - 1275;
+          }
+          else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
+            textButtonHighWidth = 6;
+            textButtonLowWidth = intButtonColumnWidth - 1530;
+          }
+          else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
+            textButtonHighWidth = 7;
+            textButtonLowWidth = intButtonColumnWidth - 1785;
+          }
+          else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
+            textButtonHighWidth = 8;
+            textButtonLowWidth = intButtonColumnWidth - 2040;
+          }
+          else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
+            textButtonHighWidth = 9;
+            textButtonLowWidth = intButtonColumnWidth - 2295;
+          }
+          // '30' is the padding between the four button collums.
+          textButtonLowWidth = textButtonLowWidth + 30;
+          // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
+          if (textButtonLowWidth > 255) {
+            textButtonLowWidth = textButtonLowWidth - 255;
+            textButtonHighWidth = textButtonHighWidth + 1;
+          }
+          textBorder[16] = textButtonLowWidth;
+          textBorder[17] = textButtonHighWidth;
+          // Button low height. The padding to the first row of 20 input buttons.
+          //textBorder[18] = 30;
+          //textBorder[19] = 0;
+          textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+          j = 0;
+          i = 1;
+          while (i < numberButtons) {
             j = 0;
-            i = 1;
-            while (i < numberButtons) {
-              j = 0;
-              while (j < sizeof(subsetButtonBorder)) {
-                subsetButtonBorder[j] = buttonBorderOne[i][j];
-                //printf("subsetbuttonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
-                j++;
-              }
-              //printf("\n");
-              borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
-              i++;
+            while (j < sizeof(subsetButtonBorder)) {
+              subsetButtonBorder[j] = buttonBorder[i][j];
+              //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
+              j++;
             }
+            //printf("\n");
+            borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            i++;
           }
         }
-        // Switch to 0.) screen
-        else if (responseWindowInput[21] <= windowHighWidthOne) {
-          screenCheckZero = 1;
-          /*
-          if (responseWindowInput[21] == windowHighWidthOne && responseWindowInput[20] <= windowLowWidthOne) {
-            screenCheckZero = 1;
+        else if (screenCheckWidthOne == 1) {
+          screenCheckOne = 1;
+          // Clear the window with opcode 61.
+          clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+          // the commented out space and size are if they need to be resized and spaced for this dimensions
+          // +20 additional buttons
+          printf("resize buttons to 1.)\n");
+          // Resize the buttons to 1.) with the same values.
+          //int windowLowHeightTwo = 34; // Maximum screen height.
+          //int windowHighHeightTwo = 4;
+          //int windowLowHeightOne = 10; // Scientific height.
+          //int windowHighHeightOne = 2;            // Number of buttons.
+          numberButtons = 41;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 8 buttons (the loop uses 'i < numberButtons' )
+          buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
+          intButtonX = 50;       // New row X
+          intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+          intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'
+          //intButtonWidth = 50;   // First button width
+          //intButtonHeight = 50;  // First button height
+          // size
+          buttonColumns = 8;    // Uses the right bit shifting shortcut division and has to be powers of 2.
+                                // i.e.'2, 4, 8, 16...'
+          buttonRows = 5;
+          // The char packets to change the arrangement of the polygon buttons when the screen is
+          // resized to the '1.)' dimensions.
+          // +20 additional buttons
+          // One way is to convert with multiplication in a loop, add low and high values, and divide.
+          // This way is hardcoded to avoid nested while loops.
+            // Also divide the screensize by 2 and place the buttons from the center.
+          //   _____________
+          //  |      |      |
+          //  |   <- | ->   |
+          //  | \/   |   \/ |
+          //  |      |      |
+          //  |      |      |
+          //   -------------
+          if (responseWindowInput[21] == 1) {
+            currentWindowWidthHigh = 255;
           }
-          else if (responseWindowInput[21] == windowHighWidthOne) {
-            screenCheckZero = 1;
+          else if (responseWindowInput[21] == 2) {
+            currentWindowWidthHigh = 510;
           }
-          */
-          if (screenCheckZero == 1) {
-            printf("screen 0\n");
-            // Clear the window with opcode 61.
-            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-              // width
-              //printf("responseWindowInput[20] %d\n", responseWindowInput[20]);
-              //printf("responseWindowInput[21] %d\n\n", responseWindowInput[21]);
-              // height
-              //printf("responseWindowInput[22] %d\n", responseWindowInput[22]);
-              //printf("responseWindowInput[23] %d\n", responseWindowInput[23]);
-
-              // int windowLowWidth = 74;   // Defined at the begining of 'drawWindow()'.
-              // int windowHighWidth = 1;
-              // int windowLowHeight = 184; // Height of the window.
-              // int windowHighHeight = 1;
-
-            // Resize the buttons to 0.) with the same values.
-            //buttonBorderXXYY[80];
-            // size
-            intButtonY = 100;      // First button Y - is incremented with 'buttonYSpace' every 4 buttons with 'buttonColumns'\
-            intButtonX = 50;       // New row X
-            numberButtons = 21;    // n - 1          - the number of buttons + 1 for the 'intButtonY' that increments every 4 buttons (the loop uses 'i < numberButtons' )
-            buttonElements = 20;   //                - used in the packet 'buttonBorder[numberButtons][buttonElements]' and other functions:
-            buttonColumns = 4;    // Uses the right bit shifting shortcut division and has to be powers of 2.
-                                  // i.e.'2, 4, 8, 16...'
-            buttonRows = 5;
-            // The original 20 buttons for 0.) screen size.
-            //unsigned char buttonBorderXXYY[80]; // 4 (k, k+1, k+2, etc.) measurements X 20 buttons
-            //unsigned char buttonBorder[numberButtons][buttonElements];
-            //unsigned char subsetButtonBorder[buttonElements];
-            // One way is to convert with multiplication in a loop, add low and high values, and divide.
-            // This way is hardcoded to avoid nested while loops.
-              // Also divide the screensize by 2 and place the buttons from the center.
-            //   _____________
-            //  |      |      |
-            //  |   <- | ->   |
-            //  | \/   |   \/ |
-            //  |      |      |
-            //  |      |      |
-            //   -------------
-            if (responseWindowInput[21] == 1) {
-              currentWindowWidthHigh = 255;
+          else if (responseWindowInput[21] == 3) {
+            currentWindowWidthHigh = 765;
+          }
+          else if (responseWindowInput[21] == 4) {
+            currentWindowWidthHigh = 1020;
+          }
+          else if (responseWindowInput[21] == 5) {
+            currentWindowWidthHigh = 1275;
+          }
+          else if (responseWindowInput[21] == 6) {
+            currentWindowWidthHigh = 1530;
+          }
+          else if (responseWindowInput[21] == 7) {
+            currentWindowWidthHigh = 1785;
+          }
+          else if (responseWindowInput[21] == 8) {
+            currentWindowWidthHigh = 2040;
+          }
+          else if (responseWindowInput[21] == 9) {
+            currentWindowWidthHigh = 2295;
+          }
+          //printf("currentWindowWidthHigh: %d\n", currentWindowWidthHigh);
+          // Combined low and high width. Accounts for window edge to first button/last button to edge and space between inner buttons (n-1).
+          currentWidthLowHigh = currentWindowWidthHigh + responseWindowInput[20] - (intButtonX * 2) - (10 * (buttonColumns-1) );          // responseWindowInput[21] + responseWindowInput[20]
+          //printf("currentWindowWidthHigh  %d  +  responseWindowInput[20]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, responseWindowInput[20], currentWidthLowHigh);
+          intBinaryWidthLowHigh = decimal2intBinary(currentWidthLowHigh, maxBinaryLength);
+          charBinaryWidthLowHigh = intBinary2Char(intBinaryWidthLowHigh);
+          if (responseWindowInput[20] > buttonColumns) {
+            //printf("intBinaryWidthLow.two %d\n", intBinaryWidthLow.two);
+            //printf("intBinaryWidthLow.one %d\n", intBinaryWidthLow.one); // length of the binary
+            // 'buttonColumns' ^ 'buttonColumnsTwoPower <- exponents for use in the bit shifting shortcut division to ignore remainders.
+            //                    buttonColumnsTwoPower = 1, 2, 3, 4, etc.
+            // e.g. 2^1=2, 2^2=4, 2^3=8, ... n
+            buttonColumnsTwoPower;
+            if (buttonColumns == 2) {
+              buttonColumnsTwoPower = 1;
             }
-            else if (responseWindowInput[21] == 2) {
-              currentWindowWidthHigh = 510;
+            else if (buttonColumns == 4) {
+              buttonColumnsTwoPower = 2;
             }
-            else if (responseWindowInput[21] == 3) {
-              currentWindowWidthHigh = 765;
+            else if (buttonColumns == 8) {
+              buttonColumnsTwoPower = 3;
             }
-            else if (responseWindowInput[21] == 4) {
-              currentWindowWidthHigh = 1020;
+            else if (buttonColumns == 16) {
+              buttonColumnsTwoPower = 4;
             }
-            else if (responseWindowInput[21] == 5) {
-              currentWindowWidthHigh = 1275;
+            else if (buttonColumns == 32) {
+              buttonColumnsTwoPower = 5;
             }
-            else if (responseWindowInput[21] == 6) {
-              currentWindowWidthHigh = 1530;
+            else if (buttonColumns == 64) {
+              buttonColumnsTwoPower = 6;
             }
-            else if (responseWindowInput[21] == 7) {
-              currentWindowWidthHigh = 1785;
-            }
-            else if (responseWindowInput[21] == 8) {
-              currentWindowWidthHigh = 2040;
-            }
-            else if (responseWindowInput[21] == 9) {
-              currentWindowWidthHigh = 2295;
-            }
-            //printf("currentWindowWidthHigh: %d\n", currentWindowWidthHigh);
-            // todo you have to use the low and high
-               // if the 'buttonColumns' is less than the width
-            // Combined low and high width. Accounts for window edge to first button/last button to edge and space between inner buttons (n-1).
-            currentWidthLowHigh = currentWindowWidthHigh + responseWindowInput[20] - (intButtonX * 2) - (10 * (buttonColumns-1) );          // responseWindowInput[21] + responseWindowInput[20]
-            //printf("currentWindowWidthHigh  %d  +  responseWindowInput[20]  %d  currentWidthLowHigh  %d\n", currentWindowWidthHigh, responseWindowInput[20], currentWidthLowHigh);
-            intBinaryWidthLowHigh = decimal2intBinary(currentWidthLowHigh, maxBinaryLength);
-            charBinaryWidthLowHigh = intBinary2Char(intBinaryWidthLowHigh);
-            if (responseWindowInput[20] > buttonColumns) {
-              //printf("intBinaryWidthLow.two %d\n", intBinaryWidthLow.two);
-              //printf("intBinaryWidthLow.one %d\n", intBinaryWidthLow.one); // length of the binary
-              // 'buttonColumns' ^ 'buttonColumnsTwoPower <- exponents for use in the bit shifting shortcut division to ignore remainders.
-              //                    buttonColumnsTwoPower = 1, 2, 3, 4, etc.
-              // e.g. 2^1=2, 2^2=4, 2^3=8, ... n
-              buttonColumnsTwoPower;
-              if (buttonColumns == 2) {
-                buttonColumnsTwoPower = 1;
+            // 'm' is the length of the binary - 1
+            m = intBinaryWidthLowHigh.one - 1;
+            // 'digitRemove' is the number of digits to remove from the right side of the binary char[].
+            digitRemove = 1;
+            // 'dividedLength' is the new length of the divided number.
+            dividedLength = m - buttonColumnsTwoPower;
+            unsigned char charBinaryButtonColumnsWidthLowHigh[dividedLength];
+            while (0 <= m) {
+              //printf("digitRemove: %d   m: %d    buttonColumnsTwoPower: %d\n", digitRemove, m, buttonColumnsTwoPower);
+              // Increment 'digitRemove' until it reaches the number of digits to remove.
+              if (digitRemove < buttonColumnsTwoPower) {
+                digitRemove++;
               }
-              else if (buttonColumns == 4) {
-                buttonColumnsTwoPower = 2;
+              else if (m <= dividedLength) {
+                // Set the remaining digits without the removed right bits.
+                charBinaryButtonColumnsWidthLowHigh[m] = charBinaryWidthLowHigh[m];
+                //printf("charBinaryWidthLow[%d]:  %c  charBinaryButtonColumnsWidthLow[%d]:  %c\n", m, charBinaryWidthLow[m], m, charBinaryButtonColumnsWidthLow[m]);
               }
-              else if (buttonColumns == 8) {
-                buttonColumnsTwoPower = 3;
-              }
-              else if (buttonColumns == 16) {
-                buttonColumnsTwoPower = 4;
-              }
-              else if (buttonColumns == 32) {
-                buttonColumnsTwoPower = 5;
-              }
-              else if (buttonColumns == 64) {
-                buttonColumnsTwoPower = 6;
-              }
-              // 'm' is the length of the binary - 1
-              m = intBinaryWidthLowHigh.one - 1;
-              // 'digitRemove' is the number of digits to remove from the right side of the binary char[].
-              digitRemove = 1;
-              // 'dividedLength' is the new length of the divided number.
-              dividedLength = m - buttonColumnsTwoPower;
-              unsigned char charBinaryButtonColumnsWidthLowHigh[dividedLength];
-              while (0 <= m) {
-                //printf("digitRemove: %d   m: %d    buttonColumnsTwoPower: %d\n", digitRemove, m, buttonColumnsTwoPower);
-                // Increment 'digitRemove' until it reaches the number of digits to remove.
-                if (digitRemove < buttonColumnsTwoPower) {
-                  digitRemove++;
+              m--;
+            }
+              //printf("responseWindowInput[20] %d  /  buttonColumns: %d  =  %d\n", responseWindowInput[20], buttonColumns, (responseWindowInput[20] / buttonColumns));
+            //printf("charBinaryWidthLow: %s  charBinaryButtonColumnsWidthLow: %s\n", charBinaryWidthLow, charBinaryButtonColumnsWidthLow);
+            //printf("\n");
+            // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
+              // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
+            intBinaryButtonColumnsWidthLowHigh = binary2Decimal(charBinaryButtonColumnsWidthLowHigh, (dividedLength + 1));
+              //printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
+            // Calculate the height.
+            if (responseWindowInput[23] == 1) {
+              currentWindowHeightHigh = 255;
+            }
+            else if (responseWindowInput[23] == 2) {
+              currentWindowHeightHigh = 510;
+            }
+            else if (responseWindowInput[23] == 3) {
+              currentWindowHeightHigh = 765;
+            }
+            else if (responseWindowInput[23] == 4) {
+              currentWindowHeightHigh = 1020;
+            }
+            else if (responseWindowInput[23] == 5) {
+              currentWindowHeightHigh = 1275;
+            }
+            else if (responseWindowInput[23] == 6) {
+              currentWindowHeightHigh = 1530;
+            }
+            else if (responseWindowInput[23] == 7) {
+              currentWindowHeightHigh = 1785;
+            }
+            else if (responseWindowInput[23] == 8) {
+              currentWindowHeightHigh = 2040;
+            }
+            else if (responseWindowInput[23] == 9) {
+              currentWindowHeightHigh = 2295;
+            }
+            //printf("currentWindowHeightHigh: %d\n", currentWindowHeightHigh);
+            // Combined low and high width. Accounts for window edge to top button button to edge, space above/below inner buttons (n-1) and bottom edge.
+                                                               //  textBorder[18] = 30; + 60 <= the buttonYSpace
+            currentHeightLowHigh = currentWindowHeightHigh + responseWindowInput[22] - 90 - (10 * (buttonRows-1) - 50);          // responseWindowInput[23] + responseWindowInput[22]
+            //printf("currentWindowHeightHigh  %d  +  responseWindowInput[22]  = %d  currentHeightLowHigh  %d\n", currentWindowHeightHigh, responseWindowInput[22], currentHeightLowHigh);
+            rowHeightLowHigh = 0;
+            if (buttonRows == 5) {
+              // Rounds 'currentHeightLowHigh' down to multiples of 50. 'rowHeightLowHigh' is incremented by 'm' + 'p' or '2 + 1':
+              // currentHeightLowHigh =  50 / 5 = 10    25 / 5 =  5    2 / 2 = 1
+                                     // 100 / 5 = 20    50 / 5 = 10    4 / 2 = 2
+                                     // 150 / 5 = 30                   6 / 2 = 3
+                                     // 200 / 5 = 40
+                                     // 250 / 5 = 50
+              // Not a complete answer since it doesn't use division.
+               // currentHeightLowHigh
+              //m = 75;
+              //int p = 25;
+              m = 75;
+              p = 25;
+              while (m < 2295) {
+                //printf("m + 5: %d  rowHeightLowHigh: %d\n", m+p, rowHeightLowHigh);
+                if ( (currentHeightLowHigh < (p + m)) && (currentHeightLowHigh >= (0 + m)) ) {
+                  currentHeightLowHigh = m;
+                  break;
                 }
-                else if (m <= dividedLength) {
-                  // Set the remaining digits without the removed right bits.
-                  charBinaryButtonColumnsWidthLowHigh[m] = charBinaryWidthLowHigh[m];
-                  //printf("charBinaryWidthLow[%d]:  %c  charBinaryButtonColumnsWidthLow[%d]:  %c\n", m, charBinaryWidthLow[m], m, charBinaryButtonColumnsWidthLow[m]);
-                }
-                m--;
+                rowHeightLowHigh = rowHeightLowHigh + 5;  // '5' is the button height's incrementor.
+                m = m + p;
               }
-                //printf("responseWindowInput[20] %d  /  buttonColumns: %d  =  %d\n", responseWindowInput[20], buttonColumns, (responseWindowInput[20] / buttonColumns));
-              //printf("charBinaryWidthLow: %s  charBinaryButtonColumnsWidthLow: %s\n", charBinaryWidthLow, charBinaryButtonColumnsWidthLow);
-              //printf("\n");
-              // Existing function uses 'C' built-in multiplication loop in an 'exponents()' function from "arithmaticSteps.c".
-                // 20260921 Previous 'binary2Decimal' function used 'free()' at the end.
-              intBinaryButtonColumnsWidthLowHigh = binary2Decimal(charBinaryButtonColumnsWidthLowHigh, (dividedLength + 1));
-                //printf("intBinaryButtonColumnsWidthLowHigh: %d  =  charBinaryButtonColumnsWidthLowHigh: %s\n", intBinaryButtonColumnsWidthLowHigh, charBinaryButtonColumnsWidthLowHigh);
-              // Calculate the height.
-              if (responseWindowInput[23] == 1) {
-                currentWindowHeightHigh = 255;
-              }
-              else if (responseWindowInput[23] == 2) {
-                currentWindowHeightHigh = 510;
-              }
-              else if (responseWindowInput[23] == 3) {
-                currentWindowHeightHigh = 765;
-              }
-              else if (responseWindowInput[23] == 4) {
-                currentWindowHeightHigh = 1020;
-              }
-              else if (responseWindowInput[23] == 5) {
-                currentWindowHeightHigh = 1275;
-              }
-              else if (responseWindowInput[23] == 6) {
-                currentWindowHeightHigh = 1530;
-              }
-              else if (responseWindowInput[23] == 7) {
-                currentWindowHeightHigh = 1785;
-              }
-              else if (responseWindowInput[23] == 8) {
-                currentWindowHeightHigh = 2040;
-              }
-              else if (responseWindowInput[23] == 9) {
-                currentWindowHeightHigh = 2295;
-              }
-              //printf("currentWindowHeightHigh: %d\n", currentWindowHeightHigh);
-              // Combined low and high width. Accounts for window edge to top button button to edge, space above/below inner buttons (n-1) and bottom edge.
-                                                                 //  textBorder[18] = 30; + 60 <= the buttonYSpace
-              currentHeightLowHigh = currentWindowHeightHigh + responseWindowInput[22] - 90 - (10 * (buttonRows-1) - 50);          // responseWindowInput[23] + responseWindowInput[22]
-              //printf("currentWindowHeightHigh  %d  +  responseWindowInput[22]  = %d  currentHeightLowHigh  %d\n", currentWindowHeightHigh, responseWindowInput[22], currentHeightLowHigh);
-              rowHeightLowHigh = 0;
-              if (buttonRows == 5) {
-                // Rounds 'currentHeightLowHigh' down to multiples of 50. 'rowHeightLowHigh' is incremented by 'm' + 'p' or '2 + 1':
-                // currentHeightLowHigh =  50 / 5 = 10    25 / 5 =  5    2 / 2 = 1
-                                       // 100 / 5 = 20    50 / 5 = 10    4 / 2 = 2
-                                       // 150 / 5 = 30                   6 / 2 = 3
-                                       // 200 / 5 = 40
-                                       // 250 / 5 = 50
-                // Not a complete answer since it doesn't use division.
-                 // currentHeightLowHigh
-                //m = 75;
-                //int p = 25;
-                m = 75;
-                p = 25;
-                while (m < 2295) {
-                  //printf("m + 5: %d  rowHeightLowHigh: %d\n", m+p, rowHeightLowHigh);
-                  if ( (currentHeightLowHigh < (p + m)) && (currentHeightLowHigh >= (0 + m)) ) {
-                    currentHeightLowHigh = m;
-                    break;
-                  }
-                  rowHeightLowHigh = rowHeightLowHigh + 5;  // '5' is the button height's incrementor.
-                  m = m + p;
-                }
-                //rowHeightLowHigh = rowHeightLowHigh - 5;
-                //printf("currentHeightLowHigh: %d  rowHeightLowHigh: %d\n\n", currentHeightLowHigh, rowHeightLowHigh);
-              }
-              // 'rowHeightLowHigh' remains the same (50 in the example) if below the first button's starting 'intButtonX' coordinate.
-              if (rowHeightLowHigh < intButtonX) {
-                rowHeightLowHigh = intButtonX;
-              }
-              //intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
-              intButtonWidth = intBinaryButtonColumnsWidthLowHigh;   // First button width
-              intButtonHeight = rowHeightLowHigh; //intBinaryButtonRowsHeightLowHigh;  // First button height
-              buttonXSpace = intBinaryButtonColumnsWidthLowHigh + 10;     // Space between buttons.
-              // '10' is the space between buttons and includes the height of the button for 'buttonYSpace'.
-              buttonYSpace = rowHeightLowHigh + 10; //intBinaryButtonRowsHeightLowHigh + 10;
+              //rowHeightLowHigh = rowHeightLowHigh - 5;
+              //printf("currentHeightLowHigh: %d  rowHeightLowHigh: %d\n\n", currentHeightLowHigh, rowHeightLowHigh);
             }
-            i = 1;
-            k = 0;
-            // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
-            while (i < numberButtons) {
-              // 'k' is used to increment elements for 'buttonBorderXXYY[0] - [79]'.
-              k = (i - 1) * 4;
-              // Accounts for overflow since unsigned char range is 0-255.
-              // Each int coordinate is represented with two sequential bytes in the char[].
-              // The X or horizontal coordinate.
-              if (intButtonXPlus < 256) {
-                buttonBorder[i][12] = intButtonXPlus;
-                buttonBorder[i][13] = 0;
-              }
-              else {
-                // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
-                // i.e. buttonBorder[i][12] = 'value'; // below 256
-                //      buttonBorder[i][13] = 'value' * 256;
-                intButtonXPlusRemainder = intButtonXPlus % 256;
-                intButtonXPlusDivision = intButtonXPlus / 256;
-                //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
-                //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
-                buttonBorder[i][12] = intButtonXPlusRemainder;
-                buttonBorder[i][13] = intButtonXPlusDivision;
-              }
-              // The Y or vertical coordinate is calculated identical to the X.
-              if (intButtonY < 256) {
-                buttonBorder[i][14] = intButtonY;
-                buttonBorder[i][15] = 0;
-              }
-              else {
-                intButtonYRemainder = intButtonY % 256;
-                intButtonYDivision = intButtonY / 256;
-                buttonBorder[i][14] = intButtonYRemainder;
-                buttonBorder[i][15] = intButtonYDivision;
-              }
-              //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
-              //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
-              // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorder[1][16]'.
+            // 'rowHeightLowHigh' remains the same (50 in the example) if below the first button's starting 'intButtonX' coordinate.
+            if (rowHeightLowHigh < intButtonX) {
+              rowHeightLowHigh = intButtonX;
+            }
+            //intButtonXPlus = 50;   // First button X - is incremented with 'buttonXSpace' and reset each now row with 'intButtonX'
+            intButtonWidth = intBinaryButtonColumnsWidthLowHigh;   // First button width
+            intButtonHeight = rowHeightLowHigh; //intBinaryButtonRowsHeightLowHigh;  // First button height
+            buttonXSpace = intBinaryButtonColumnsWidthLowHigh + 10;     // Space between buttons.
+            // '10' is the space between buttons and includes the height of the button for 'buttonYSpace'.
+            buttonYSpace = rowHeightLowHigh + 10; //intBinaryButtonRowsHeightLowHigh + 10;
+          }
+          i = 1;
+          k = 0;
+          // Second 'while' to resize and move buttons continuously for padding. The previous conditionals are to
+          // reset the arrangement and add 20 buttons. May or maynot have to resize buttons.
+          while (i < numberButtons) {
+            //printf("i: %d\n", i);
+            //printf("k: %d\n", k);
+            // 'k' is used to increment elements for 'buttonBorderXXYYOne[0] - [79]'.
+            k = (i - 1) * 4;
+            // Accounts for overflow since unsigned char range is 0-255.
+            // Each int coordinate is represented with two sequential bytes in the char[].
+            // The X or horizontal coordinate.
+            if (intButtonXPlus < 256) {
+              buttonBorderOne[i][12] = intButtonXPlus;
+              buttonBorderOne[i][13] = 0;
+            }
+            else {
+              // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
+              // i.e. buttonBorderOne[i][12] = 'value'; // below 256
+              //      buttonBorderOne[i][13] = 'value' * 256;
+              intButtonXPlusRemainder = intButtonXPlus % 256;
+              intButtonXPlusDivision = intButtonXPlus / 256;
+              //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
+              //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              buttonBorderOne[i][12] = intButtonXPlusRemainder;
+              buttonBorderOne[i][13] = intButtonXPlusDivision;
+            }
+            // The Y or vertical coordinate is calculated identical to the X.
+            if (intButtonY < 256) {
+              buttonBorderOne[i][14] = intButtonY;
+              buttonBorderOne[i][15] = 0;
+            }
+            else {
+              intButtonYRemainder = intButtonY % 256;
+              intButtonYDivision = intButtonY / 256;
+              buttonBorderOne[i][14] = intButtonYRemainder;
+              buttonBorderOne[i][15] = intButtonYDivision;
+            }
+            //printf("low\nx buttonBorderOne[%d][12]: %d buttonBorderOne[%d][13]: %d\n", i, buttonBorderOne[i][12], i, buttonBorderOne[i][13]);
+            //printf("y buttonBorderOne[%d][14]: %d buttonBorderOne[%d][15]: %d\n\n", i, buttonBorderOne[i][14], i, buttonBorderOne[i][15]);
+            //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            // Calculates the X limit border for the '20' buttons using the first width 'intButtonWidth' or 'buttonBorderOne[1][16]'.
               // Mouse click input is defined in the while (1) loop and formatted
               // as a 2 byte overflow since 'read()' uses 'char[]'.
                 // X [24] and [25]
                 // Y [26] and [27]
-              // if '[12] + width' is > 255, add overflow to '[13]'.
-                // useful if you resize the initial window.
-              // The logic is similar to the 2 byte for one int from above for 'buttonBorder[i][12]-[15]'.
-              if ((buttonBorder[i][12] + intButtonWidth) > 256) {
-                buttonBorderXDivision = (buttonBorder[i][12] + intButtonWidth) / 256;
-                buttonBorderXRemainder = (buttonBorder[i][12] + intButtonWidth) % 256;
-                buttonBorderX12 = buttonBorderXRemainder;
-                buttonBorderX13 = buttonBorder[i][13] + buttonBorderXDivision;
-              }
-              else {
-                buttonBorderX12 = buttonBorder[i][12] + intButtonWidth;
-                buttonBorderX13 = buttonBorder[i][13];
-                //printf("buttonBorderX12 %d = buttonBorder[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorder[i][12], intButtonWidth);
-              }
-              buttonBorderXXYY[k] = buttonBorderX12;
-              buttonBorderXXYY[k + 1] = buttonBorderX13;
-              //printf("high\nx buttonBorderXXYY[%d]: %d buttonBorderXXYY[%d+1]: %d\n", k, buttonBorderXXYY[k], k, buttonBorderXXYY[k+1]);
-              // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorder[1][16]'.
-              if ((buttonBorder[i][14] + intButtonHeight) > 256) {
-                buttonBorderYDivision = (buttonBorder[i][14] + intButtonHeight) / 256;
-                buttonBorderYRemainder = (buttonBorder[i][14] + intButtonHeight) % 256;
-                buttonBorderY14 = buttonBorderYRemainder;
-                buttonBorderY15 = buttonBorder[i][15] + buttonBorderYDivision;
-              }
-              else {
-                buttonBorderY14 = buttonBorder[i][14] + intButtonHeight;
-                buttonBorderY15 = buttonBorder[i][15];
-              }
-              buttonBorderXXYY[k + 2] = buttonBorderY14;
-              buttonBorderXXYY[k + 3] = buttonBorderY15;
-              //printf("y buttonBorderXXYY[%d+2]: %d buttonBorderXXYY[%d+3]: %d\n\n", k, buttonBorderXXYY[k+2], k, buttonBorderXXYY[k+3]);
-              // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
-              buttonBorder[i][0] = 67;
-              buttonBorder[i][1] = 0;
-              buttonBorder[i][2] = 0b00000101;       // '5' Request length ( n / 4)
-              buttonBorder[i][3] = 0;
-              buttonBorder[i][4] = windowID.one;
-              buttonBorder[i][5] = windowID.two;
-              buttonBorder[i][6] = windowID.three;
-              buttonBorder[i][7] = windowID.four;
-              buttonBorder[i][8] = gcID.one;
-              buttonBorder[i][9] = gcID.two;
-              buttonBorder[i][10] = gcID.three;
-              buttonBorder[i][11] = gcID.four;
-              //              12
-              //              13
-              //              14
-              //              15
-              buttonBorder[i][16] = intButtonWidth;
-              buttonBorder[i][17] = 0;
-              buttonBorder[i][18] = intButtonHeight;
-              buttonBorder[i][19] = 0;
-              // width
-              //printf("responseWindowInput[20] %d\n", responseWindowInput[20]);
-              //printf("responseWindowInput[21] %d\n\n", responseWindowInput[21]);
-              // height
-              //printf("responseWindowInput[22] %d\n", responseWindowInput[22]);
-              //printf("responseWindowInput[23] %d\n", responseWindowInput[23]);
-
-              // int windowLowWidth = 74;   // Defined at the begining of 'drawWindow()'.
-              // int windowHighWidth = 1;
-              // int windowLowHeight = 184; // Height of the window.
-              // int windowHighHeight = 1;
-
-              // int windowLowHeightOne = 10;  // Scientific height.
-              // int windowHighHeightOne = 2;
-              // int windowLowWidthOne = 250;  // Scientific button arrangement width.
-              // int windowHighWidthOne = 2;
-
-              // sci button max width = 760
-              //            125 = 100(*4)          ( 100 + 10) ;
-              // intButtonXPlus = intButtonXPlus + buttonXSpace;
-
-              // Buttons 0 through 'buttonElement' space is incremented.
-              // The last button space is from the edge of the window defined in Opcode 1.
-              if (i < buttonElements) {
-                intButtonXPlus = intButtonXPlus + buttonXSpace;
-              }
-              // Uses the remainder to start a new row based on 'buttonColumns'.
-              if ((i % buttonColumns == 0) && (i != 0)) {
-                //printf("\n\n");
-                intButtonXPlus = intButtonX;
-                intButtonY = intButtonY + buttonYSpace;
-              }
-              //printf("i: %d k: %d\n", i, k);
-              //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
-              i++;
+            // if '[12] + width' is > 255, add overflow to '[13]'.
+            // useful if you resize the initial window.
+            // The logic is similar to the 2 byte for one int from above for 'buttonBorderOne[i][12]-[15]'.
+            if ((buttonBorderOne[i][12] + intButtonWidth) > 256) {
+              buttonBorderXDivision = (buttonBorderOne[i][12] + intButtonWidth) / 256;
+              buttonBorderXRemainder = (buttonBorderOne[i][12] + intButtonWidth) % 256;
+              buttonBorderX12 = buttonBorderXRemainder;
+              buttonBorderX13 = buttonBorderOne[i][13] + buttonBorderXDivision;
             }
-            // 6) 67 'borderRectangle' - rectangle outline.
-            // Input and display box.
-            textBorder[12] = intButtonX;      // x
-            textBorder[13] = 0;
-            // y - The 20 buttons row uses 'intButtonY' = 100
-            textBorder[14] = 50;
-            textBorder[15] = 0;
-            //windowLowWidth;      74
-            //windowHighWidth;      1
-            intButtonColumnWidth = intButtonWidth * buttonColumns;
-            // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
-            if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
-              textButtonHighWidth = 0;
-              textButtonLowWidth = intButtonColumnWidth;
+            else {
+              buttonBorderX12 = buttonBorderOne[i][12] + intButtonWidth;
+              buttonBorderX13 = buttonBorderOne[i][13];
+              //printf("buttonBorderX12 %d = buttonBorderOne[%d][12] %d + intButtonWidth %d;\n", buttonBorderX12, i, buttonBorderOne[i][12], intButtonWidth);
             }
-            else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
-              textButtonHighWidth = 1;
-              textButtonLowWidth = intButtonColumnWidth - 255;
+            buttonBorderXXYYOne[k] = buttonBorderX12;
+            buttonBorderXXYYOne[k + 1] = buttonBorderX13;
+            //printf("high\nx buttonBorderXXYYOne[%d]: %d buttonBorderXXYYOne[%d+1]: %d\n", k, buttonBorderXXYYOne[k], k, buttonBorderXXYYOne[k+1]);
+            // Calculates the Y limit border for the '20' buttons using the dimensions plus the first height 'intButtonHeight' or 'buttonBorderOne[1][16]'.
+            if ((buttonBorderOne[i][14] + intButtonHeight) > 256) {
+              buttonBorderYDivision = (buttonBorderOne[i][14] + intButtonHeight) / 256;
+              buttonBorderYRemainder = (buttonBorderOne[i][14] + intButtonHeight) % 256;
+              buttonBorderY14 = buttonBorderYRemainder;
+              buttonBorderY15 = buttonBorderOne[i][15] + buttonBorderYDivision;
             }
-            else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
-              textButtonHighWidth = 2;
-              textButtonLowWidth = intButtonColumnWidth - 510;
+            else {
+              buttonBorderY14 = buttonBorderOne[i][14] + intButtonHeight;
+              buttonBorderY15 = buttonBorderOne[i][15];
             }
-            else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
-              textButtonHighWidth = 3;
-              textButtonLowWidth = intButtonColumnWidth - 765;
+            buttonBorderXXYYOne[k + 2] = buttonBorderY14;
+            buttonBorderXXYYOne[k + 3] = buttonBorderY15;
+            //printf("y buttonBorderXXYYOne[%d+2]: %d buttonBorderXXYYOne[%d+3]: %d\n\n", k, buttonBorderXXYYOne[k+2], k, buttonBorderXXYYOne[k+3]);
+            // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
+            buttonBorderOne[i][0] = 67;
+            buttonBorderOne[i][1] = 0;
+            buttonBorderOne[i][2] = 0b00000101;       // '5' Request length ( n / 4)
+            buttonBorderOne[i][3] = 0;
+            buttonBorderOne[i][4] = windowID.one;
+            buttonBorderOne[i][5] = windowID.two;
+            buttonBorderOne[i][6] = windowID.three;
+            buttonBorderOne[i][7] = windowID.four;
+            buttonBorderOne[i][8] = gcID.one;
+            buttonBorderOne[i][9] = gcID.two;
+            buttonBorderOne[i][10] = gcID.three;
+            buttonBorderOne[i][11] = gcID.four;
+            //              12
+            //              13
+            //              14
+            //              15
+            buttonBorderOne[i][16] = intButtonWidth;
+            buttonBorderOne[i][17] = 0;
+            buttonBorderOne[i][18] = intButtonHeight;
+            buttonBorderOne[i][19] = 0;
+            // Buttons 0 through 'numberButtons' space is incremented.
+            // The last button space is from the edge of the window defined in Opcode 1.
+            if (i < numberButtons) {
+              intButtonXPlus = intButtonXPlus + buttonXSpace;
             }
-            else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
-              textButtonHighWidth = 4;
-              textButtonLowWidth = intButtonColumnWidth - 1020;
-            }
-            else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
-              textButtonHighWidth = 5;
-              textButtonLowWidth = intButtonColumnWidth - 1275;
-            }
-            else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
-              textButtonHighWidth = 6;
-              textButtonLowWidth = intButtonColumnWidth - 1530;
-            }
-            else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
-              textButtonHighWidth = 7;
-              textButtonLowWidth = intButtonColumnWidth - 1785;
-            }
-            else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
-              textButtonHighWidth = 8;
-              textButtonLowWidth = intButtonColumnWidth - 2040;
-            }
-            else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
-              textButtonHighWidth = 9;
-              textButtonLowWidth = intButtonColumnWidth - 2295;
-            }
-            // '30' is the padding between the four button collums.
-            textButtonLowWidth = textButtonLowWidth + 30;
-            // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
-            if (textButtonLowWidth > 255) {
-              textButtonLowWidth = textButtonLowWidth - 255;
-              textButtonHighWidth = textButtonHighWidth + 1;
-            }
-            textBorder[16] = textButtonLowWidth;
-            textBorder[17] = textButtonHighWidth;
-            // Button low height. The padding to the first row of 20 input buttons.
-            //textBorder[18] = 30;
-            //textBorder[19] = 0;
-            textBorderWrite = write(sock, textBorder, sizeof(textBorder));
-            j = 0;
-            i = 1;
-            while (i < numberButtons) {
-              j = 0;
-              while (j < sizeof(subsetButtonBorder)) {
-                subsetButtonBorder[j] = buttonBorder[i][j];
-                //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
-                j++;
-              }
+            //printf("i: %d  buttonBorderOne[i][12] %d, buttonBorderOne[i][13] %d, buttonBorderOne[i][14] %d, buttonBorderOne[i][15] %d\n", i, buttonBorderOne[i][12], buttonBorderOne[i][13], buttonBorderOne[i][14], buttonBorderOne[i][15]);
+            // Uses the remainder to start a new row based on 'buttonColumns'.
+            if ((i % buttonColumns == 0) && (i != 0)) {
               //printf("\n");
-              borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
-              i++;
+              intButtonXPlus = intButtonX;
+              intButtonY = intButtonY + buttonYSpace;
             }
+            //printf("i: %d k: %d\n", i, k);
+            //printf("i %d  intButtonXPlus %d  intButtonY %d\n", i, intButtonXPlus, intButtonY);
+            i++;
           }
+          // 6) 67 'borderRectangle' - rectangle outline.
+          // Input and display box.
+          intButtonColumnWidth = intButtonWidth * buttonColumns;
+          // Convert 'intButtonColumnWidth' to width low and high for the text input box 'textBorder' packet 'write()'.
+          if (intButtonColumnWidth >= 75 && intButtonColumnWidth < 255) {          // 0
+            textButtonHighWidth = 0;
+            textButtonLowWidth = intButtonColumnWidth;
+          }
+          else if (intButtonColumnWidth >= 255 && intButtonColumnWidth < 510) {    // 1
+            textButtonHighWidth = 1;
+            textButtonLowWidth = intButtonColumnWidth - 255;
+          }
+          else if (intButtonColumnWidth >= 510 && intButtonColumnWidth < 765) {    // 2
+            textButtonHighWidth = 2;
+            textButtonLowWidth = intButtonColumnWidth - 510;
+          }
+          else if (intButtonColumnWidth >= 765 && intButtonColumnWidth < 1020) {   // 3
+            textButtonHighWidth = 3;
+            textButtonLowWidth = intButtonColumnWidth - 765;
+          }
+          else if (intButtonColumnWidth >= 1020 && intButtonColumnWidth < 1275) {  // 4
+            textButtonHighWidth = 4;
+            textButtonLowWidth = intButtonColumnWidth - 1020;
+          }
+          else if (intButtonColumnWidth >= 1275 && intButtonColumnWidth < 1530) {  // 5
+            textButtonHighWidth = 5;
+            textButtonLowWidth = intButtonColumnWidth - 1275;
+          }
+          else if (intButtonColumnWidth >= 1530 && intButtonColumnWidth < 1785) {  // 6
+            textButtonHighWidth = 6;
+            textButtonLowWidth = intButtonColumnWidth - 1530;
+          }
+          else if (intButtonColumnWidth >= 1785 && intButtonColumnWidth < 2040) {  // 7
+            textButtonHighWidth = 7;
+            textButtonLowWidth = intButtonColumnWidth - 1785;
+          }
+          else if (intButtonColumnWidth >= 2040 && intButtonColumnWidth < 2295) {  // 8
+            textButtonHighWidth = 8;
+            textButtonLowWidth = intButtonColumnWidth - 2040;
+          }
+          else if (intButtonColumnWidth >= 2295 && intButtonColumnWidth <= 2550){  // 9
+            textButtonHighWidth = 9;
+            textButtonLowWidth = intButtonColumnWidth - 2295;
+          }
+          // '70' is the padding between the eight button colums.
+          textButtonLowWidth = textButtonLowWidth + 70;
+          // Overflow to 'textButtonHighWidth' if the new padded sum exceeds 255.
+          if (textButtonLowWidth > 255) {
+            textButtonLowWidth = textButtonLowWidth - 255;
+            textButtonHighWidth = textButtonHighWidth + 1;
+          }
+          textBorder[16] = textButtonLowWidth;
+          textBorder[17] = textButtonHighWidth;
+          textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+          j = 0;
+          i = 1;
+          while (i < numberButtons) {
+            j = 0;
+            while (j < sizeof(subsetButtonBorder)) {
+              subsetButtonBorder[j] = buttonBorderOne[i][j];
+              //printf("subsetbuttonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
+              j++;
+            }
+            //printf("\n");
+            borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            i++;
+          }
+        }
+        // Switch to 2.) screen
+        else if (screenCheckWidthTwo == 1) {
+          // Clear the window with opcode 61.
+          clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+          printf("Resized buttons to 2.)\n");
         }
       }
       // The 'keyInput' indicates the keyboard has been pressed.
@@ -2442,16 +2780,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           }
         }
       }
-
-
-
-
-
-
-
-
-
-
       // The coordinate borders for the buttons via mouse input.
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
