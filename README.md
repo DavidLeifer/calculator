@@ -36,7 +36,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 ### Todo:
 
-- Text buttons.
+- Text buttons -> resize 0.) 1.).
 
 - Text input window.
 
