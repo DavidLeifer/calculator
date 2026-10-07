@@ -210,8 +210,8 @@ struct fourInt getGCID(char *readSock, struct fourInt windowID) {
   // the setup for ID might be more complciated later on.
   // base - this is used as the windowID but computer said not to.
   //printf("gcID 1-4: %d  %d  %d  %d\n", readSock[0], readSock[1], readSock[2], readSock[3]);
-  //int id_base = 12143104;  // 12,143,104 (readSock 0-4)
-  //int id_mask = 111303168; // 111,303,168 (readSock 4-7)
+  // int id_base = 12143104;  // 12,143,104 (readSock 0-4)
+  // int id_mask = 111303168; // 111,303,168 (readSock 4-7)
 
   //int min_val = id_base | 1;
   //int max_val = id_base | id_mask;
@@ -753,6 +753,154 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   textBorder[18] = 30;
   textBorder[19] = 0;
 
+
+
+
+  // 5.) opcode 45 (openFont) -> 55 -> 76 (imageText8) screen text input
+  // todo
+
+
+
+
+
+
+
+
+  // 5.) Button text opcode 45 (openFont) -> 55 -> 76 (imageText8)
+  // Opcode 45 - button fontid
+  int gcIDTwo = 1;
+  int gcIDThree = 2;
+
+  unsigned char buttonFont[44];
+  buttonFont[0] = 45;
+  buttonFont[1] = 0;
+  buttonFont[2] = 11;
+  buttonFont[3] = 0;
+  // fontID
+  buttonFont[4] = gcID.one + gcIDThree; //three?
+  buttonFont[5] = gcID.two;
+  buttonFont[6] = gcID.three;
+  buttonFont[7] = gcID.four;
+  //buttonFont[8] = windowID.one;
+  //buttonFont[9] = windowID.two;
+  //buttonFont[10] = windowID.three;
+  //buttonFont[11] = windowID.four;
+  buttonFont[8] = 29;
+  buttonFont[9] = 0;
+  buttonFont[10] = 0;
+  buttonFont[11] = 0;
+  // The XLFD String (Bytes 12 through 40)
+  buttonFont[12] = '-';
+  buttonFont[13] = '*';
+  buttonFont[14] = '-';
+  buttonFont[15] = '*';
+
+  buttonFont[16] = '-';
+  buttonFont[17] = '*';
+  buttonFont[18] = '-';
+  buttonFont[19] = '*';
+
+  buttonFont[20] = '-';
+  buttonFont[21] = '*';
+  buttonFont[22] = '-';
+  buttonFont[23] = '*';
+
+  buttonFont[24] = '-';  // -0-480-0-0-
+  buttonFont[25] = '2';
+  buttonFont[26] = '0';
+  buttonFont[27] = '-';
+
+  buttonFont[28] = '*';
+  buttonFont[29] = '-';
+  buttonFont[30] = '*';
+  buttonFont[31] = '-';
+
+  buttonFont[32] = '*';
+  buttonFont[33] = '-';
+  buttonFont[34] = '*';
+  buttonFont[35] = '-';
+
+  buttonFont[36] = '*';
+  buttonFont[37] = '-';
+  buttonFont[38] = '*';
+  buttonFont[39] = '-';
+
+  buttonFont[40] = '*';
+  buttonFont[41] = '-';
+  buttonFont[42] = 0;
+  buttonFont[43] = 0;
+
+  // Opcode 55 - button gcid -> opcode 56 change background or font
+  unsigned char buttonGCID[28];
+  buttonGCID[0] = 55;
+  buttonGCID[1] = 0;
+  buttonGCID[2] = 7;
+  buttonGCID[3] = 0;
+
+  buttonGCID[4] = gcID.one + gcIDTwo;
+  buttonGCID[5] = gcID.two;
+  buttonGCID[6] = gcID.three;
+  buttonGCID[7] = gcID.four;
+
+  buttonGCID[8] = windowID.one;
+  buttonGCID[9] = windowID.two;
+  buttonGCID[10] = windowID.three;
+  buttonGCID[11] = windowID.four;
+
+  // 0x00000004 | 0x00000008 | 0x00004000  = 0x0000400C
+  // 16396 - 16320 = 76
+  //buttonGCID[12] = 12; // Bits enabled: Bit 2 (Foreground), Bit 3 (Background), Bit 14 (Font)
+  //buttonGCID[13] = 0;
+  buttonGCID[12] = 12; // Bit 14 (Font)
+  buttonGCID[13] = 64;
+  buttonGCID[14] = 0;
+  buttonGCID[15] = 0;
+
+  buttonGCID[16] = 0;  // Foreground color: 0
+  buttonGCID[17] = 0;
+  buttonGCID[18] = 0;
+  buttonGCID[19] = 0;
+
+  buttonGCID[20] = 0;    // Background color: 0
+  buttonGCID[21] = 0;
+  buttonGCID[22] = 0;
+  buttonGCID[23] = 0;
+
+  buttonGCID[24] = gcID.one + gcIDThree;  // fondid from Opcode 45.
+  buttonGCID[25] = gcID.two;
+  buttonGCID[26] = gcID.three;
+  buttonGCID[27] = gcID.four;
+
+  // The packet used to specify the button text.
+  unsigned char charButtonText[numberButtons - 1];
+  charButtonText[0] = 'c';
+  charButtonText[1] = 'X';
+  charButtonText[2] = '%';
+  charButtonText[3] = '/';
+
+  charButtonText[4] = '7';
+  charButtonText[5] = '8';
+  charButtonText[6] = '9';
+  charButtonText[7] = '*';
+
+  charButtonText[8] = '4';
+  charButtonText[9] = '5';
+  charButtonText[10] = '6';
+  charButtonText[11] = '-';
+
+  charButtonText[12] = '1';
+  charButtonText[13] = '2';
+  charButtonText[14] = '3';
+  charButtonText[15] = '+';
+
+  charButtonText[16] = ' '; // ()
+  charButtonText[17] = '0';
+  charButtonText[18] = '.';
+  charButtonText[19] = '=';
+
+  // Opcode 76 is specified in the 'buttonBorder' loop to include XY coordiantes, text, and the rest of the packet integers.
+  unsigned char buttonText[numberButtons][buttonElements];
+
   // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
   unsigned char buttonBorderXXYY[80];
   while (i < numberButtons) {
@@ -764,6 +912,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     if (intButtonXPlus < 256) {
       buttonBorder[i][12] = intButtonXPlus;
       buttonBorder[i][13] = 0;
+      // Opcode 76 - text
+      buttonText[i][12] = intButtonXPlus + (intButtonWidth / 2) - 6;
+      buttonText[i][13] = 0;
     }
     else {
       // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
@@ -775,17 +926,26 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
       buttonBorder[i][12] = intButtonXPlusRemainder;
       buttonBorder[i][13] = intButtonXPlusDivision;
+      // Opcode 76 - text
+      buttonText[i][12] = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
+      buttonText[i][13] = intButtonXPlusDivision;
     }
     // The Y or vertical coordinate is calculated identical to the X.
     if (intButtonY < 256) {
       buttonBorder[i][14] = intButtonY;
       buttonBorder[i][15] = 0;
+      // Opcode 76 - text
+      buttonText[i][14] = intButtonY + (intButtonHeight / 2) + 6;
+      buttonText[i][15] = 0;
     }
     else {
       intButtonYRemainder = intButtonY % 256;
       intButtonYDivision = intButtonY / 256;
       buttonBorder[i][14] = intButtonYRemainder;
       buttonBorder[i][15] = intButtonYDivision;
+      // Opcode 76 - text
+      buttonText[i][14] = intButtonYRemainder + (intButtonHeight / 2) + 6;
+      buttonText[i][15] = intButtonYDivision;
     }
     //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
     //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
@@ -846,6 +1006,28 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     buttonBorder[i][17] = 0;
     buttonBorder[i][18] = intButtonHeight;
     buttonBorder[i][19] = 0;
+    // Opcode 76 (imageText8) write text
+    buttonText[i][0] = 74; // 76?
+    buttonText[i][1] = 0;  // 1?
+    buttonText[i][2] = 5;
+    buttonText[i][3] = 0;
+    buttonText[i][4] = windowID.one;
+    buttonText[i][5] = windowID.two;
+    buttonText[i][6] = windowID.three;
+    buttonText[i][7] = windowID.four;
+    buttonText[i][8] = gcID.one + gcIDTwo;
+    buttonText[i][9] = gcID.two;
+    buttonText[i][10] = gcID.three;
+    buttonText[i][11] = gcID.four;
+    //            12
+    //            13
+    //            14
+    //            15
+    buttonText[i][16] = 1;                    // length of the string
+    buttonText[i][17] = 0;                    // horizontal shift between characters
+    buttonText[i][18] = charButtonText[i-1];  // The text strings (STRING8).
+    buttonText[i][19] = 0;
+
     // Buttons 0 through 'buttonElement' space is incremented.
     // The last button space is from the edge of the window defined in Opcode 1.
     if (i < buttonElements) {
@@ -900,6 +1082,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // 4) 55 'createGC' - change the rectangle color.
   int createGCWrite = write(sock, createGC, sizeof(createGC));
 
+  // 4) 45 'buttonFont' -> 55 'buttonGCID' font size or color.
+  int buttonFontWrite = write(sock, buttonFont, sizeof(buttonFont));
+  int buttonGCIDWrite = write(sock, buttonGCID, sizeof(buttonGCID));
+
   // The success packet "'geometryRead[0]': '1'" is sent back after the 'geometryWrite' instead
   // of the 'mapWindowBuffer'. 20260824.
   //int intGeometryRead = read(sock, geometryRead, sizeof(geometryRead));
@@ -936,11 +1122,24 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   //printf("mapRead[0] %d\n", mapRead[0]);
   //numberButtons = 21
   //buttonBorder[i][j]
-  int borderRectangleWrite;
   int textBorderWrite;
+  int borderRectangleWrite;
+  int buttonTextWrite;
   int j = 0;
+  // Opcode 67 button border and 76 button text.
   unsigned char subsetButtonBorder[buttonElements];
+  unsigned char subsetButtonText[buttonElements];
   i = 1;
+
+
+
+  /*
+   todo
+   Option B (Recommended, faster): Allocate a single large unsigned char buffer, append all the opcodes back-to-back
+   (ensuring each individual opcode is padded to a multiple of 4 bytes), and send them all out using one single write()
+   call. The X11 server will parse them sequentially out of the TCP/Unix stream automatically.
+  */
+
   // Initial 20 button packet arrangement 'write()' when "mapRead[0] == 12'.
   if (mapRead[0] == 12) {
     // Input and display box.
@@ -951,11 +1150,13 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       j = 0;
       while (j < sizeof(subsetButtonBorder)) {
         subsetButtonBorder[j] = buttonBorder[i][j];
+        subsetButtonText[j] = buttonText[i][j];
         //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
         j++;
       }
       //printf("\n");
       borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+      buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
       i++;
     }
     // todo 5) 70 'write()' the 'polyFillRectangle' to draw a button without a border.
@@ -1083,10 +1284,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       //printf("windowCheck: %d\n", windowCheck);
       if (eventCode == 0) {
         // Prints the error packet.
-        printf("Error: read sock\n");
+        printf("Error: read sock: %d\n");
         error = 0;
         while (error < 32) {
-          printf("responseWindowInput[%d]: %d\n", error, responseWindowInput[error]);
+          //printf("responseWindowInput[%d]: %d\n", error, responseWindowInput[error]);
           error++;
         }
       }
