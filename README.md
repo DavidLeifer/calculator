@@ -5,9 +5,14 @@ Calculator written using C and without bitwise operators and integer arrays.
 Tested on:
 
 RaspberryPi 4b aarch64
+
 Debian GNU/Linux 12 (bookworm)
+
 X.Org X Server 1.21.1.7
+
 X Protocol Version 11, Revision 0
+
+  - X11 is not used in most linux distributions by default and might be discontinued.
 
 Operating system workflow:
 
@@ -31,8 +36,6 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 ### Todo:
 
-- Resized buttons.
-
 - Text buttons.
 
 - Text input window.
@@ -40,6 +43,8 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 - Binary division.
 
 - Replace button polygons with polylines.
+
+- Disable window manager and get the device's screen dimensions.
 
 ### Index
 
@@ -86,7 +91,8 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
     ```
 
     Enter two numbers less than 200
-    with arithmatic operators\n +  ,  -  ,  *  ,  /  ,  **
+    with arithmatic operators
+    +  ,  -  ,  *  ,  /  ,  **
 
     Example: 1 + 1 (press enter):
 
@@ -143,7 +149,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
             ```
 
-      - The main challenge is a continuous 'while' loop that waits for feedback from the window.
+      - The main challenge is a continuous 'while' loop that waits for feedback from the server.
 
         - There are three long code duplicates for button drawing that would be more readable with functions. However, functions were avoided to save heap memory:
 
@@ -153,19 +159,23 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
           - 'eventCode==22' (window is resizing).
 
-  - Three screen sizes that mimic iPhone, iPad, desktop device orientation.
+  - Three screen sizes that mimic smartphone, tablet, desktop device orientation.
 
-  - Since the desktop view is undecided, the obvious answer is to make a map for the desktop view '2.)'.
+  - Since the desktop view (dubbed 2.)) is undecided, the obvious answer is to make a map.
 
     - Requires polylines to draw the features.
 
-    - Would have to download CSV coordinates.
+    - Would have to download CSV coordinates for basic features.
 
       - GeoJSON file parser.
 
-      - Reverse engineer the JPG and shapefiles.
+      - Reverse engineer the JPG and shapefiles for the basemap.
 
-      - X11 is not used in most linux by default and might be discontinued and 'Google Maps v 8billion' should probably a different project.
+      - X11 is not used in most linux by default anymore and might be discontinued.
+
+      - 'Google Maps v 8billion' should probably a different project.
+
+  - The schematics are pulled from the './src/window.c' file:
 
     ```
       // To resize with the window size, use the dimensions of the window to change the button dimension
@@ -190,7 +200,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //  {                              }     -------------     [                                      ]
       //  {                              }                       [ ln   log  1/x  e    4    5    6    - ]
       //  {                              }                       [                                      ]
-      //  {                         2.)  }                       [ e^2  x^2  x^x  +/-  1    2    3    + ]
+      //  {                    todo 2.)  }                       [ e^2  x^2  x^x  +/-  1    2    3    + ]
       //   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                        [                                      ]
       //                                                         [ o    o    o    o    ()   0    .    = ]
       //                                                         [ ____________________________________ ]
