@@ -56,14 +56,6 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 
 
-
-
-  - multiple characters in same button 0.) -> 1.)
-
-    - 0.) character spacing when the screen resizes
-
-    - 1.) the new array and less repeated 'write()'s
-
   - history window (temporarily extend text input window)
 
   - change color when pressed (or hovered over?)
@@ -232,9 +224,9 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //  | 0.) |        ]               }    |             |    [ s s s s s s s s s s s s s s s s s s  ]
       //   -----         ]               }    |() <x  %  /  |    [ s s s s s s s s s s s s s s s s s s  ]
       //  [              ]               }    | 7  8  9  *  |    [                                      ]
-      //  [              ]               }    | 4  5  6  -  |    [ <>  rad  sqrt  |x|  ()  <x    %    / ]
+      //  [              ]               }    | 4  5  6  -  |    [ <>  rad  sqrt  |x|  ()  del   %    / ]
       //  [      1.)     ]               }    | 1  2  3  +  |    [                                      ]
-      //  [ ____________ ]               }    | c  0 . =    |    [ sin  cos  tan  pi   7    8    9    * ]
+      //  [ ____________ ]               }    | c  0  .  =  |    [ sin  cos  tan  pi   7    8    9    * ]
       //  {                              }     -------------     [                                      ]
       //  {                              }                       [ ln   log  1/x  e    4    5    6    - ]
       //  {                              }                       [                                      ]
@@ -244,6 +236,69 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //                                                         [ ____________________________________ ]
       //
     ```
+
+
+
+                                                                    unsigned char charButtonTextOne[41 - 1];
+                                                                    charButtonTextOne[0] = ' '; // <>
+                                                                    charButtonTextOne[1] = ' '; // rad
+                                                                    charButtonTextOne[2] = ' '; // sqrt
+                                                                    charButtonTextOne[3] = ' '; // |x|
+                                                                    charButtonTextOne[4] = ' '; // ()
+                                                                    charButtonTextOne[5] = ' '; // del
+                                                                    charButtonTextOne[6] = '%';
+                                                                    charButtonTextOne[7] = '/';
+
+                                                                    charButtonTextOne[8] = ' ';  // sin
+                                                                    charButtonTextOne[9] = ' ';  // cos
+                                                                    charButtonTextOne[10] = ' '; // tan
+                                                                    charButtonTextOne[11] = ' '; // pi
+                                                                    charButtonTextOne[12] = '7';
+                                                                    charButtonTextOne[13] = '8';
+                                                                    charButtonTextOne[14] = '9';
+                                                                    charButtonTextOne[15] = '*';
+
+                                                                    charButtonTextOne[16] = ' '; // ln
+                                                                    charButtonTextOne[17] = ' '; // log
+                                                                    charButtonTextOne[18] = ' '; // 1/x
+                                                                    charButtonTextOne[19] = 'e';
+                                                                    charButtonTextOne[20] = '4';
+                                                                    charButtonTextOne[21] = '5';
+                                                                    charButtonTextOne[22] = '6';
+                                                                    charButtonTextOne[23] = '-';
+
+                                                                    charButtonTextOne[24] = ' '; // e^2
+                                                                    charButtonTextOne[25] = ' '; // x^2
+                                                                    charButtonTextOne[26] = ' '; // x^x
+                                                                    charButtonTextOne[27] = ' '; // +/-
+                                                                    charButtonTextOne[28] = '1';
+                                                                    charButtonTextOne[29] = '2';
+                                                                    charButtonTextOne[30] = '3';
+                                                                    charButtonTextOne[31] = '+';
+
+                                                                    charButtonTextOne[32] = 'o'; // tbd might be nothing
+                                                                    charButtonTextOne[33] = 'o';
+                                                                    charButtonTextOne[34] = 'o';
+                                                                    charButtonTextOne[35] = 'o';
+                                                                    charButtonTextOne[36] = 'c';
+                                                                    charButtonTextOne[37] = '0';
+                                                                    charButtonTextOne[38] = '.';
+                                                                    charButtonTextOne[39] = '=';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   - Button input explanation.
 

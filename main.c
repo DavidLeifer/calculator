@@ -39,6 +39,7 @@ Notes
 todo
   - division
   - "window.c" GUI.
+  - operators > < = etc
 
 minor todo
   - fix inputArithmatic variable names with new struct int pointers and malloc.
@@ -80,7 +81,7 @@ minor todo
 */
 // 'version' and 'maxBinaryLength' declared in "binaryChar.h"
 // 'version' and 'features' declared in the file "interface.h"
-const char version[24] = "Calculator\nVersion 0.06\0";
+const char version[24] = "Calculator\nVersion 0.07\0";
 const char features[44] = "Features: addition, input logging, testing.\0";
 
 // 'maxBinaryLength' is used in "binaryChar.c" 'binaryAddition()'
