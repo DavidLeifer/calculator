@@ -38,7 +38,31 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 - Text buttons
 
+  - check these loops:
+
+  // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
+  unsigned char buttonBorderXXYY[80];
+  while (i < numberButtons) {
+
+    - for these blocks:
+
+ if ((buttonBorder[i][12] + intButtonWidth) > 256) {
+   buttonBorderXDivision = (buttonBorder[i][12] + intButtonWidth) / 256;
+   buttonBorderXRemainder = (buttonBorder[i][12] + intButtonWidth) % 256;
+   buttonBorderX12 = buttonBorderXRemainder;
+   buttonBorderX13 = buttonBorder[i][13] + buttonBorderXDivision;
+
+    - the conditional should probably be greater than 255?
+
+
+
+
+
   - multiple characters in same button 0.) -> 1.)
+
+    - 0.) character spacing when the screen resizes
+
+    - 1.) the new array and less repeated 'write()'s
 
   - history window (temporarily extend text input window)
 
@@ -206,9 +230,9 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //  |     |        ]               }    | s s s s s s |    [                                      ]
       //  |     |        ]               }    | s s s s s s |    [ s s s s s s s s s s s s s s s s s s  ]
       //  | 0.) |        ]               }    |             |    [ s s s s s s s s s s s s s s s s s s  ]
-      //   -----         ]               }    |()  x  %  /  |    [ s s s s s s s s s s s s s s s s s s  ]
+      //   -----         ]               }    |() <x  %  /  |    [ s s s s s s s s s s s s s s s s s s  ]
       //  [              ]               }    | 7  8  9  *  |    [                                      ]
-      //  [              ]               }    | 4  5  6  -  |    [ <>  rad  sqrt  |x|  ()   X    %    / ]
+      //  [              ]               }    | 4  5  6  -  |    [ <>  rad  sqrt  |x|  ()  <x    %    / ]
       //  [      1.)     ]               }    | 1  2  3  +  |    [                                      ]
       //  [ ____________ ]               }    | c  0 . =    |    [ sin  cos  tan  pi   7    8    9    * ]
       //  {                              }     -------------     [                                      ]
