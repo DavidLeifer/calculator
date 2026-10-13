@@ -873,8 +873,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
 
   // The packet used to specify the button text.
   unsigned char charButtonText[numberButtons - 1];
-  charButtonText[0] = 'c';
-  charButtonText[1] = 'X';
+  charButtonText[0] = ' '; // ()
+  charButtonText[1] = ' '; // <x 'back'
   charButtonText[2] = '%';
   charButtonText[3] = '/';
 
@@ -893,13 +893,60 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   charButtonText[14] = '3';
   charButtonText[15] = '+';
 
-  charButtonText[16] = ' '; // ()
+  charButtonText[16] = 'c';
   charButtonText[17] = '0';
   charButtonText[18] = '.';
   charButtonText[19] = '=';
 
+  unsigned char charButtonTextOne[41 - 1];
+  charButtonTextOne[0] = ' '; // <>
+  charButtonTextOne[1] = ' '; // rad
+  charButtonTextOne[2] = ' '; // sqrt
+  charButtonTextOne[3] = ' '; // <>
+  charButtonTextOne[4] = ' '; // ()
+  charButtonTextOne[5] = ' '; // 'back'
+  charButtonTextOne[6] = '%';
+  charButtonTextOne[7] = '/';
+
+  charButtonTextOne[8] = ' ';  // sin
+  charButtonTextOne[9] = ' ';  // cos
+  charButtonTextOne[10] = ' '; // tan
+  charButtonTextOne[11] = ' '; // pi
+  charButtonTextOne[12] = '7';
+  charButtonTextOne[13] = '8';
+  charButtonTextOne[14] = '9';
+  charButtonTextOne[15] = '*';
+
+  charButtonTextOne[16] = ' '; // ln
+  charButtonTextOne[17] = ' '; // log
+  charButtonTextOne[18] = ' '; // 1/x
+  charButtonTextOne[19] = 'e';
+  charButtonTextOne[20] = '4';
+  charButtonTextOne[21] = '5';
+  charButtonTextOne[22] = '6';
+  charButtonTextOne[23] = '-';
+
+  charButtonTextOne[24] = ' '; // e^2
+  charButtonTextOne[25] = ' '; // x^2
+  charButtonTextOne[26] = ' '; // x^x
+  charButtonTextOne[27] = ' '; // +/-
+  charButtonTextOne[28] = '1';
+  charButtonTextOne[29] = '2';
+  charButtonTextOne[30] = '3';
+  charButtonTextOne[31] = '+';
+
+  charButtonTextOne[32] = 'o'; // tbd might be nothing
+  charButtonTextOne[33] = 'o';
+  charButtonTextOne[34] = 'o';
+  charButtonTextOne[35] = 'o';
+  charButtonTextOne[36] = 'c';
+  charButtonTextOne[37] = '0';
+  charButtonTextOne[38] = '.';
+  charButtonTextOne[39] = '=';
+
   // Opcode 76 is specified in the 'buttonBorder' loop to include XY coordiantes, text, and the rest of the packet integers.
   unsigned char buttonText[numberButtons][buttonElements];
+  unsigned char buttonTextOne[41][buttonElements];
 
   // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
   unsigned char buttonBorderXXYY[80];
@@ -1229,7 +1276,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int clearAreaWrite;
   unsigned char clearArea[16];
   clearArea[0] = 61;
-  clearArea[1] = 1;
+  clearArea[1] = 0;
   clearArea[2] = 4;
   clearArea[3] = 0;
   clearArea[4] = windowID.one;
@@ -1265,6 +1312,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int rowHeightLowHigh;
   int columnWidthLowHigh;
   int columnReduce = 30;
+
+  int buttonText1213;
+  int buttonText1415;
 
   if (geometryRead[0] == 1) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
@@ -1323,23 +1373,26 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         }
         // XY
         /*
+        // 22
         clearArea[8] = responseWindowInput[8];
         clearArea[9] = responseWindowInput[9];
         clearArea[10] = responseWindowInput[10];
         clearArea[11] = responseWindowInput[11];
+
         clearArea[12] = responseWindowInput[12];
         clearArea[13] = responseWindowInput[13];
         clearArea[14] = responseWindowInput[14];
         clearArea[15] = responseWindowInput[15];
         */
-        clearArea[8] = geometryRead[16];
-        clearArea[9] = geometryRead[17];
-        clearArea[10] = geometryRead[18];
-        clearArea[11] = geometryRead[19];
-        clearArea[12] = geometryRead[20];
-        clearArea[13] = geometryRead[21];
-        clearArea[14] = geometryRead[22];
-        clearArea[15] = geometryRead[23];
+        // 12
+        clearArea[8] = geometryRead[12];
+        clearArea[9] = geometryRead[13];
+        clearArea[10] = geometryRead[14];
+        clearArea[11] = geometryRead[15];
+        clearArea[12] = geometryRead[16];
+        clearArea[13] = geometryRead[17];
+        clearArea[14] = geometryRead[18];
+        clearArea[15] = geometryRead[19];
         // Clear the window with opcode 61.
         clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
         // screenCheckTwo = 0; // <- todo
@@ -1569,6 +1622,17 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             if (intButtonXPlus < 256) {
               buttonBorder[i][12] = intButtonXPlus;
               buttonBorder[i][13] = 0;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonText[i][12] = buttonText1213 - 255;
+                buttonText[i][13] = 1;
+              }
+              else {
+                buttonText[i][12] = buttonText1213;
+                buttonText[i][13] = 0;
+              }
             }
             else {
               // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
@@ -1580,17 +1644,48 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
               buttonBorder[i][12] = intButtonXPlusRemainder;
               buttonBorder[i][13] = intButtonXPlusDivision;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonText[i][12] = buttonText1213 - 255;
+                buttonText[i][13] = intButtonXPlusDivision + 1;
+              }
+              else {
+                buttonText[i][12] = buttonText1213;
+                buttonText[i][13] = intButtonXPlusDivision;
+              }
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
               buttonBorder[i][14] = intButtonY;
               buttonBorder[i][15] = 0;
+              // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonText[i][14] = buttonText1415 - 255;
+                buttonText[i][15] = 1;
+              }
+              else {
+                buttonText[i][14] = buttonText1415;
+                buttonText[i][15] = 0;
+              }
             }
             else {
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
               buttonBorder[i][14] = intButtonYRemainder;
               buttonBorder[i][15] = intButtonYDivision;
+              // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonText[i][14] = buttonText1415 - 255;
+                buttonText[i][15] = intButtonYDivision + 1;
+              }
+              else {
+                buttonText[i][14] = buttonText1415;
+                buttonText[i][15] = intButtonYDivision;
+              }
             }
             //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
             //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
@@ -1726,14 +1821,16 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
               subsetButtonBorder[j] = buttonBorder[i][j];
+              subsetButtonText[j] = buttonText[i][j];
               //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
+              //printf("subsetButtonText[%d][%d]:  %d\n", i, j, subsetButtonText[j]);
               j++;
             }
             //printf("\n");
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
-
         }
         // Resize the buttons to 1.)
         else if (screenCheckWidthOne == 1) {
@@ -1915,6 +2012,17 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             if (intButtonXPlus < 256) {
               buttonBorderOne[i][12] = intButtonXPlus;
               buttonBorderOne[i][13] = 0;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonTextOne[i][12] = buttonText1213 - 255;
+                buttonTextOne[i][13] = 1;
+              }
+              else {
+                buttonTextOne[i][12] = buttonText1213;
+                buttonTextOne[i][13] = 0;
+              }
             }
             else {
               // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
@@ -1926,17 +2034,50 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
               buttonBorderOne[i][12] = intButtonXPlusRemainder;
               buttonBorderOne[i][13] = intButtonXPlusDivision;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonTextOne[i][12] = buttonText1213 - 255;
+                buttonTextOne[i][13] = intButtonXPlusDivision + 1;
+              }
+              else {
+                buttonTextOne[i][12] = buttonText1213;
+                buttonTextOne[i][13] = intButtonXPlusDivision;
+              }
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
               buttonBorderOne[i][14] = intButtonY;
               buttonBorderOne[i][15] = 0;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonTextOne[i][14] = buttonText1415 - 255;
+                buttonTextOne[i][15] = 1;
+              }
+              else {
+                buttonTextOne[i][14] = buttonText1415;
+                buttonTextOne[i][15] = 0;
+              }
             }
             else {
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
               buttonBorderOne[i][14] = intButtonYRemainder;
               buttonBorderOne[i][15] = intButtonYDivision;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonTextOne[i][14] = buttonText1415 - 255;
+                buttonTextOne[i][15] = intButtonYDivision + 1;
+              }
+              else {
+                buttonTextOne[i][14] = buttonText1415;
+                buttonTextOne[i][15] = intButtonYDivision;
+              }
             }
             //printf("low\nx buttonBorderOne[%d][12]: %d buttonBorderOne[%d][13]: %d\n", i, buttonBorderOne[i][12], i, buttonBorderOne[i][13]);
             //printf("y buttonBorderOne[%d][14]: %d buttonBorderOne[%d][15]: %d\n\n", i, buttonBorderOne[i][14], i, buttonBorderOne[i][15]);
@@ -1998,6 +2139,27 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonBorderOne[i][17] = 0;
             buttonBorderOne[i][18] = intButtonHeight;
             buttonBorderOne[i][19] = 0;
+            // Opcode 76 (imageText8) write text
+            buttonTextOne[i][0] = 74; // 76?
+            buttonTextOne[i][1] = 0;  // 1?
+            buttonTextOne[i][2] = 5;
+            buttonTextOne[i][3] = 0;
+            buttonTextOne[i][4] = windowID.one;
+            buttonTextOne[i][5] = windowID.two;
+            buttonTextOne[i][6] = windowID.three;
+            buttonTextOne[i][7] = windowID.four;
+            buttonTextOne[i][8] = gcID.one + gcIDTwo;
+            buttonTextOne[i][9] = gcID.two;
+            buttonTextOne[i][10] = gcID.three;
+            buttonTextOne[i][11] = gcID.four;
+            //            12
+            //            13
+            //            14
+            //            15
+            buttonTextOne[i][16] = 1;                    // length of the string
+            buttonTextOne[i][17] = 0;                    // horizontal shift between characters
+            buttonTextOne[i][18] = charButtonTextOne[i-1];  // The text strings (STRING8).
+            buttonTextOne[i][19] = 0;
             // Buttons 0 through 'numberButtons' space is incremented.
             // The last button space is from the edge of the window defined in Opcode 1.
             if (i < numberButtons) {
@@ -2075,14 +2237,34 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
               subsetButtonBorder[j] = buttonBorderOne[i][j];
+              subsetButtonText[j] = buttonTextOne[i][j];
               //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
               j++;
             }
             //printf("\n");
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
         }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         // Switch to 2.) screen
         else if (screenCheckWidthTwo == 1) {
           // Clear the window with opcode 61.
@@ -2339,6 +2521,17 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             if (intButtonXPlus < 256) {
               buttonBorder[i][12] = intButtonXPlus;
               buttonBorder[i][13] = 0;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonText[i][12] = buttonText1213 - 255;
+                buttonText[i][13] = 1;
+              }
+              else {
+                buttonText[i][12] = buttonText1213;
+                buttonText[i][13] = 0;
+              }
             }
             else {
               // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
@@ -2350,17 +2543,48 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
               buttonBorder[i][12] = intButtonXPlusRemainder;
               buttonBorder[i][13] = intButtonXPlusDivision;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonText[i][12] = buttonText1213 - 255;
+                buttonText[i][13] = intButtonXPlusDivision + 1;
+              }
+              else {
+                buttonText[i][12] = buttonText1213;
+                buttonText[i][13] = intButtonXPlusDivision;
+              }
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
               buttonBorder[i][14] = intButtonY;
               buttonBorder[i][15] = 0;
+              // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonText[i][14] = buttonText1415 - 255;
+                buttonText[i][15] = 1;
+              }
+              else {
+                buttonText[i][14] = buttonText1415;
+                buttonText[i][15] = 0;
+              }
             }
             else {
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
               buttonBorder[i][14] = intButtonYRemainder;
               buttonBorder[i][15] = intButtonYDivision;
+              // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonText[i][14] = buttonText1415 - 255;
+                buttonText[i][15] = intButtonYDivision + 1;
+              }
+              else {
+                buttonText[i][14] = buttonText1415;
+                buttonText[i][15] = intButtonYDivision;
+              }
             }
             //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
             //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
@@ -2511,11 +2735,13 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
               subsetButtonBorder[j] = buttonBorder[i][j];
+              subsetButtonText[j] = buttonText[i][j];
               //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
               j++;
             }
             //printf("\n");
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
         }
@@ -2695,12 +2921,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             //printf("k: %d\n", k);
             // 'k' is used to increment elements for 'buttonBorderXXYYOne[0] - [79]'.
             k = (i - 1) * 4;
+
+
+
+
+
+
+
             // Accounts for overflow since unsigned char range is 0-255.
             // Each int coordinate is represented with two sequential bytes in the char[].
             // The X or horizontal coordinate.
             if (intButtonXPlus < 256) {
               buttonBorderOne[i][12] = intButtonXPlus;
               buttonBorderOne[i][13] = 0;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonTextOne[i][12] = buttonText1213 - 255;
+                buttonTextOne[i][13] = 1;
+              }
+              else {
+                buttonTextOne[i][12] = buttonText1213;
+                buttonTextOne[i][13] = 0;
+              }
             }
             else {
               // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
@@ -2712,18 +2956,58 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
               buttonBorderOne[i][12] = intButtonXPlusRemainder;
               buttonBorderOne[i][13] = intButtonXPlusDivision;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonWidth'.
+              buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
+              if (buttonText1213 > 255) {
+                buttonTextOne[i][12] = buttonText1213 - 255;
+                buttonTextOne[i][13] = intButtonXPlusDivision + 1;
+              }
+              else {
+                buttonTextOne[i][12] = buttonText1213;
+                buttonTextOne[i][13] = intButtonXPlusDivision;
+              }
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
               buttonBorderOne[i][14] = intButtonY;
               buttonBorderOne[i][15] = 0;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonTextOne[i][14] = buttonText1415 - 255;
+                buttonTextOne[i][15] = 1;
+              }
+              else {
+                buttonTextOne[i][14] = buttonText1415;
+                buttonTextOne[i][15] = 0;
+              }
             }
             else {
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
               buttonBorderOne[i][14] = intButtonYRemainder;
               buttonBorderOne[i][15] = intButtonYDivision;
+              // Opcode 76 - button text - division is a power of two and avoids a nested loop.
+              // Overflow since it's adding half the length of the 'intButtonHeight'.
+              buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
+              if (buttonText1415 > 255) {
+                buttonTextOne[i][14] = buttonText1415 - 255;
+                buttonTextOne[i][15] = intButtonYDivision + 1;
+              }
+              else {
+                buttonTextOne[i][14] = buttonText1415;
+                buttonTextOne[i][15] = intButtonYDivision;
+              }
             }
+
+
+
+
+
+
+
             //printf("low\nx buttonBorderOne[%d][12]: %d buttonBorderOne[%d][13]: %d\n", i, buttonBorderOne[i][12], i, buttonBorderOne[i][13]);
             //printf("y buttonBorderOne[%d][14]: %d buttonBorderOne[%d][15]: %d\n\n", i, buttonBorderOne[i][14], i, buttonBorderOne[i][15]);
             //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2784,6 +3068,27 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonBorderOne[i][17] = 0;
             buttonBorderOne[i][18] = intButtonHeight;
             buttonBorderOne[i][19] = 0;
+            // Opcode 76 (imageText8) write text
+            buttonTextOne[i][0] = 74;
+            buttonTextOne[i][1] = 0;
+            buttonTextOne[i][2] = 5;
+            buttonTextOne[i][3] = 0;
+            buttonTextOne[i][4] = windowID.one;
+            buttonTextOne[i][5] = windowID.two;
+            buttonTextOne[i][6] = windowID.three;
+            buttonTextOne[i][7] = windowID.four;
+            buttonTextOne[i][8] = gcID.one + gcIDTwo;
+            buttonTextOne[i][9] = gcID.two;
+            buttonTextOne[i][10] = gcID.three;
+            buttonTextOne[i][11] = gcID.four;
+            //            12
+            //            13
+            //            14
+            //            15
+            buttonTextOne[i][16] = 1;                    // length of the string
+            buttonTextOne[i][17] = 0;                    // horizontal shift between characters
+            buttonTextOne[i][18] = charButtonTextOne[i-1];  // The text strings (STRING8).
+            buttonTextOne[i][19] = 0;
             // Buttons 0 through 'numberButtons' space is incremented.
             // The last button space is from the edge of the window defined in Opcode 1.
             if (i < numberButtons) {
@@ -2860,14 +3165,19 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
               subsetButtonBorder[j] = buttonBorderOne[i][j];
+              subsetButtonText[j] = buttonTextOne[i][j];
               //printf("subsetbuttonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
               j++;
             }
             //printf("\n");
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
         }
+
+
+
         // Switch to 2.) screen
         else if (screenCheckWidthTwo == 1) {
           // Clear the window with opcode 61.
