@@ -1228,140 +1228,68 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     i++;
   }
 
-
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  // Multiple character per button (only does x-coordinate).
+  // Multiple character per button (only does x-coordinate since only first two buttons).
   int charMultiButtonTextWrite;
-  int buttonText12XCount = -5;
-  int buttonText12XComparision = 0;
-  int buttonText12XIncrementor = 5;
-  i = 0;
-  j = 1;
-  while (i < sizeof(charMultiButtonText)) {
-    //printf("i:%d\n", i);
-    // x coordinate button 1
-    // charMultiButtonText[1][0]: -10  '('
-    // charMultiButtonText[1][1]:   0  ' '
-    // charMultiButtonText[1][2]:  10  ')'
-    // x coordinate button 2
-    // charMultiButtonText[2][3]: -10  'd'
-    // charMultiButtonText[2][4]:   0  ' '
-    // charMultiButtonText[2][5]:   0  'e'
-    // charMultiButtonText[2][6]:   0  ' '
-    // charMultiButtonText[2][7]:  10  'l'
-    buttonText12XComparision = buttonText[j][12] + buttonText12XCount;
-    if ( buttonText12XComparision >= 245 && buttonText12XComparision <= 255 ) {
-      subsetButtonText[12] = 0;
-      subsetButtonText[13] = 1;
-    }
-    else {
-      subsetButtonText[12] = buttonText12XComparision;
-      subsetButtonText[13] = buttonText[j][13];
-    }
-    // Y coordinate
-    subsetButtonText[14] = buttonText[j][14];
-    subsetButtonText[15] = buttonText[j][15];
-    subsetButtonText[18] = charMultiButtonText[i];  // The text strings (STRING8)
-    charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-    // Incrementing the x coordinate and 'i'.
-    i++;
-    buttonText12XCount = buttonText12XCount + buttonText12XIncrementor;
-    // Change to button '2'
-    if (i == 3) {
-      buttonText12XCount = -10;
-      buttonText12XIncrementor = 5;
+  // 'buttonText12XCountStart' is not incremented.
+  signed char buttonText12XCountStart[2];
+  buttonText12XCountStart[0] = -5;
+  buttonText12XCountStart[1] = -10;
+
+  int buttonText12XStartCoordinate = 0;
+  // The space between characters.
+  int buttonText12XIncrementor = 10; // 5
+  // 'i' is the button 'buttonText[j][i]' and increments in the first iteration.
+  i = 1;
+  // Increments characters in 'charMultiButtonText'.
+  j = 0;
+  int charMultiButtonTextCheck = 0;
+  while (i < 3) {
+    // The first character's x coordinate based on the middle of the button 'buttonText[i][12]'.
+    //                                    middle     +         i.e. -5
+    //printf("  buttonText12XCountStart[i-1]  %d\n", buttonText12XCountStart[i-1]);
+    buttonText12XStartCoordinate = buttonText[i][12] + buttonText12XCountStart[i-1];
+    //printf("buttonText12XStartCoordinate: %d\n", buttonText12XStartCoordinate);
+    while (j < sizeof(charMultiButtonText)) {
+      // Button characters > 1 from 'charMultiButtonText[j]' use the ' ' (ascii 32) space character as a
+      // seperator and the next button's first character is reset 'buttonText12XStartCoordinate'.
+      if (charMultiButtonText[j] == ' ') {
+        // Skips the ' ' space word delimiter.
+        j++;
+        break;
+      }
+      // X coordinate
+      subsetButtonText[12] = buttonText12XStartCoordinate;
+      subsetButtonText[13] = buttonText[i][13];
+      // The first overflow.
+      if (buttonText12XStartCoordinate > 255) {
+        subsetButtonText[12] = buttonText12XStartCoordinate - 255;
+        subsetButtonText[13] = 1;
+      }
+      // 'subsetButtonText[12]' remains i.e. '245-255' with 'subsetButtonText[13]' as '1' when
+      // 'buttonText12XStartCoordinate' is being subtracted through adding a negative 'buttonText12XCountStart'.
+                                      // why is it '10'? no idea
+      else if ((subsetButtonText[12] >= (255-10)) && (subsetButtonText[13] == 1) ) {
+        subsetButtonText[12] = buttonText12XStartCoordinate;
+        subsetButtonText[13] = 0;
+      }
+      //printf("subsetButtonText[12]: %d  subsetButtonText[13]: %d\n", subsetButtonText[12], subsetButtonText[13]);
+      //printf("charMultiButtonText[%d][%d]:  %c\n", i, j, charMultiButtonText[j]);
+      // Y coordinate
+      subsetButtonText[14] = buttonText[i][14];
+      subsetButtonText[15] = buttonText[i][15];
+      // Incrementing character in 'charMultiButtonText' and 'write()' to the window.
+      subsetButtonText[18] = charMultiButtonText[j];
+      charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+      // Incrementing the low X coordinate with 'buttonText12XIncrementor'.
+      //                                     previous  middle     +     5
+      buttonText12XStartCoordinate = buttonText12XStartCoordinate + buttonText12XIncrementor; // 5
       j++;
     }
+    //printf("  new button\n");
+    i++;
   }
-
-
-
-  /*
-1st button
-charMultiButtonText
-0-2
-
-int charMultiButtonTextWrite;
-int buttonText12XCount = -10;
-int buttonText12XComparision = 0;
-int buttonText12XIncrementor = 10;
-
-i = 0;
-j = 1;
-while (i < sizeof(charMultiButtonText)) {
-  // x coordinate button 1
-  // charMultiButtonText[1][0]: -10  '('
-  // charMultiButtonText[1][1]:   0  ' '
-  // charMultiButtonText[1][2]:  10  ')'
-  // x coordinate button 2
-  // charMultiButtonText[2][3]: -10  'd'
-  // charMultiButtonText[2][4]:   0  'e'
-  // charMultiButtonText[2][5]:  10  'l'
-  buttonText12XComparision = buttonText[1][12] + buttonText12XCount;
-
-  if ( buttonText12XComparision => 245 && buttonText12XComparision <= 255) ) {
-    subsetButtonText[12] = 0;
-    subsetButtonText[13] = 1;
-  }
-  else {
-    subsetButtonText[12] = buttonText12XComparision;
-    subsetButtonText[13] = buttonText[j][13];
-  }
-  // Y coordinate
-  subsetButtonText[14] = buttonText[j][14];
-  subsetButtonText[15] = buttonText[j][15];
-  subsetButtonText[18] = charMultiButtonText[i];  // The text strings (STRING8)
-  charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-
-  i++;
-  buttonText12XCount = buttonText12XCount + buttonText12XIncrementor;
-  // Change to button '2'
-  if (i == 3) {
-    j++;
-  }
-}
-
-
-2nd button
-charMultiButtonText
-3-7
-
-  buttonBorder[2][12];
-  buttonBorder[2][13];
-
-
-charMultiButtonText
-charButtonText -> buttonText -> write() /\
-
-  // New characters to complete the string from 'charMultiButtonText'. The coordinates are reused
-  // from the first character.
-  subsetButtonText[12] = buttonText[1][12] + 5;
-  subsetButtonText[13] = buttonText[1][13];
-  subsetButtonText[14] = buttonText[1][14];
-  subsetButtonText[15] = buttonText[1][15];
-  subsetButtonText[18] = charMultiButtonText[0];  // The text strings (STRING8)
-  int charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-
-  subsetButtonText[12] = buttonText[2][12] + 2.5;
-  subsetButtonText[13] = buttonText[2][13];
-  subsetButtonText[14] = buttonText[2][14];
-  subsetButtonText[15] = buttonText[2][15];
-  subsetButtonText[18] = charMultiButtonText[1];  // The text strings (STRING8)
-  charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-  subsetButtonText[12] = buttonText[2][12] + 10;
-  subsetButtonText[13] = buttonText[2][13];
-  subsetButtonText[14] = buttonText[2][14];
-  subsetButtonText[15] = buttonText[2][15];
-  subsetButtonText[18] = charMultiButtonText[2];  // The text strings (STRING8)
-  charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-  */
-  ///////////////////////////
-  //////////////////////////
-
-
-
-
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
   // todo 5) 70 'write()' the 'polyFillRectangle' to draw a button without a border.
   //int fillRectangleWrite = write(sock, fillRectangle, sizeof(fillRectangle));
@@ -1978,23 +1906,80 @@ charButtonText -> buttonText -> write() /\
           //printf("           subsetButtonText[12]: %d  subsetButtonText[13]: %d    12\n", subsetButtonText[12], subsetButtonText[13]);
 
 
+          // Button borders and button text with one character 'write()'.
+          j = 0;
+          i = 1;
+          while (i < numberButtons) {
+            j = 0;
+            while (j < sizeof(subsetButtonBorder)) {
+              subsetButtonBorder[j] = buttonBorder[i][j];
+              subsetButtonText[j] = buttonText[i][j];
+              //printf("subsetButtonText[j] %d      12\n", subsetButtonText[j]);
+              //printf("subsetButtonBorder[%d][%d]: %d\n", i, j, subsetButtonBorder[j]);
+              j++;
+            }
+            //printf("\n");
+            borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+            i++;
+          }
 
-
-
-
-
+          // Multiple characters for buttons 1 and 2 are written through resizing the x coordinate.
+          buttonText12XStartCoordinate = 0;
+          // The space between characters.
+          buttonText12XIncrementor = 10; // 5
+          // 'i' is the button 'buttonText[j][i]' and increments in the first iteration.
+          i = 1;
+          // Increments characters in 'charMultiButtonText'.
+          j = 0;
+          int charMultiButtonTextCheck = 0;
+          while (i < 3) {
+            // The first character's x coordinate based on the middle of the button 'buttonText[i][12]'.
+            //                                    middle     +         i.e. -5
+            //printf("  buttonText12XCountStart[i-1]  %d\n", buttonText12XCountStart[i-1]);
+            buttonText12XStartCoordinate = buttonText[i][12] + buttonText12XCountStart[i-1];
+            //printf("buttonText12XStartCoordinate: %d\n", buttonText12XStartCoordinate);
+            while (j < sizeof(charMultiButtonText)) {
+              // Button characters > 1 from 'charMultiButtonText[j]' use the ' ' (ascii 32) space character as a
+              // seperator and the next button's first character is reset 'buttonText12XStartCoordinate'.
+              if (charMultiButtonText[j] == ' ') {
+                // Skips the ' ' space word delimiter.
+                j++;
+                break;
+              }
+              // X coordinate
+              subsetButtonText[12] = buttonText12XStartCoordinate;
+              subsetButtonText[13] = buttonText[i][13];
+              // The first overflow.
+              if (buttonText12XStartCoordinate > 255) {
+                subsetButtonText[12] = buttonText12XStartCoordinate - 255;
+                subsetButtonText[13] = 1;
+              }
+              // 'subsetButtonText[12]' remains i.e. '245-255' with 'subsetButtonText[13]' as '1' when
+              // 'buttonText12XStartCoordinate' is being subtracted through adding a negative 'buttonText12XCountStart'.
+                                              // why is it '10'? no idea
+              else if ((subsetButtonText[12] >= (255-10)) && (subsetButtonText[13] == 1) ) {
+                subsetButtonText[12] = buttonText12XStartCoordinate;
+                subsetButtonText[13] = 0;
+              }
+              //printf("subsetButtonText[12]: %d  subsetButtonText[13]: %d\n", subsetButtonText[12], subsetButtonText[13]);
+              //printf("charMultiButtonText[%d][%d]:  %c\n", i, j, charMultiButtonText[j]);
+              // Y coordinate
+              subsetButtonText[14] = buttonText[i][14];
+              subsetButtonText[15] = buttonText[i][15];
+              // Incrementing character in 'charMultiButtonText' and 'write()' to the window.
+              subsetButtonText[18] = charMultiButtonText[j];
+              charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+              // Incrementing the low X coordinate with 'buttonText12XIncrementor'.
+              //                                     previous  middle     +     5
+              buttonText12XStartCoordinate = buttonText12XStartCoordinate + buttonText12XIncrementor; // 5
+              j++;
+            }
+            //printf("  new button\n");
+            i++;
+          }
 
         }
-
-
-
-
-
-
-
-
-
-
         // Resize the buttons to 1.)
         else if (screenCheckWidthOne == 1) {
           screenCheckOne = 1;
@@ -2893,15 +2878,7 @@ charButtonText -> buttonText -> write() /\
           //textBorder[19] = 0;
           textBorderWrite = write(sock, textBorder, sizeof(textBorder));
 
-
-
-
-
-          // Multiple characters for buttons 1 and 2 are written through resizing the x coordinate.
-            // todo height and 'subsetButtonText[13] > 1'
-          buttonText12XCount = -5;
-          buttonText12XComparision = 0;
-          buttonText12XIncrementor = 5;
+          // Button borders and button text with one character 'write()'.
           j = 0;
           i = 1;
           while (i < numberButtons) {
@@ -2919,127 +2896,62 @@ charButtonText -> buttonText -> write() /\
             i++;
           }
 
-
-
           // Multiple characters for buttons 1 and 2 are written through resizing the x coordinate.
-            // todo height and 'subsetButtonText[13] > 1'
-          // The middle x coordinate of the button 'buttonText[j][12]' subtracts 'buttonText12XCountStart'.
-          // Always negative and does not change.
-          int buttonText12XCountStart = -5;
-          int buttonText12XStartCoordinate = 0;
-
-          //buttonText12XComparision = 0;
-          //buttonText12XCount = -5;
+          buttonText12XStartCoordinate = 0;
           // The space between characters.
-          buttonText12XIncrementor = 5;
-          int buttonText12XIncrementorOne = 5;
-
-          // increments buttons
-          // i  is the button 'buttonText[j][i]'
+          buttonText12XIncrementor = 10; // 5
+          // 'i' is the button 'buttonText[j][i]' and increments in the first iteration.
           i = 1;
-          // increments characters in 'charMultiButtonText'
+          // Increments characters in 'charMultiButtonText'.
           j = 0;
           int charMultiButtonTextCheck = 0;
           while (i < 3) {
-            //                                    middle     +    -5
-            buttonText12XStartCoordinate = buttonText[i][12] + buttonText12XCountStart;
+            // The first character's x coordinate based on the middle of the button 'buttonText[i][12]'.
+            //                                    middle     +         i.e. -5
+            //printf("  buttonText12XCountStart[i-1]  %d\n", buttonText12XCountStart[i-1]);
+            buttonText12XStartCoordinate = buttonText[i][12] + buttonText12XCountStart[i-1];
             //printf("buttonText12XStartCoordinate: %d\n", buttonText12XStartCoordinate);
             while (j < sizeof(charMultiButtonText)) {
+              // Button characters > 1 from 'charMultiButtonText[j]' use the ' ' (ascii 32) space character as a
+              // seperator and the next button's first character is reset 'buttonText12XStartCoordinate'.
               if (charMultiButtonText[j] == ' ') {
+                // Skips the ' ' space word delimiter.
                 j++;
                 break;
               }
               // X coordinate
-              //if (buttonText12XStartCoordinate >= 255) {
-              //  subsetButtonText[12] = buttonText12XIncrementorOne;
-              //  subsetButtonText[13] = 1;
-              //  buttonText12XIncrementorOne = buttonText12XIncrementorOne + 5;
-              //}
               subsetButtonText[12] = buttonText12XStartCoordinate;
               subsetButtonText[13] = buttonText[i][13];
-
+              // The first overflow.
               if (buttonText12XStartCoordinate > 255) {
                 subsetButtonText[12] = buttonText12XStartCoordinate - 255;
                 subsetButtonText[13] = 1;
               }
+              // 'subsetButtonText[12]' remains i.e. '245-255' with 'subsetButtonText[13]' as '1' when
+              // 'buttonText12XStartCoordinate' is being subtracted through adding a negative 'buttonText12XCountStart'.
+                                              // why is it '10'? no idea
               else if ((subsetButtonText[12] >= (255-10)) && (subsetButtonText[13] == 1) ) {
                 subsetButtonText[12] = buttonText12XStartCoordinate;
                 subsetButtonText[13] = 0;
               }
-              printf("subsetButtonText[12]: %d  subsetButtonText[13]: %d\n", subsetButtonText[12], subsetButtonText[13]);
-              printf("charMultiButtonText[%d][%d]:  %c\n", i, j, charMultiButtonText[j]);
-
+              //printf("subsetButtonText[12]: %d  subsetButtonText[13]: %d\n", subsetButtonText[12], subsetButtonText[13]);
+              //printf("charMultiButtonText[%d][%d]:  %c\n", i, j, charMultiButtonText[j]);
               // Y coordinate
               subsetButtonText[14] = buttonText[i][14];
               subsetButtonText[15] = buttonText[i][15];
-              // Incrementing character.
+              // Incrementing character in 'charMultiButtonText' and 'write()' to the window.
               subsetButtonText[18] = charMultiButtonText[j];
               charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-
+              // Incrementing the low X coordinate with 'buttonText12XIncrementor'.
               //                                     previous  middle     +     5
               buttonText12XStartCoordinate = buttonText12XStartCoordinate + buttonText12XIncrementor; // 5
               j++;
-              /*
-
-  unsigned char charMultiButtonText[8];
-  charMultiButtonText[0] = '(';
-  charMultiButtonText[1] = ' ';
-  charMultiButtonText[2] = ')';
-
-  charMultiButtonText[3] = 'd';
-  charMultiButtonText[4] = ' ';
-  charMultiButtonText[5] = 'e';
-  charMultiButtonText[6] = ' ';
-  charMultiButtonText[7] = 'l';
-
-              // Y coordinate
-              subsetButtonText[12] = 10;
-              subsetButtonText[13] = 10;
-              // Y coordinate
-
-              subsetButtonText[14] = buttonText[j][14];
-              subsetButtonText[15] = buttonText[j][15];
-              subsetButtonText[18] = charMultiButtonText[i];  // The text strings (STRING8)
-              charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-              // Incrementing the x coordinate and 'i'.
-              i++;
-              buttonText12XCount = buttonText12XCount + buttonText12XIncrementor;
-              // Change to button '2'
-              if (j == 2) {
-                printf("i: %d  buttonText12XComparision: %d     buttonText[j][13]: %d    22\n", i, buttonText12XComparision, buttonText[j][13]);
-                printf("           subsetButtonText[12]: %d  subsetButtonText[13]: %d    22\n", subsetButtonText[12], subsetButtonText[13]);
-              }
-              if (i == 3) {
-                buttonText12XCount = -10;
-                buttonText12XIncrementor = 5;
-                j++;
-              }
-              */
             }
-            buttonText12XIncrementorOne = 0;
-            printf("  new button\n");
+            //printf("  new button\n");
             i++;
           }
 
-
-
         }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
