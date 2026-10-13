@@ -16,7 +16,7 @@ X Protocol Version 11, Revision 0
 
 Operating system workflow:
 
-1. Install debian or ubuntu server command line (no GUI) from the official imager.
+1. Install debian or ubuntu server command line (headless - no GUI) from the official imager.
 
 2. Install X11.
 
@@ -36,15 +36,29 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 ### Todo:
 
-- Text buttons -> resize 0.) 1.).
+- Text buttons
+
+  - multiple characters in same button 0.) -> 1.)
+
+  - history window (temporarily extend text input window)
+
+  - change color when pressed (or hovered over?)
 
 - Text input window.
+
+  - log the button input
+
+  - keyboard input
+
+    - larger display/history
 
 - Binary division.
 
 - Replace button polygons with polylines.
 
 - Disable window manager and get the device's screen dimensions.
+
+  - Make an 'x' and minimize button to close the program.
 
 ### Index
 
@@ -192,17 +206,17 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //  |     |        ]               }    | s s s s s s |    [                                      ]
       //  |     |        ]               }    | s s s s s s |    [ s s s s s s s s s s s s s s s s s s  ]
       //  | 0.) |        ]               }    |             |    [ s s s s s s s s s s s s s s s s s s  ]
-      //   -----         ]               }    | c  x  %  /  |    [ s s s s s s s s s s s s s s s s s s  ]
+      //   -----         ]               }    |()  x  %  /  |    [ s s s s s s s s s s s s s s s s s s  ]
       //  [              ]               }    | 7  8  9  *  |    [                                      ]
-      //  [              ]               }    | 4  5  6  -  |    [ <>  rad  sqrt  |x|  c    X    %    / ]
+      //  [              ]               }    | 4  5  6  -  |    [ <>  rad  sqrt  |x|  ()   X    %    / ]
       //  [      1.)     ]               }    | 1  2  3  +  |    [                                      ]
-      //  [ ____________ ]               }    | () 0 . =    |    [ sin  cos  tan  pi   7    8    9    * ]
+      //  [ ____________ ]               }    | c  0 . =    |    [ sin  cos  tan  pi   7    8    9    * ]
       //  {                              }     -------------     [                                      ]
       //  {                              }                       [ ln   log  1/x  e    4    5    6    - ]
       //  {                              }                       [                                      ]
       //  {                    todo 2.)  }                       [ e^2  x^2  x^x  +/-  1    2    3    + ]
       //   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~                        [                                      ]
-      //                                                         [ o    o    o    o    ()   0    .    = ]
+      //                                                         [ o    o    o    o    c    0    .    = ]
       //                                                         [ ____________________________________ ]
       //
     ```
