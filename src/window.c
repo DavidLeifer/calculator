@@ -14,6 +14,11 @@
 #include "binaryChar.h"
 #include "struct.h"
 #include "utility.h"
+
+// Arithmatic and logs the file.
+#include "interface.h"
+#include "userInput.h"
+
 /*
   Steps to build a window using sockets without graphic libraries Xlib or sdl2+.
   Notes while writing the code with internet help is at the end of the file. The
@@ -1495,6 +1500,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int buttonTextOne12XIncrementor = 10; // 5
   int charMultiButtonTextOneCheck = 0;
 
+  char *charKeyInput = malloc(13 * sizeof(char));
+  struct threeInt userInputAnswer;
+  int intKeyInputIterator = 0;
+
   if (geometryRead[0] == 1) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
     //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2487,14 +2496,11 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
-          // Multiple character per button. 'eventCode == 12'.
-          charMultiButtonOneTextWrite;
-
+          // Multiple character per button. 'EventCode == 22'.
           // 'buttonTextOne12XCountStart' is not incremented.
           //signed char buttonText12XCountStart[2];
           //buttonText12XCountStart[0] = -5;  // 2 char
-          //buttonText12XCountStart[1] = -10;
-
+          //buttonText12XCountStart[1] = -10; // 3 char
           buttonTextOne12XStartCoordinate = 0;
           // The space between characters.
           buttonTextOne12XIncrementor = 10; // 5
@@ -2537,45 +2543,53 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                 break;
               }
               // X coordinate
+              /*
+              if (i == 3) { // 5   2
+                printf("Button: %d\n", i);
+                printf("buttonTextOne12XStartCoordinate:: %d\n", buttonTextOne12XStartCoordinate);
+                printf("buttonTextOne[i][13]: %d\n", buttonTextOne[i][13]);
+              }
+              */
               subsetButtonText[12] = buttonTextOne12XStartCoordinate;
               subsetButtonText[13] = buttonTextOne[i][13];
               // Overflow.
-              if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 0)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 1;
+              if ((buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 2)) && charMultiButtonTextOneCheck == 0) { //
+                subsetButtonText[13] = buttonTextOne12XStartCoordinate - 255;
+                subsetButtonText[13] = 3;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 1)) { //
+              else if (((buttonTextOne12XStartCoordinate < 0) && (subsetButtonText[13] == 3)) && charMultiButtonTextOneCheck == 0) {
+                subsetButtonText[12] = 255 + buttonTextOne12XStartCoordinate; // <- 'buttonTextOne12XStartCoordinate' is a negative
+                subsetButtonText[13] = 2;
+                charMultiButtonTextOneCheck = 1;
+              }
+              else if ((buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 1)) && charMultiButtonTextOneCheck == 0) { //
                 subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
                 subsetButtonText[13] = 2;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 2)) { //
+              else if (((buttonTextOne12XStartCoordinate < 0) && (subsetButtonText[13] == 2)) && charMultiButtonTextOneCheck == 0) {
+                subsetButtonText[12] = 255 + buttonTextOne12XStartCoordinate; // <- 'buttonTextOne12XStartCoordinate' is a negative
+                subsetButtonText[13] = 1;
+                charMultiButtonTextOneCheck = 1;
+              }
+              else if ((buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 0)) && charMultiButtonTextOneCheck == 0) { //
                 subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 3;
+                subsetButtonText[13] = 1;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 3)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 4;
+              else if (((buttonTextOne12XStartCoordinate < 0) && (subsetButtonText[13] == 1)) && charMultiButtonTextOneCheck == 0) {
+                subsetButtonText[12] = 255 + buttonTextOne12XStartCoordinate; // <- 'buttonTextOne12XStartCoordinate' is a negative
+                subsetButtonText[13] = 0;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 4)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 5;
+              charMultiButtonTextOneCheck = 0;
+              /*
+              if (i == 3) {
+                printf("  subsetButtonText[12]: %d\n", subsetButtonText[12]);
+                printf("  subsetButtonText[13]: %d\n\n", subsetButtonText[13]);
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 5)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 6;
-              }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 6)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 7;
-              }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 7)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 8;
-              }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 8)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 9;
-              }
+              */
 
                  // Not sure why this is needed in screen size 0.) but if it's not included the 'd', 'e', and 'l' don't function as expected.
                 // 'subsetButtonText[12]' remains i.e. '245-255' with 'subsetButtonText[13]' as '1' when
@@ -3155,9 +3169,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           }
 
         }
-
-
-
         else if (screenCheckWidthOne == 1) {
           screenCheckOne = 1;
           // Clear the window with opcode 61.
@@ -3574,7 +3585,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             i++;
           }
           // Multiple character per button. 'EventCode == 22'.
-          charMultiButtonOneTextWrite;
 
           // 'buttonTextOne12XCountStart' is not incremented.
           //signed char buttonText12XCountStart[2];
@@ -3590,7 +3600,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           j = 0;
           // The first button is two characters.
           k = 2;
-          int charMultiButtonTextOneCheck = 0;
+          charMultiButtonTextOneCheck = 0;
           // 41 - 8 (bottom row) = 33
           // '17' the number of buttons with multiple characters.
           while (i < 33) {
@@ -3623,45 +3633,53 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                 break;
               }
               // X coordinate
+              /*
+              if (i == 3) { // 5   2
+                printf("Button: %d\n", i);
+                printf("buttonTextOne12XStartCoordinate:: %d\n", buttonTextOne12XStartCoordinate);
+                printf("buttonTextOne[i][13]: %d\n", buttonTextOne[i][13]);
+              }
+              */
               subsetButtonText[12] = buttonTextOne12XStartCoordinate;
               subsetButtonText[13] = buttonTextOne[i][13];
               // Overflow.
-              if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 0)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 1;
+              if ((buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 2)) && charMultiButtonTextOneCheck == 0) { //
+                subsetButtonText[13] = buttonTextOne12XStartCoordinate - 255;
+                subsetButtonText[13] = 3;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 1)) { //
+              else if (((buttonTextOne12XStartCoordinate < 0) && (subsetButtonText[13] == 3)) && charMultiButtonTextOneCheck == 0) {
+                subsetButtonText[12] = 255 + buttonTextOne12XStartCoordinate; // <- 'buttonTextOne12XStartCoordinate' is a negative
+                subsetButtonText[13] = 2;
+                charMultiButtonTextOneCheck = 1;
+              }
+              else if ((buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 1)) && charMultiButtonTextOneCheck == 0) { //
                 subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
                 subsetButtonText[13] = 2;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 2)) { //
+              else if (((buttonTextOne12XStartCoordinate < 0) && (subsetButtonText[13] == 2)) && charMultiButtonTextOneCheck == 0) {
+                subsetButtonText[12] = 255 + buttonTextOne12XStartCoordinate; // <- 'buttonTextOne12XStartCoordinate' is a negative
+                subsetButtonText[13] = 1;
+                charMultiButtonTextOneCheck = 1;
+              }
+              else if ((buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 0)) && charMultiButtonTextOneCheck == 0) { //
                 subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 3;
+                subsetButtonText[13] = 1;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 3)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 4;
+              else if (((buttonTextOne12XStartCoordinate < 0) && (subsetButtonText[13] == 1)) && charMultiButtonTextOneCheck == 0) {
+                subsetButtonText[12] = 255 + buttonTextOne12XStartCoordinate; // <- 'buttonTextOne12XStartCoordinate' is a negative
+                subsetButtonText[13] = 0;
+                charMultiButtonTextOneCheck = 1;
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 4)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 5;
+              charMultiButtonTextOneCheck = 0;
+              /*
+              if (i == 3) {
+                printf("  subsetButtonText[12]: %d\n", subsetButtonText[12]);
+                printf("  subsetButtonText[13]: %d\n\n", subsetButtonText[13]);
               }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 5)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 6;
-              }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 6)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 7;
-              }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 7)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 8;
-              }
-              else if (buttonTextOne12XStartCoordinate > 255 && (subsetButtonText[13] == 8)) { //
-                subsetButtonText[12] = buttonTextOne12XStartCoordinate - 255;
-                subsetButtonText[13] = 9;
-              }
+              */
 
                  // Not sure why this is needed in screen size 0.) but if it's not included the 'd', 'e', and 'l' don't function as expected.
                 // 'subsetButtonText[12]' remains i.e. '245-255' with 'subsetButtonText[13]' as '1' when
@@ -3701,8 +3719,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               k = 3;
             }
           }
-        }
 
+        }
         // Switch to 2.) screen
         else if (screenCheckWidthTwo == 1) {
           // Clear the window with opcode 61.
@@ -3716,7 +3734,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       else if (eventCode == 2) {
         // Physical key matrix index
         keyInput = responseWindowInput[1] + 39;
-        printf("keypress = %d\n", keyInput);
+        //printf("keypress = %d\n", keyInput);
         // int keyboard map.
         if (keyInput > 47 && keyInput < 59) {
           // The first '48' 'esc' doesn't conflict with the second '48' '0' since
@@ -3757,6 +3775,48 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             keyInput = keyInput - 10;
             printf("a = 0 %d\n", keyInput);
           }
+        }
+
+
+        if (keyInput == 60) {
+          keyInput = 61;
+          printf("a = 1 %d\n", keyInput);
+        }
+        //else if (keyInput == 60) { // && keyInput[-1] == 101 (shift)
+          //keyInput = 43;
+          //printf("a = 1 %d\n", keyInput);
+        //}
+        else if (keyInput == 59) {
+          keyInput = 45;
+          printf("a = 1 %d\n", keyInput);
+        }
+
+        charKeyInput[intKeyInputIterator] = keyInput;
+        printf("charKeyInput: %s  intKeyInputIterator  %d\n", charKeyInput, intKeyInputIterator);
+        if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 2)) { // '='
+          userInputAnswer = userOutput(charKeyInput);
+          printf("userInputAnswer.string %s\n", userInputAnswer.string);
+          // 'userInputAnswer.string' 'free()' in 'fileLog' from "userInput.c"
+          fileLog(userInputAnswer.string, userInputAnswer.two);
+          // Screen size 0.) working buttons.
+          // working buttons: 'j' = 5-16, 18, 20
+            // 7 8 9 *  |  5  6  7  8
+            // 4 5 6 -  |  9  10 11 12
+            // 1 2 3 +  |  13 14 15 16
+            // o 0 o =  |  o  18 o  20
+          // textUI();
+            /*
+            // User input with 'scanf()'.
+            char *strUserInput = charUserInput();  // 1 + 1 = 2
+
+            struct threeInt userInputAnswer = userOutput(strUserInput);
+            // 'userInputAnswer.string' 'free()' in 'fileLog' from "userInput.c"
+            fileLog(userInputAnswer.string, userInputAnswer.two);
+            */
+          intKeyInputIterator = 0;
+        }
+        else {
+          intKeyInputIterator++;
         }
       }
       // The coordinate borders for the buttons via mouse input.
