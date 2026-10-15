@@ -1508,6 +1508,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   struct threeInt userInputAnswer;
   struct threeInt userInputTime;
 
+  int previousKeyInput = 0;
+  int answerLength;
+  struct threeInt keyInputAnswer;
+
   charKeyInput[0] = '0';
   charKeyInput[1] = '\0';
   // Variables for the calculations.
@@ -3761,76 +3765,332 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           printf("Resized buttons to 2.)\n");
         }
       }
-      // The 'keyInput' indicates the keyboard has been pressed.
+      // The 'keyInputX11' indicates the keyboard has been pressed.
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       else if (eventCode == 2) {
-        // Physical key matrix index
-        keyInput = responseWindowInput[1] + 39;
-        //printf("keypress = %d\n", keyInput);
+        // Physical key matrix index for the X11 server.
+        int keyInputX11 = responseWindowInput[1];
+        printf("keyInputX11 = %d\n", keyInputX11);
+
         // int keyboard map.
         // if (keyInput == 'c') { // clear
           // free(charKeyInput);
         //}
-        if (keyInput > 47 && keyInput < 59) {
-          // The first '48' 'esc' doesn't conflict with the second '48' '0' since
-          // the 'while' loop asks for input and overwrites 'keyInput'. Typing '0'
-          // doesn't escape the program.
-          if (keyInput == 48) {
-            printf("esc %d\n", keyInput);
-            break;
-          }
-          else if (keyInput == 49) {
-            printf("keyInput = 1 %d\n", keyInput);
-          }
-          else if (keyInput == 50) {
-            printf("keyInput = 2 %d\n", keyInput);
-          }
-          else if (keyInput == 51) {
-            printf("keyInput = 3 %d\n", keyInput);
-          }
-          else if (keyInput == 52) {
-            printf("keyInput = 4 %d\n", keyInput);
-          }
-          else if (keyInput == 53) {
-            printf("keyInput = 5 %d\n", keyInput);
-          }
-          else if (keyInput == 54) {
-            printf("keyInput = 6 %d\n", keyInput);
-          }
-          else if (keyInput == 55) {
-            printf("keyInput = 7 %d\n", keyInput);
-          }
-          else if (keyInput == 56) {
-            printf("keyInput = 8 %d\n", keyInput);
-          }
-          else if (keyInput == 57) {
-            printf("keyInput = 9 %d\n", keyInput);
-          }
-          else if (keyInput == 58) {
-            keyInput = keyInput - 10;
-            printf("keyInput = 0 %d\n", keyInput);
-          }
+        //////////////////////////////////////////////////////////////
+        // Change to hardware key integers to ASCII integers.
+        // Escapes the program.
+        if (keyInputX11 == 9) {
+          printf("esc\n");
+          break;
         }
-        if (keyInput == 60) {
-          keyInput = 61;
-          printf("keyInput = '=' %d\n", keyInput);
+        // Digits 1-9, 0.
+        else if (keyInputX11 == 10) {
+          keyInput = 49;
+          printf("keyInput = %c\n", keyInput);
         }
-        //else if (keyInput == 60) { // && keyInput[-1] == 101 (shift) // '+'
-          //keyInput = 43;
-          //printf("a = 1 %d\n", keyInput);
-        //}
-        else if (keyInput == 59) {
+        else if (keyInputX11 == 11) {
+          keyInput = 50;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 12) {
+          keyInput = 51;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 13) {
+          keyInput = 52;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 14) {
+          keyInput = 53;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 15) {
+          keyInput = 54;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 16) {
+          keyInput = 55;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 17) {
+          keyInput = 56;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 18) {
+          keyInput = 57;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 19) {
+          keyInput = 48;
+          printf("keyInput = %c\n", keyInput);
+        }
+        // '-', '=' || 'Enter', 22 == 'Backspace' after 'charKeyInput[] = keyInput' because 'Backspace' isn't a character and remains '0'.
+        else if (keyInputX11 == 20) {
           keyInput = 45;
-          printf("keyInput = '-' %d\n", keyInput);
+          printf("keyInput = %c\n", keyInput);
         }
-        else if (keyInput == 104) {
-          keyInput = 32;
-          printf("keyInput = ' ' %d\n", keyInput);
+        else if (keyInputX11 == 21 || keyInputX11 == 36) {
+          keyInput = 61;
+          printf("keyInput = %c\n", keyInput);
         }
-        printf("   keyInput = %d\n", keyInput);
-        charKeyInput[intKeyInputIterator] = keyInput;
-        charKeyInput[intKeyInputIterator+1] = '\0';
+
+
+
+
+
+
+
+
+
+        // q-> m for a-z
+        else if (keyInputX11 == 24) {
+          keyInput = 113;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 25) {
+          keyInput = 119;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 26) {
+          keyInput = 101;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 27) {
+          keyInput = 114;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 28) {
+          keyInput = 116;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 29) {
+          keyInput = 121;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 30) {
+          keyInput = 117;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 31) {
+          keyInput = 105;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 32) {
+          keyInput = 111;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 33) {
+          keyInput = 112;
+          printf("keyInput = %c\n", keyInput);
+        }
+
+        /*
+        else if (keyInputX11 == 34) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 35) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 36) { // 'Enter;
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 37) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        *////////////////////
+
+        else if (keyInputX11 == 38) {
+          keyInput = 97;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 39) {
+          keyInput = 115;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 40) {
+          keyInput = 100;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 41) {
+          keyInput = 102;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 42) {
+          keyInput = 103;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 43) {
+          keyInput = 104;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 44) {
+          keyInput = 106;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 45) {
+          keyInput = 107;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 46) {
+          keyInput = 108;
+          printf("keyInput = %c\n", keyInput);
+        }
+        /*
+        else if (keyInputX11 == 47) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 48) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 49) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 50) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 51) {
+          //keyInput = ;
+          printf("keyInput = %c\n", keyInput);
+        }
+        *//////////////////////////////
+
+
+        else if (keyInputX11 == 52) {
+          keyInput = 122;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 53) {
+          keyInput = 120;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 54) {
+          keyInput = 99;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 55) {
+          keyInput = 118;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 56) {
+          keyInput = 98;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 57) {
+          keyInput = 110;
+          printf("keyInput = %c\n", keyInput);
+        }
+        else if (keyInputX11 == 58) {
+          keyInput = 109;
+          printf("keyInput = %c\n", keyInput);
+        }
+        //  'Shift' and '=' : '+'
+        else if (keyInput == 21 && previousKeyInput == 62) {
+          keyInput = 43;
+          printf("previousKeyInput = 'Shift' %d && keyInput = '=' %d ('+')\n", previousKeyInput, keyInput);
+        }
+        // Q-M for A-Z capital letters
+          //
+
+        // Assign ASCII 'keyInput' integer to the 'charKeyInput[]'.
+        if (keyInputX11 == 22) {
+          printf("Backspace %d\n", keyInputX11);
+          // Keep the '0' text if there were no other input integers.
+          if (intKeyInputIterator == 0) {
+            charKeyInput[0] = '0';
+            charKeyInput[1] = '\0';
+          }
+          // This is an edge case to retain the first character as '0' if 'intKeyInputIterator' is over '0' (previous conditional).
+          // 'intKeyInputIterator' is reset to '0'.
+          else if (intKeyInputIterator > 0 && charKeyInput[0] == '0') {
+            charKeyInput[0] = '0';
+            charKeyInput[1] = '\0';
+            intKeyInputIterator = 0;
+          }
+          // Removes one character.
+          else if (intKeyInputIterator > 0) {
+            // After deleting several characters, a character remains in 'charKeyInput[0]' but is removed from the screen.
+            // Returns the first element as '0' and resets 'intKeyInputIterator'.
+            if (intKeyInputIterator == 1 && charKeyInput[0] != '0') {
+              charKeyInput[0] = '0';
+              charKeyInput[1] = '\0';
+              intKeyInputIterator = 0;
+            }
+            // The actual 'Backspace' to remove one character by overwriting the previous character and
+            // subtract 'intKeyInputIterator' for the next iteration.
+            // This means there are two '\0' i.e.
+            //                                   charKeyInput[0] = '3';
+            //                                   charKeyInput[1] = '2';
+            //                                   charKeyInput[2] = '\0';
+            //                                   charKeyInput[3] = '\0';
+            else {
+              intKeyInputIterator--;
+              charKeyInput[intKeyInputIterator] = '\0';
+              intKeyInputIterator--;
+            }
+          }
+        }
+        // 'charKeyInput[]' is populated with ASCII integers from 'keyInput'.
+        else {
+          // Remove '0' from the first element.
+          if (charKeyInput[0] == '0') {
+            charKeyInput[0] = keyInput;
+            charKeyInput[1] = '\0';
+            intKeyInputIterator = 0;
+          }
+          // Otherwise the current 'intKeyInputIterator' element is set with 'keyInput'.
+          else {
+            charKeyInput[intKeyInputIterator] = keyInput;
+            charKeyInput[intKeyInputIterator+1] = '\0';
+          }
+        }
+
+
+
+            /// You have to change the first 'if' for the 'write()' calculation.
+
+        // Don't 'write()' the '=' or 'Enter' button since it's not a character.
+        // Keep '0' if it's the first character.
+        if (keyInput == 61 && intKeyInputIterator == 0) {
+          printf("  keyInput = '=' or 'Enter' %d\n", keyInput);
+          charKeyInput[0] = '0';
+          charKeyInput[1] = '\0';
+        }
+        else if (keyInput == 61 && intKeyInputIterator > 0) {
+          charKeyInput[intKeyInputIterator] = '\0';
+          //intKeyInputIterator--;
+        }
+        // Don't 'write()' the 'Shift' button since it's not a character.
+        // Keep '0' if it's the first character.
+        if (keyInput == 62 && intKeyInputIterator == 0) {
+          printf("  keyInput = 'Shift' %d\n", keyInput);
+          charKeyInput[0] = '0';
+          charKeyInput[1] = '\0';
+        }
+        else if (keyInput == 62 && intKeyInputIterator > 0) {
+          charKeyInput[intKeyInputIterator] = '\0';
+          //intKeyInputIterator--;
+        }
+
+
+
+
+
+
+
+
+
+
+
+
 
         // Redefine the 'clearArea' opcode 61 packet to the current specifications.
         // XY coordinates.
@@ -3868,7 +4128,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           clearArea[15] = textBorder[19];
         }
         clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-
         // 'write()' the 'keyInput' to the user input window using 'textBorder' X and Y.
         //printf("keyInputText[12]: %d  keyInputText[13]: %d\n", textBorder[12] - 15 + textBorder[16], textBorder[13] + textBorder[17]);
         // Overflow for the y coordinate
@@ -3880,9 +4139,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           keyInputText[14] = textBorder[14] + 22.5;
           keyInputText[15] = textBorder[15];
         }
+
         //printf("charKeyInput: %s  intKeyInputIterator  %d\n", charKeyInput, intKeyInputIterator);
         // '=' with a valid input i.e. '1-1=' (length of '3' starting at '0')
-        if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 2)) {
+        if ((keyInput == 61 || keyInput == 75) && (intKeyInputIterator < 14 && intKeyInputIterator > 2)) {
           // Remove the '=' since functions 'arithmaticInput()' and 'fileLog()' require input i.e '1  -    1'.
           charKeyInput[intKeyInputIterator] = '\0';
 
@@ -3893,9 +4153,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           answer = outputArithmatic(charKeyInput); // <- 'userOutput()'
           // Minimal memory usage since the answer is between 1-3 characters and doesn't add more heap.
           // Otherwise you would have to list each function until the 'char' version of the 'int'.
-          printf("  answer  %s\n", answer);
-
-          int answerLength = charLength(answer);
+          //printf("  answer  %s\n", answer);
+          answerLength = charLength(answer);
           //charKeyInput[intKeyInputIterator] = answer;
           // Check to see if the file exists and format the date and time identification.
           logCheck = fileLogCheck();
@@ -3905,7 +4164,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           userInputAnswer = manualInput(userInputTime, charKeyInput, answer);
           free(userInputTime.string);
           userInputAnswer.two = logCheck;
-          //free(answer); \/ free below text
+          //free(answer); \/ free() below text
           fileLog(userInputAnswer.string, userInputAnswer.two);
           // Screen size 0.) working buttons.
           // working buttons: 'j' = 5-16, 18, 20
@@ -3913,15 +4172,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // 4 5 6 -  |  9  10 11 12
             // 1 2 3 +  |  13 14 15 16
             // o 0 o =  |  o  18 o  20
-
-          // Similar function to:
           charKeyInput[intKeyInputIterator] = '=';
           charKeyInput[intKeyInputIterator + 1] = '\0';
-          printf("charKeyInput: %s\n", charKeyInput);
-          printf("intKeyInputIterator: %d\n", intKeyInputIterator);
-          printf("answer: %s\n", answer);
-          printf("answerLength: %d\n", answerLength);
-          struct threeInt keyInputAnswer = charAppend(charKeyInput, (intKeyInputIterator + 1), answer, answerLength, 0);
+          // Similar function to:
+          //printf("charKeyInput: %s\n", charKeyInput);
+          //printf("intKeyInputIterator: %d\n", intKeyInputIterator);
+          //printf("answer: %s\n", answer);
+          //printf("answerLength: %d\n", answerLength);
+          keyInputAnswer = charAppend(charKeyInput, (intKeyInputIterator + 1), answer, answerLength, 0);
           free(answer);
           printf("keyInputAnswer.string: %s  keyInputAnswer.one: %d\n", keyInputAnswer.string, keyInputAnswer.one);
           i = 0;
@@ -3953,6 +4211,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           j = 10;
           k = (j * (intKeyInputIterator + 1));
           while (i < intKeyInputIterator + 1) {
+            // Skip writing 'Shift' text.
             //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
             // Overflow for the y coordinate
             if ( ((textBorder[12] - 15 + textBorder[16] - k) + j ) > 255) {
@@ -3971,6 +4230,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           }
           intKeyInputIterator++;
         }
+        // Physical key matrix index
+        previousKeyInput = keyInput;
       }
       // The coordinate borders for the buttons via mouse input.
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
