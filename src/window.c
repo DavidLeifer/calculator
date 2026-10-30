@@ -283,9 +283,36 @@ struct fourInt getVisualID(char *readSock, int screenOffset) {
 
 ////////////////////////////////////////////////////
 //
-//    todo - keyboard input display text box
-//    todo - alternate getGCID() for opcode 67 change border color
-//    todo - arithmatic buttons (todo - division)
+//    todo - alternate getGCID() for opcode 70 change button fill color - input buttons     -> darker grey
+//    todo - different getGCID() for opcode 70 change button fill color - text input window -> white
+//    todo - change button fill on hover and click - mouse left button is held is its own 'eventCode'
+//    todo - text input history - decide on the text history location for screensize 0.) and 1.)
+//    todo - GUI issues
+//         - Remove space button repeating characters
+//         - Pressing 'Enter' after the '0' and '1' character elements without '=' or '-' resets the character array.
+//         - The character goes over the text window to the left and repeats writing over itself
+//           and after deleting there is text on the left of the window.
+//         - After calculation, 'del' removes the entire string -> probably the history window
+//         - Starting '0' is removed when the screen resizes and the text is drawn over itself in a small area
+//    todo - Screen size 1.) arithmatic buttons
+//         - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers
+//    todo - Double check if binary arithmatic can increase from 200 -> 256 otherwise cap at 128
+//         - Include negative calculations and subtraction for '0'
+//         - Larger numbers are reprsented by small numbers in an array using a maximum size i.e. 256 or 128 and
+//           is called arbitrary-precision arithmatic or 'bignum arithmatic'.
+//           - Internet also calls this 'Horner's method' and uses base-200 for the example:
+//             250,678 / 200 = 1,253 remainder (%) = 78  (200^0)
+//                             1,253 / 200 = 6 (%) = 53  (200^1)
+//                                 6 < 200         = 6   (200^2)
+//
+//                                                 = [ 6, 53, 78] < - the 'char[]' to store the number
+//           - Reconstruct:
+//                                                   6 X (200^2) = 6  X 40,000 = 240,000
+//                                                  53 X (200^1) = 53 X 200    = 10,600
+//                                                  78 X (200^0) = 78 X 1      = 78
+//                                                                             = 250,678
+//
+//           - Since division using 200 is a nested loop with longer time complexity, divide by 256 (2^8) where the division step is O(n) since it's a power of 2.
 //
 //    minor todo - continuous mouse coordiantes based on event
 //                 to verify border values.
@@ -293,6 +320,9 @@ struct fourInt getVisualID(char *readSock, int screenOffset) {
 //                 the char array instead of binary.
 //    minor todo - 'errorCode == 12' succeeds within 1 or 2.
 //                 Should probably use a 'iteration' counter.
+//    minor todo - Allocate a single large unsigned char buffer, append all the opcodes back-to-back
+//                 (ensuring each individual opcode is padded to a multiple of 4 bytes), and send them all out using one single write()
+//                 call. The X11 server will parse them sequentially out of the TCP/Unix stream automatically and is supposedly faster.
 
 ////////////////////////////////////////////////////
 // Explanation:
@@ -522,7 +552,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   getGeometry[6] = windowID.three;
   getGeometry[7] = windowID.four;
 
-  // 4) opcode 55 change the rectangle fill color
+  // 4) opcode 55 change the rectangle border color
   unsigned char createGC[20];
   createGC[0] = 55; // CreateGC
   createGC[1] = 0;
@@ -547,6 +577,65 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   createGC[18] = 255;
   createGC[19] = 0;
 
+  // Opcode 45 - button fontid
+  int gcIDTwo = 1;
+  int gcIDThree = 2;
+  // 'fillRectangle'
+  int gcIDFour = 3;
+  // 'textPolyfill'
+  int gcIDFive = 4;
+
+  // 4) opcode 55 color for 'buttonPolyfill'
+  unsigned char createGCrectangle[20];
+  createGCrectangle[0] = 55; // createGCrectangle
+  createGCrectangle[1] = 0;
+  createGCrectangle[2] = 5; // Bytes 2-3: Request length in 4-byte units (24 bytes / 4 = 5)
+  createGCrectangle[3] = 0;
+  createGCrectangle[4] = gcID.one + gcIDFour;
+  createGCrectangle[5] = gcID.two;
+  createGCrectangle[6] = gcID.three;
+  createGCrectangle[7] = gcID.four;
+  createGCrectangle[8] = windowID.one;
+  createGCrectangle[9] = windowID.two;
+  createGCrectangle[10] = windowID.three;
+  createGCrectangle[11] = windowID.four;
+  // Bytes 12-15: Value Mask (Bit 2 is Foreground attribute -> 0x00000004)
+  createGCrectangle[12] = 4;
+  createGCrectangle[13] = 0;
+  createGCrectangle[14] = 0;
+  createGCrectangle[15] = 0;
+  // BGR color
+  createGCrectangle[16] = 169;
+  createGCrectangle[17] = 169;
+  createGCrectangle[18] = 169;
+  createGCrectangle[19] = 0;
+
+  // 4) opcode 55 text input window 'buttonPolyfill'
+    // this is repreated from the border color but is left in just in case.
+  unsigned char createGCtextPolyfill[20];
+  createGCtextPolyfill[0] = 55; // createGCtextPolyfill
+  createGCtextPolyfill[1] = 0;
+  createGCtextPolyfill[2] = 5; // Bytes 2-3: Request length in 4-byte units (24 bytes / 4 = 6)
+  createGCtextPolyfill[3] = 0;
+  createGCtextPolyfill[4] = gcID.one + gcIDFive;
+  createGCtextPolyfill[5] = gcID.two;
+  createGCtextPolyfill[6] = gcID.three;
+  createGCtextPolyfill[7] = gcID.four;
+  createGCtextPolyfill[8] = windowID.one;
+  createGCtextPolyfill[9] = windowID.two;
+  createGCtextPolyfill[10] = windowID.three;
+  createGCtextPolyfill[11] = windowID.four;
+  // Bytes 12-15: Value Mask (Bit 2 is Foreground attribute -> 0x00000004)
+  createGCtextPolyfill[12] = 4;
+  createGCtextPolyfill[13] = 0;
+  createGCtextPolyfill[14] = 0;
+  createGCtextPolyfill[15] = 0;
+  // BGR color
+  createGCtextPolyfill[16] = 255;
+  createGCtextPolyfill[17] = 255;
+  createGCtextPolyfill[18] = 255;
+  createGCtextPolyfill[19] = 0;
+
   // 5) Construct the MapWindow packet (Opcode 8)
   unsigned char mapWindowBuffer[8];
   mapWindowBuffer[0] = 0b00001000;      // Opcode 8
@@ -563,52 +652,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // 20 rectangle borders arranged in 4 X 5 format used for clicking screen buttons in step
   // 6 that records user input.
 
-  /*
-  // todo
-  // 5) Opcode 70 'polyFillRectangle'
-  unsigned char fillRectangle[20];
-  fillRectangle[0] = 70;             // polyFillRectangle
-  fillRectangle[1] = 0;
-  fillRectangle[2] = 0b00000101;     // '5' Request length ( n / 4)
-  fillRectangle[3] = 0;
-  // Target Window ID
-  fillRectangle[4] = windowID.one;
-  fillRectangle[5] = windowID.two;
-  fillRectangle[6] = windowID.three;
-  fillRectangle[7] = windowID.four;
-  fillRectangle[8] = gcID.one;
-  fillRectangle[9] = gcID.two;
-  fillRectangle[10] = gcID.three;
-  fillRectangle[11] = gcID.four;
-  // Geometry data
-  // x
-  fillRectangle[12] = intButtonX;
-  fillRectangle[13] = 0;
-  // y
-  fillRectangle[14] = intButtonY;
-  fillRectangle[15] = 0;
-  // Width
-  fillRectangle[16] = intButtonWidth;
-  fillRectangle[17] = 0;
-  // Height
-  fillRectangle[18] = intButtonHeight;
-  fillRectangle[19] = 0;
-  // *
-  // x
-  fillRectangle[12] = 1;
-  fillRectangle[13] = 0;
-  // y
-  fillRectangle[14] = 1;
-  fillRectangle[15] = 0;
-  // Width 128 + (0 * 256) = 128;
-  //fillRectangle[16] = 0b10000000;
-  fillRectangle[16] = 10;
-  fillRectangle[17] = 0;
-  // Height 128 + (0 * 256) = 128;
-  //fillRectangle[18] = 0b10000000;
-  fillRectangle[18] = 10;
-  fillRectangle[19] = 0;
-  */
 
   // To resize with the window size, use the dimensions of the window to change the button dimension
   // values in step 6 to redraw the butons. The most efficient method is having three predesignated layouts
@@ -705,7 +748,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int intButtonXPlusDivision;
   int intButtonYRemainder;
   int intButtonYDivision;
-  unsigned char buttonBorder[numberButtons][buttonElements];
   int i = 1;
   int k = 0;
   // Reused variables in the loop for the int to unsigned char 'buttonBorderXXYY[0]-[3]' overflow.
@@ -717,6 +759,26 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int buttonBorderYRemainder;
   int buttonBorderY14;
   int buttonBorderY15;
+
+  // Opcode 70 'textPolyfill'
+  unsigned char textPolyfill[buttonElements];    // Opcode 70 'textPolyfill'
+  textPolyfill[0] = 70;                       // polyFillRectangle
+  textPolyfill[1] = 0;
+  textPolyfill[2] = 0b00000101;             // '5' Request length ( n / 4)
+  textPolyfill[3] = 0;
+  // Target Window ID
+  textPolyfill[4] = windowID.one;
+  textPolyfill[5] = windowID.two;
+  textPolyfill[6] = windowID.three;
+  textPolyfill[7] = windowID.four;
+  textPolyfill[8] = gcID.one + gcIDFive;
+  textPolyfill[9] = gcID.two;
+  textPolyfill[10] = gcID.three;
+  textPolyfill[11] = gcID.four;
+  textPolyfill[12] = intButtonX;
+  textPolyfill[13] = 0;
+  textPolyfill[14] = 50;
+  textPolyfill[15] = 0;
 
   // The border of the text input and display box.
   unsigned char textBorder[buttonElements];
@@ -751,6 +813,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     // Borrow 'textButtonHighWidth' to subtract the left and right padding.
     textButtonLowWidth = (windowLowWidth + 255) - intButtonX - intButtonWidth;
   }
+  // Width
+  textPolyfill[16] = textButtonLowWidth;
+  textPolyfill[17] = textButtonHighWidth;
+  // Height
+  textPolyfill[18] = 30;
+  textPolyfill[19] = 0;
   //textBorder[16] = windowLowWidth - 50 - 50; //windowLowWidth - intButtonX - intButtonWidth
   textBorder[16] = textButtonLowWidth;
   textBorder[17] = textButtonHighWidth;
@@ -758,31 +826,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   textBorder[18] = 30;
   textBorder[19] = 0;
 
-
-
-
-  // 5.) opcode 45 (openFont) -> 55 -> 76 (imageText8) screen text input
-  // todo
-
-
-
-
-
-
-
-
   // 5.) Button text opcode 45 (openFont) -> 55 -> 76 (imageText8)
-  // Opcode 45 - button fontid
-  int gcIDTwo = 1;
-  int gcIDThree = 2;
-
   unsigned char buttonFont[44];
   buttonFont[0] = 45;
   buttonFont[1] = 0;
   buttonFont[2] = 11;
   buttonFont[3] = 0;
   // fontID
-  buttonFont[4] = gcID.one + gcIDThree; //three?
+  buttonFont[4] = gcID.one + gcIDThree;
   buttonFont[5] = gcID.two;
   buttonFont[6] = gcID.three;
   buttonFont[7] = gcID.four;
@@ -1060,6 +1111,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // Opcode 76 is specified in the 'buttonBorder' loop to include XY coordiantes, text, and the rest of the packet integers.
   unsigned char buttonText[numberButtons][buttonElements];
   unsigned char buttonTextOne[41][buttonElements];
+  // opcode 67 and 70 for polygon border and polygon fill.
+  unsigned char buttonBorder[numberButtons][buttonElements];
+  unsigned char buttonPolyfill[numberButtons][buttonElements];
 
   // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
   unsigned char buttonBorderXXYY[80];
@@ -1075,6 +1129,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       // Opcode 76 - text
       buttonText[i][12] = intButtonXPlus + (intButtonWidth / 2) - 6;
       buttonText[i][13] = 0;
+      // Opcode 70 - polygon fill.
+      buttonPolyfill[i][12] = intButtonXPlus;
+      buttonPolyfill[i][13] = 0;
     }
     else {
       // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
@@ -1089,6 +1146,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       // Opcode 76 - text
       buttonText[i][12] = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
       buttonText[i][13] = intButtonXPlusDivision;
+      // Opcode 70 - polygon fill.
+      buttonPolyfill[i][12] = intButtonXPlusRemainder;
+      buttonPolyfill[i][13] = intButtonXPlusDivision;
     }
     // The Y or vertical coordinate is calculated identical to the X.
     if (intButtonY < 256) {
@@ -1097,6 +1157,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       // Opcode 76 - text
       buttonText[i][14] = intButtonY + (intButtonHeight / 2) + 6;
       buttonText[i][15] = 0;
+      // Opcode 70 - polygon fill
+      buttonPolyfill[i][14] = intButtonY;
+      buttonPolyfill[i][15] = 0;
     }
     else {
       intButtonYRemainder = intButtonY % 255;
@@ -1106,6 +1169,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       // Opcode 76 - text
       buttonText[i][14] = intButtonYRemainder + (intButtonHeight / 2) + 6;
       buttonText[i][15] = intButtonYDivision;
+      // Opcode 70 - polygon fill
+      buttonPolyfill[i][14] = intButtonYRemainder;
+      buttonPolyfill[i][15] = intButtonYDivision;
     }
     //printf("low\nx buttonBorder[%d][12]: %d buttonBorder[%d][13]: %d\n", i, buttonBorder[i][12], i, buttonBorder[i][13]);
     //printf("y buttonBorder[%d][14]: %d buttonBorder[%d][15]: %d\n\n", i, buttonBorder[i][14], i, buttonBorder[i][15]);
@@ -1187,7 +1253,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     buttonText[i][17] = 0;                    // horizontal shift between characters
     buttonText[i][18] = charButtonText[i-1];  // The text strings (STRING8).
     buttonText[i][19] = 0;
-
+    // Opcode 70 'polybuttonPolyfill'
+    buttonPolyfill[i][0] = 70;             // polyFillRectangle
+    buttonPolyfill[i][1] = 0;
+    buttonPolyfill[i][2] = 0b00000101;     // '5' Request length ( n / 4)
+    buttonPolyfill[i][3] = 0;
+    // Target Window ID
+    buttonPolyfill[i][4] = windowID.one;
+    buttonPolyfill[i][5] = windowID.two;
+    buttonPolyfill[i][6] = windowID.three;
+    buttonPolyfill[i][7] = windowID.four;
+    buttonPolyfill[i][8] = gcID.one + gcIDFour;
+    buttonPolyfill[i][9] = gcID.two;
+    buttonPolyfill[i][10] = gcID.three;
+    buttonPolyfill[i][11] = gcID.four;
+    //                12
+    //                13
+    //                14
+    //                15
+    // Width
+    buttonPolyfill[i][16] = intButtonWidth;
+    buttonPolyfill[i][17] = 0;
+    // Height
+    buttonPolyfill[i][18] = intButtonHeight;
+    buttonPolyfill[i][19] = 0;
     // Buttons 0 through 'buttonElement' space is incremented.
     // The last button space is from the edge of the window defined in Opcode 1.
     if (i < buttonElements) {
@@ -1239,9 +1328,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int intGeometryRead = read(sock, geometryRead, sizeof(geometryRead));
   printf("intGeometryRead: %d  geometryRead[0]: %d\n", intGeometryRead, geometryRead[0]);
 
-  // 4) 55 'createGC' - change the rectangle color.
+  // 4) 55 'createGC' - change the polygon border color.
   int createGCWrite = write(sock, createGC, sizeof(createGC));
-
+  // 4) 55 'createGCrectangle' - change the polygon fill color.
+  int createGCRectangleWrite = write(sock, createGCrectangle, sizeof(createGCrectangle));
+  // 4) 55 'createGCtextPolyfill' - change the text input window polygon fill color.
+  int createGCtextPolyfillWrite = write(sock, createGCtextPolyfill, sizeof(createGCtextPolyfill));
   // 4) 45 'buttonFont' -> 55 'buttonGCID' font size or color.
   int buttonFontWrite = write(sock, buttonFont, sizeof(buttonFont));
   int buttonGCIDWrite = write(sock, buttonGCID, sizeof(buttonGCID));
@@ -1285,37 +1377,36 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int textBorderWrite;
   int borderRectangleWrite;
   int buttonTextWrite;
+  int buttonPolyfillWrite;
+  int textPolyfillWrite;
   int j = 0;
   // Opcode 67 button border and 76 button text.
   unsigned char subsetButtonBorder[buttonElements];
   unsigned char subsetButtonText[buttonElements];
+  unsigned char subsetButtonPolyfill[buttonElements];
   i = 1;
-
-
-
-  /*
-   todo
-   Option B (Recommended, faster): Allocate a single large unsigned char buffer, append all the opcodes back-to-back
-   (ensuring each individual opcode is padded to a multiple of 4 bytes), and send them all out using one single write()
-   call. The X11 server will parse them sequentially out of the TCP/Unix stream automatically.
-  */
 
   // Initial 20 button packet arrangement 'write()' when "mapRead[0] == 12'. Occured for no reason then stopped.
   //if (mapRead[0] == 12) {
-  // Input and display box.
+  // Input and display border.
   textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+  // Input and display border.
+  textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
   printf("mapRead[0] == 12 drawing rectangles\n");
   // 6) 67 'borderRectangle' - rectangle outline.
   while (i < numberButtons) {
     j = 0;
     while (j < sizeof(subsetButtonBorder)) {
+      subsetButtonPolyfill[j] = buttonPolyfill[i][j];
       subsetButtonBorder[j] = buttonBorder[i][j];
+
       subsetButtonText[j] = buttonText[i][j];
       //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
       j++;
     }
     //printf("\n");
     borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+    buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
     buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
     i++;
   }
@@ -3770,15 +3861,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       else if (eventCode == 2) {
-        // todo:
-        //
-          // Remove space button repeating characters
-          // Pressing 'Enter' after the '0' and '1' character elements without '=' or '-' resets the character array.
-          // the character goes over the text window to the left and repeats writing over itself
-            // after deleting there is text on the left of the window.
-            // after calculation, 'del' removes the entire string -> probably the history window
-          // starting '0' is removed when the screen resizes and the text is drawn over itself in a small area
-            // decide on the text history location for screensize 0.) and 1.)
         // Physical key matrix index for the X11 server.
         keyInputX11 = responseWindowInput[1];
         //printf("keyInputX11 = %d\n", keyInputX11);
@@ -4181,7 +4263,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         // A more detailed explanation exists for the first 'if' statement.
           // hypothetical not tested until the window and button xy coordinates are expanded to the screen widths
 
-        // todo the calculator template text:
+        // The calculator template text:
         // a  a  a  /
         // 7  8  9  X
         // 4  5  6  -
