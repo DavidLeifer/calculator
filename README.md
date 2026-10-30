@@ -1,109 +1,3 @@
- unsigned char charMultiButtonTextOne[84];
-  // 1
-  charMultiButtonTextOne[0] = '<';
-  charMultiButtonTextOne[1] = '>';
-  charMultiButtonTextOne[2] = ' ';
-  // 2
-  charMultiButtonTextOne[3] = 'r';
-  charMultiButtonTextOne[4] = 'a';
-  charMultiButtonTextOne[5] = 'd';
-  charMultiButtonTextOne[6] = ' ';
-  // 3
-  charMultiButtonTextOne[7] = 's';
-  charMultiButtonTextOne[8] = 'q';
-  charMultiButtonTextOne[9] = 'r';
-  charMultiButtonTextOne[10] = 't';
-  charMultiButtonTextOne[11] = ' ';
-  //4
-  charMultiButtonTextOne[12] = '|';
-  charMultiButtonTextOne[13] = 'x';
-  charMultiButtonTextOne[14] = '|';
-  charMultiButtonTextOne[15] = ' ';
-  //5
-  charMultiButtonTextOne[16] = '(';
-  charMultiButtonTextOne[17] = ')';
-  charMultiButtonTextOne[18] = ' ';
-  //6
-  charMultiButtonTextOne[19] = 'd';
-  charMultiButtonTextOne[20] = 'e';
-  charMultiButtonTextOne[21] = 'l';
-  charMultiButtonTextOne[22] = ' ';
-  //7 8
-  charMultiButtonTextOne[23] = ' ';
-  charMultiButtonTextOne[24] = ' ';
-  //9
-  charMultiButtonTextOne[25] = 's';
-  charMultiButtonTextOne[26] = 'i';
-  charMultiButtonTextOne[27] = 'n';
-  charMultiButtonTextOne[28] = ' ';
-  //10
-  charMultiButtonTextOne[29] = 'c';
-  charMultiButtonTextOne[30] = 'o';
-  charMultiButtonTextOne[31] = 's';
-  charMultiButtonTextOne[32] = ' ';
-  //11
-  charMultiButtonTextOne[33] = 't';
-  charMultiButtonTextOne[34] = 'a';
-  charMultiButtonTextOne[35] = 'n';
-  charMultiButtonTextOne[36] = ' ';
-  //12
-  charMultiButtonTextOne[37] = 'p'; // 41
-  charMultiButtonTextOne[38] = 'i';
-  charMultiButtonTextOne[39] = ' ';
-  // 13
-  charMultiButtonTextOne[40] = ' ';
-  charMultiButtonTextOne[41] = ' ';
-  charMultiButtonTextOne[42] = ' ';
-  charMultiButtonTextOne[43] = ' ';
-  //17
-  charMultiButtonTextOne[44] = 'l';
-  charMultiButtonTextOne[45] = 'n';
-  charMultiButtonTextOne[46] = ' ';
-
-  charMultiButtonTextOne[47] = 'l';
-  charMultiButtonTextOne[48] = 'o';
-  charMultiButtonTextOne[49] = 'g';
-  charMultiButtonTextOne[50] = ' ';
-  // 19
-  charMultiButtonTextOne[51] = '1';
-  charMultiButtonTextOne[52] = '/';
-  charMultiButtonTextOne[53] = 'x';
-  charMultiButtonTextOne[54] = ' ';
-  // 20
-  charMultiButtonTextOne[55] = ' ';
-  // 21
-  charMultiButtonTextOne[56] = ' ';
-  // 22
-  charMultiButtonTextOne[57] = ' ';
-  // 23
-  charMultiButtonTextOne[58] = ' ';
-  charMultiButtonTextOne[59] = ' ';
-  // 25
-  charMultiButtonTextOne[60] = 'e';
-  charMultiButtonTextOne[61] = '^';
-  charMultiButtonTextOne[62] = '2';
-  charMultiButtonTextOne[63] = ' ';
-  // 26
-  charMultiButtonTextOne[64] = 'x';
-  charMultiButtonTextOne[65] = '^';
-  charMultiButtonTextOne[66] = '2';
-  charMultiButtonTextOne[67] = ' ';
-
-  charMultiButtonTextOne[68] = 'x';
-  charMultiButtonTextOne[69] = '^';
-  charMultiButtonTextOne[70] = 'x';
-  charMultiButtonTextOne[71] = ' ';
-
-  charMultiButtonTextOne[72] = '+';
-  charMultiButtonTextOne[73] = '/';
-  charMultiButtonTextOne[74] = '-';
-  charMultiButtonTextOne[75] = ' ';
-
-
-
-
-
-
 # calculator
 
 Calculator written using C and without bitwise operators and integer arrays.
@@ -142,41 +36,86 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 ### Todo:
 
-- Text buttons
+- Math
 
-  - check these loops:
+  - Binary division.
 
-  // 4 * 20 elements since its 2 bytes for 'X' and 2 for 'Y'.
-  unsigned char buttonBorderXXYY[80];
-  while (i < numberButtons) {
+  - Screen size 1.) arithmatic buttons i.e. 'sqrt()', exponents, etc.
 
-    - for these blocks:
+  - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers.
 
- if ((buttonBorder[i][12] + intButtonWidth) > 256) {
-   buttonBorderXDivision = (buttonBorder[i][12] + intButtonWidth) / 256;
-   buttonBorderXRemainder = (buttonBorder[i][12] + intButtonWidth) % 256;
-   buttonBorderX12 = buttonBorderXRemainder;
-   buttonBorderX13 = buttonBorder[i][13] + buttonBorderXDivision;
+  - Include negative calculations and subtraction for '0'.
 
-    - the conditional should probably be greater than 255?
+    - There are decimals randomly in the char array instead of binary.
 
+  - Double check if binary arithmatic can increase from 200 -> 256 otherwise cap at 128. Otherwise arithmatic calculations are from 0-200.
 
+    - Larger numbers are reprsented by small numbers in an array using a maximum size i.e. 256 or 128 and is called arbitrary-precision arithmatic or 'bignum arithmatic'.
 
-- Text input window.
+    - Internet also calls this 'Horner's method' and uses base-200 for the example:
 
-  - larger display/history
+```
+//             250,678 / 200 = 1,253 remainder (%) = 78  (200^0)
+//                             1,253 / 200 = 6 (%) = 53  (200^1)
+//                                 6 < 200         = 6   (200^2)
+//
+//                                                 = [ 6, 53, 78] < - the 'char[]' to store the number
+//           - Reconstruct:
+//                                                   6 X (200^2) = 6  X 40,000 = 240,000
+//                                                  53 X (200^1) = 53 X 200    = 10,600
+//                                                  78 X (200^0) = 78 X 1      = 78
+//                                                                             = 250,678
+//
+//           - Since division using 200 is a nested loop with longer time complexity, divide by 256 (2^8)
+//             where the division step is O(n) since it's a power of two
+//
+```
+
+- GUI issues
+
+  - Text buttons - 'screenCheckZero' multiple characters don't resize with the window.
+
+  - Remove space button and off button mouse click repeating characters
+
+  - Pressing 'Enter' after the '0' and '1' character elements without '=' or '-' resets the character array.
+
+  - initial screensize '0' and 'eventCode == 12' buttons are off by several coordinates
+
+  - minor todo
+
+    - continuous mouse coordiantes based on event to verify border values.
+
+    - 'errorCode == 12' succeeds within 1 or 2. Should probably use a 'iteration' counter.
+
+    - Google AI suggested this method to reduce memory but would probably crash now since theres several 'write()':
+
+      - Allocate a single large unsigned char buffer, append all the opcodes back-to-back (ensuring each individual opcode is padded to a multiple of 4 bytes), and send them all out using one single write() call. The X11 server will parse them sequentially out of the TCP/Unix stream automatically and is supposedly faster.
+
+- GUI features
+
+  - Change the non-decimal button color and '=' button color
+
+  - Text input window.
+
+    - larger display/history
+
+      - The character goes over the text window to the left and repeats writing over itself and after deleting there is text on the left of the window.
 
     - history window (temporarily extend text input window)
 
-- Binary division.
+      - After calculation, 'del' removes the entire string -> move to the history window
 
-- Replace button polygons with polylines.
+      - Starting '0' is removed when the screen resizes and the text is drawn over itself in a small area.
 
-  - Rounded corners that increase in size with use to mimic the passage of time.
+  - Replace button polygons with polylines.
 
-- Disable window manager and get the device's screen dimensions.
+    - Rounded corners that increase in size with use to mimic the passage of time.
 
-  - Make an 'x' and minimize button to close the program.
+  - Disable window manager and get the device's screen dimensions.
+
+    - Make an 'x' and minimize button to close the program.
+
+  - Click text input window to insert number - the coordinates of the text, the 'keyInputIterator' value for the 'charKeyInput[]'.
 
 ### Index
 
@@ -341,6 +280,14 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //
     ```
 
+- Screensize 0.)
+
+![Screensize zero](./ScreenSizeZero.png)
+
+- Screensize 1.)
+
+![Screensize one](./ScreenSizeOne-1.png)
+
   - Button input explanation 'eventCode == 4' and 'eventCode == 6'.
 
     ```
@@ -501,5 +448,4 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       // Redraw all buttons when not hovered.
     ```
 
-
-
+- There are more details in "./src/window.c" at the 'drawWindow()' function.
