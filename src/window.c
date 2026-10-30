@@ -283,8 +283,8 @@ struct fourInt getVisualID(char *readSock, int screenOffset) {
 
 ////////////////////////////////////////////////////
 //
-//    todo - alternate getGCID() for opcode 70 change button fill color - input buttons     -> darker grey
-//    todo - different getGCID() for opcode 70 change button fill color - text input window -> white
+//    todo - change the non-decimal button color
+//    todo - change the '=' button
 //    todo - change button fill on hover and click - mouse left button is held is its own 'eventCode'
 //    todo - text input history - decide on the text history location for screensize 0.) and 1.)
 //    todo - GUI issues
@@ -295,7 +295,7 @@ struct fourInt getVisualID(char *readSock, int screenOffset) {
 //         - After calculation, 'del' removes the entire string -> probably the history window
 //         - Starting '0' is removed when the screen resizes and the text is drawn over itself in a small area
 //    todo - Screen size 1.) arithmatic buttons
-//         - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers
+//    todo - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers
 //    todo - Double check if binary arithmatic can increase from 200 -> 256 otherwise cap at 128
 //         - Include negative calculations and subtraction for '0'
 //         - Larger numbers are reprsented by small numbers in an array using a maximum size i.e. 256 or 128 and
@@ -313,6 +313,9 @@ struct fourInt getVisualID(char *readSock, int screenOffset) {
 //                                                                             = 250,678
 //
 //           - Since division using 200 is a nested loop with longer time complexity, divide by 256 (2^8) where the division step is O(n) since it's a power of 2.
+//
+//    todo - initial screensize '0' and 'eventCode == 12' buttons are off by several coordinates
+//    todo - click text input window to insert number - the coordinates of the text, the 'keyInputIterator' value for the 'charKeyInput[]'.
 //
 //    minor todo - continuous mouse coordiantes based on event
 //                 to verify border values.
@@ -493,9 +496,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   changeWindowAttributes[9] = 0b00001000;     // 8 CWBorderPixel - na
   changeWindowAttributes[10] = 0;
   changeWindowAttributes[11] = 0;
-  changeWindowAttributes[12] = 0b11011100;    // B  Background color.
-  changeWindowAttributes[13] = 0b11011100;    // G
-  changeWindowAttributes[14] = 0b11011100;    // R
+  changeWindowAttributes[12] = 225;    // B  Background color.
+  changeWindowAttributes[13] = 225;    // G
+  changeWindowAttributes[14] = 225;    // R
   changeWindowAttributes[15] = 0;             //
   // Input Value List - The Event Mask (4 bytes, Little-Endian)
   // KeyPress + KeyRelease + ButtonPress + ButtonRelease + PointerMotion
@@ -584,6 +587,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int gcIDFour = 3;
   // 'textPolyfill'
   int gcIDFive = 4;
+  // 'textPolyfill'
+  int gcIDSix = 5;
 
   // 4) opcode 55 color for 'buttonPolyfill'
   unsigned char createGCrectangle[20];
@@ -605,12 +610,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   createGCrectangle[14] = 0;
   createGCrectangle[15] = 0;
   // BGR color
-  createGCrectangle[16] = 169;
-  createGCrectangle[17] = 169;
-  createGCrectangle[18] = 169;
+  createGCrectangle[16] = 200;
+  createGCrectangle[17] = 200;
+  createGCrectangle[18] = 200;
   createGCrectangle[19] = 0;
 
-  // 4) opcode 55 text input window 'buttonPolyfill'
+  // 4) opcode 55 color for the text input window.
     // this is repreated from the border color but is left in just in case.
   unsigned char createGCtextPolyfill[20];
   createGCtextPolyfill[0] = 55; // createGCtextPolyfill
@@ -635,6 +640,31 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   createGCtextPolyfill[17] = 255;
   createGCtextPolyfill[18] = 255;
   createGCtextPolyfill[19] = 0;
+
+  // 4) opcode 55 color for the hover button color change when 'eventCode == 6'.
+  unsigned char createGCHover[20];
+  createGCHover[0] = 55; // createGCHover
+  createGCHover[1] = 0;
+  createGCHover[2] = 5; // Bytes 2-3: Request length in 4-byte units (24 bytes / 4 = 5)
+  createGCHover[3] = 0;
+  createGCHover[4] = gcID.one + gcIDSix;
+  createGCHover[5] = gcID.two;
+  createGCHover[6] = gcID.three;
+  createGCHover[7] = gcID.four;
+  createGCHover[8] = windowID.one;
+  createGCHover[9] = windowID.two;
+  createGCHover[10] = windowID.three;
+  createGCHover[11] = windowID.four;
+  // Bytes 12-15: Value Mask (Bit 2 is Foreground attribute -> 0x00000004)
+  createGCHover[12] = 4;
+  createGCHover[13] = 0;
+  createGCHover[14] = 0;
+  createGCHover[15] = 0;
+  // BGR color
+  createGCHover[16] = 175;
+  createGCHover[17] = 175;
+  createGCHover[18] = 175;
+  createGCHover[19] = 0;
 
   // 5) Construct the MapWindow packet (Opcode 8)
   unsigned char mapWindowBuffer[8];
@@ -1334,6 +1364,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int createGCRectangleWrite = write(sock, createGCrectangle, sizeof(createGCrectangle));
   // 4) 55 'createGCtextPolyfill' - change the text input window polygon fill color.
   int createGCtextPolyfillWrite = write(sock, createGCtextPolyfill, sizeof(createGCtextPolyfill));
+  // 4) 55 'createGCHover' - change the button polygon fill color.
+  int createGCHoverWrite = write(sock, createGCHover, sizeof(createGCHover));
   // 4) 45 'buttonFont' -> 55 'buttonGCID' font size or color.
   int buttonFontWrite = write(sock, buttonFont, sizeof(buttonFont));
   int buttonGCIDWrite = write(sock, buttonGCID, sizeof(buttonGCID));
@@ -1390,7 +1422,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   //if (mapRead[0] == 12) {
   // Input and display border.
   textBorderWrite = write(sock, textBorder, sizeof(textBorder));
-  // Input and display border.
+  // Input and display fill.
   textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
   printf("mapRead[0] == 12 drawing rectangles\n");
   // 6) 67 'borderRectangle' - rectangle outline.
@@ -1399,7 +1431,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     while (j < sizeof(subsetButtonBorder)) {
       subsetButtonPolyfill[j] = buttonPolyfill[i][j];
       subsetButtonBorder[j] = buttonBorder[i][j];
-
       subsetButtonText[j] = buttonText[i][j];
       //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
       j++;
@@ -1556,6 +1587,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
 
   unsigned char buttonBorderXXYYOne[160];            // 4 (k, k+1, k+2, etc.) measurements X 40 'numberButtons'.
   unsigned char buttonBorderOne[41][buttonElements]; // 40 buttons + 1.
+  unsigned char buttonPolyfillOne[41][buttonElements];
 
   // Convert decimal to binary 'int' and use the 'bit shifting shortcut' to find the width divided by the
   // number of button columns (4) ignoring the remainders. Has to be powers of '2'. Time complexity is O(1).
@@ -1591,7 +1623,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int buttonTextOne12XIncrementor = 10; // 5
   int charMultiButtonTextOneCheck = 0;
 
-    // // 'write()' the 'keyInput' to the user input window using
+  // // 'write()' the 'keyInput' to the user input window using
   // The initial user input window text '0'
   int keyInputX11;
   char *charKeyInput = malloc(13 * sizeof(char));
@@ -1631,7 +1663,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   keyInputText[17] = 0;                    // horizontal shift between characters
   keyInputText[18] = charKeyInput[0];  // The text strings (STRING8).
   keyInputText[19] = 0;
+
   int keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+
+  int previousJ = 0;
 
   if (geometryRead[0] == 1) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
@@ -1712,6 +1747,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         clearArea[15] = geometryRead[19];
         // Clear the window with opcode 61.
         clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+
         // screenCheckTwo = 0; // <- todo
         screenCheckOne = 0;    // <- not used for button graphic packets, only mouse click feedback.
         screenCheckZero = 0;   // <- used in both button graphics and mouse click feedback.
@@ -1937,8 +1973,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // Each int coordinate is represented with two sequential bytes in the char[].
             // The X or horizontal coordinate.
             if (intButtonXPlus < 256) {
+              // Opcode 67 - button polyline.
               buttonBorder[i][12] = intButtonXPlus;
               buttonBorder[i][13] = 0;
+              // Opcode 70 - button polygon fill.
+              buttonPolyfill[i][12] = intButtonXPlus;
+              buttonPolyfill[i][13] = 0;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
@@ -1955,12 +1995,17 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // If the incrementing 'intButtonXPlus' exceeds 256, it overflows to the next element using division.
               // i.e. buttonBorder[i][12] = 'value'; // below 256
               //      buttonBorder[i][13] = 'value' * 256;
+              // Opcode 67 - button polyline.
               intButtonXPlusRemainder = intButtonXPlus % 256;
               intButtonXPlusDivision = intButtonXPlus / 256;
               //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              // Opcode 67 - button polyline.
               buttonBorder[i][12] = intButtonXPlusRemainder;
               buttonBorder[i][13] = intButtonXPlusDivision;
+              // Opcode 70 - button polygon fill.
+              buttonPolyfill[i][12] = intButtonXPlusRemainder;
+              buttonPolyfill[i][13] = intButtonXPlusDivision;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
@@ -1975,8 +2020,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
+              // Opcode 67 - button polyline.
               buttonBorder[i][14] = intButtonY;
               buttonBorder[i][15] = 0;
+              // Opcode 70 - button polygon fill.
+              buttonPolyfill[i][14] = intButtonY;
+              buttonPolyfill[i][15] = 0;
               // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
               if (buttonText1415 > 255) {
@@ -1991,8 +2040,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             else {
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
+              // Opcode 67 - button polyline.
               buttonBorder[i][14] = intButtonYRemainder;
               buttonBorder[i][15] = intButtonYDivision;
+              // Opcode 70 - button polygon fill.
+              buttonPolyfill[i][14] = intButtonYRemainder;
+              buttonPolyfill[i][15] = intButtonYDivision;
               // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
               if (buttonText1415 > 255) {
@@ -2043,6 +2096,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonBorderXXYY[k + 3] = buttonBorderY15;
             //printf("y buttonBorderXXYY[%d+2]: %d buttonBorderXXYY[%d+3]: %d\n\n", k, buttonBorderXXYY[k+2], k, buttonBorderXXYY[k+3]);
             // Assign default values from 0-19 excluding 12-15 since those were previously calculated.
+            // Opcode 67 button polyline.
             buttonBorder[i][0] = 67;
             buttonBorder[i][1] = 0;
             buttonBorder[i][2] = 0b00000101;       // '5' Request length ( n / 4)
@@ -2063,6 +2117,31 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonBorder[i][17] = 0;
             buttonBorder[i][18] = intButtonHeight;
             buttonBorder[i][19] = 0;
+            // Opcode 70 button polygon fill.
+            buttonPolyfill[i][0] = 70;             // polyFillRectangle
+            buttonPolyfill[i][1] = 0;
+            buttonPolyfill[i][2] = 0b00000101;     // '5' Request length ( n / 4)
+            buttonPolyfill[i][3] = 0;
+            // Target Window ID
+            buttonPolyfill[i][4] = windowID.one;
+            buttonPolyfill[i][5] = windowID.two;
+            buttonPolyfill[i][6] = windowID.three;
+            buttonPolyfill[i][7] = windowID.four;
+            buttonPolyfill[i][8] = gcID.one + gcIDFour;
+            buttonPolyfill[i][9] = gcID.two;
+            buttonPolyfill[i][10] = gcID.three;
+            buttonPolyfill[i][11] = gcID.four;
+            //                12
+            //                13
+            //                14
+            //                15
+            // Width
+            buttonPolyfill[i][16] = intButtonWidth;
+            buttonPolyfill[i][17] = 0;
+            // Height
+            buttonPolyfill[i][18] = intButtonHeight;
+            buttonPolyfill[i][19] = 0;
+
             // Buttons 0 through 'buttonElement' space is incremented.
             // The last button space is from the edge of the window defined in Opcode 1.
             if (i < buttonElements) {
@@ -2132,30 +2211,33 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           textBorder[16] = textButtonLowWidth;
           textBorder[17] = textButtonHighWidth;
           textBorderWrite = write(sock, textBorder, sizeof(textBorder));
-
-
+          // Opcode 70 input and display fill.
+          textPolyfill[16] = textButtonLowWidth;
+          textPolyfill[17] = textButtonHighWidth;
+          textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
           //printf("i: %d  buttonText12XComparision: %d     buttonText[j][13]: %d    12\n", i, buttonText12XComparision, buttonText[j][13]);
           //printf("           subsetButtonText[12]: %d  subsetButtonText[13]: %d    12\n", subsetButtonText[12], subsetButtonText[13]);
-
-
           // Button borders and button text with one character 'write()'.
           j = 0;
           i = 1;
           while (i < numberButtons) {
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
+              // Opcode 67, 70, 76.
               subsetButtonBorder[j] = buttonBorder[i][j];
+              subsetButtonPolyfill[j] = buttonPolyfill[i][j];
               subsetButtonText[j] = buttonText[i][j];
               //printf("subsetButtonText[j] %d      12\n", subsetButtonText[j]);
               //printf("subsetButtonBorder[%d][%d]: %d\n", i, j, subsetButtonBorder[j]);
               j++;
             }
             //printf("\n");
+            // Opcode 67, 70, 76.
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
             buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
-
           // Multiple characters for buttons 1 and 2 are written through resizing the x coordinate.
           buttonText12XStartCoordinate = 0;
           // The space between characters.
@@ -2164,7 +2246,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           i = 1;
           // Increments characters in 'charMultiButtonText'.
           j = 0;
-          int charMultiButtonTextCheck = 0;
+          charMultiButtonTextCheck = 0;
           while (i < 3) {
             // The first character's x coordinate based on the middle of the button 'buttonText[i][12]'.
             //                                    middle     +         i.e. -5
@@ -2210,6 +2292,48 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             //printf("  new button\n");
             i++;
           }
+          // 'write()' 'charKeyInput' when the screen is reset.
+          // Space between characters.
+          j = 10;
+          // The starting offset is subtracted from the coordinates for the first character and
+          // is the number of characters in the array 'charKeyInput[intKeyInputIterator]' multiplied
+          // by the space between characters 'j'.
+          // If the only character is '0', there is more padding.
+          if (intKeyInputIterator == 0 && charKeyInput[intKeyInputIterator] == '0') {
+            k = (j * (intKeyInputIterator + 1));
+          }
+          // Otherwise the loop tries to 'write()' the null-terminator.
+          else {
+            k = (j * (intKeyInputIterator));
+          }
+          i = 0;
+          while (charKeyInput[i] != '\0') {
+            //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
+            // Overflow for the x coordinate.
+            // '-15' is an arbitrary number to make the text fit in the box.
+            if ( ((textBorder[12] - 15 + textBorder[16] - k) + j ) > 255) {
+              // (low X coordinate - 15 (padding) + low width + 'j' for space) - 255
+              keyInputText[12] = ( (textBorder[12] - 15 + textBorder[16] - k) + j) - 255;
+              // (high X coordiante + high width) + 1 (the larger overflow represents '255').
+              keyInputText[13] = textBorder[13] + textBorder[17] + 1;
+            }
+            else {
+              // low X coordinate - 15 (padding) + low width + 'j' for space
+              keyInputText[12] = (textBorder[12] - 15 + textBorder[16] - k) + j;
+              // high X coordiante + high width
+              keyInputText[13] = textBorder[13] + textBorder[17];
+            }
+            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+            // The text string.
+            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
+            keyInputText[18] = charKeyInput[i];
+            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            i++;
+            // Space incrementer.
+            j = j + 10;
+          }
+          // Increments for the next character in the input window.
+          //intKeyInputIterator++;
         }
         // Resize the buttons to 1.)
         else if (screenCheckWidthOne == 1) {
@@ -2389,8 +2513,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // Each int coordinate is represented with two sequential bytes in the char[].
             // The X or horizontal coordinate.
             if (intButtonXPlus < 256) {
+              // Opcode 67 - polyline fill.
               buttonBorderOne[i][12] = intButtonXPlus;
               buttonBorderOne[i][13] = 0;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][12] = intButtonXPlus;
+              buttonPolyfillOne[i][13] = 0;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
@@ -2411,8 +2539,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               intButtonXPlusDivision = intButtonXPlus / 256;
               //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              // Opcode 67 - polylien fill.
               buttonBorderOne[i][12] = intButtonXPlusRemainder;
               buttonBorderOne[i][13] = intButtonXPlusDivision;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][12] = intButtonXPlusRemainder;
+              buttonPolyfillOne[i][13] = intButtonXPlusDivision;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
@@ -2427,8 +2559,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
+              // Opcode 67 - polyline fill.
               buttonBorderOne[i][14] = intButtonY;
               buttonBorderOne[i][15] = 0;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][14] = intButtonY;
+              buttonPolyfillOne[i][15] = 0;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
@@ -2444,8 +2580,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             else {
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
+              // Opcode 67 - polyline fill.
               buttonBorderOne[i][14] = intButtonYRemainder;
               buttonBorderOne[i][15] = intButtonYDivision;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][14] = intButtonYRemainder;
+              buttonPolyfillOne[i][15] = intButtonYDivision;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
@@ -2518,6 +2658,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonBorderOne[i][17] = 0;
             buttonBorderOne[i][18] = intButtonHeight;
             buttonBorderOne[i][19] = 0;
+            // Opcode 70 'buttonPolyfillOne'
+            buttonPolyfillOne[i][0] = 70;             // polyFillRectangle
+            buttonPolyfillOne[i][1] = 0;
+            buttonPolyfillOne[i][2] = 0b00000101;     // '5' Request length ( n / 4)
+            buttonPolyfillOne[i][3] = 0;
+            // Target Window ID
+            buttonPolyfillOne[i][4] = windowID.one;
+            buttonPolyfillOne[i][5] = windowID.two;
+            buttonPolyfillOne[i][6] = windowID.three;
+            buttonPolyfillOne[i][7] = windowID.four;
+            buttonPolyfillOne[i][8] = gcID.one + gcIDFour;
+            buttonPolyfillOne[i][9] = gcID.two;
+            buttonPolyfillOne[i][10] = gcID.three;
+            buttonPolyfillOne[i][11] = gcID.four;
+            //                12
+            //                13
+            //                14
+            //                15
+            // Width
+            buttonPolyfillOne[i][16] = intButtonWidth;
+            buttonPolyfillOne[i][17] = 0;
+            // Height
+            buttonPolyfillOne[i][18] = intButtonHeight;
+            buttonPolyfillOne[i][19] = 0;
             // Opcode 76 (imageText8) write text
             buttonTextOne[i][0] = 74; // 76?
             buttonTextOne[i][1] = 0;  // 1?
@@ -2610,18 +2774,26 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           textBorder[16] = textButtonLowWidth;
           textBorder[17] = textButtonHighWidth;
           textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+          // Opcode 70 - input and display fill.
+          textPolyfill[16] = textButtonLowWidth;
+          textPolyfill[17] = textButtonHighWidth;
+          textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
           j = 0;
           i = 1;
           while (i < numberButtons) {
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
+              // Opcode 67, 70, 76.
               subsetButtonBorder[j] = buttonBorderOne[i][j];
+              subsetButtonPolyfill[j] = buttonPolyfillOne[i][j];
               subsetButtonText[j] = buttonTextOne[i][j];
               //printf("subsetButtonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
               j++;
             }
             //printf("\n");
+            // Opcode 67, 70, 76.
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
             buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
@@ -2758,6 +2930,48 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               k = 3;
             }
           }
+          // 'write()' 'charKeyInput' when the screen is reset.
+          // Space between characters.
+          j = 10;
+          // The starting offset is subtracted from the coordinates for the first character and
+          // is the number of characters in the array 'charKeyInput[intKeyInputIterator]' multiplied
+          // by the space between characters 'j'.
+          // If the only character is '0', there is more padding.
+          if (intKeyInputIterator == 0 && charKeyInput[intKeyInputIterator] == '0') {
+            k = (j * (intKeyInputIterator + 1));
+          }
+          // Otherwise the loop tries to 'write()' the null-terminator.
+          else {
+            k = (j * (intKeyInputIterator));
+          }
+          i = 0;
+          while (charKeyInput[i] != '\0') {
+            //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
+            // Overflow for the x coordinate.
+            // '-15' is an arbitrary number to make the text fit in the box.
+            if ( ((textBorder[12] - 15 + textBorder[16] - k) + j ) > 255) {
+              // (low X coordinate - 15 (padding) + low width + 'j' for space) - 255
+              keyInputText[12] = ( (textBorder[12] - 15 + textBorder[16] - k) + j) - 255;
+              // (high X coordiante + high width) + 1 (the larger overflow represents '255').
+              keyInputText[13] = textBorder[13] + textBorder[17] + 1;
+            }
+            else {
+              // low X coordinate - 15 (padding) + low width + 'j' for space
+              keyInputText[12] = (textBorder[12] - 15 + textBorder[16] - k) + j;
+              // high X coordiante + high width
+              keyInputText[13] = textBorder[13] + textBorder[17];
+            }
+            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+            // The text string.
+            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
+            keyInputText[18] = charKeyInput[i];
+            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            i++;
+            // Space incrementer.
+            j = j + 10;
+          }
+          // Increments for the next character in the input window.
+          //intKeyInputIterator++;
         }
         // Switch to 2.) screen
         else if (screenCheckWidthTwo == 1) {
@@ -3013,8 +3227,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // Each int coordinate is represented with two sequential bytes in the char[].
             // The X or horizontal coordinate.
             if (intButtonXPlus < 256) {
+              // Opcode '67' - button polyline
               buttonBorder[i][12] = intButtonXPlus;
               buttonBorder[i][13] = 0;
+              // Opcode '70' - button polygon
+              buttonPolyfill[i][12] = intButtonXPlus;
+              buttonPolyfill[i][13] = 0;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
@@ -3035,8 +3253,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               intButtonXPlusDivision = intButtonXPlus / 256;
               //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              // Opcode '67' - button polyline
               buttonBorder[i][12] = intButtonXPlusRemainder;
               buttonBorder[i][13] = intButtonXPlusDivision;
+              // Opcode '70' - button polygon
+              buttonPolyfill[i][12] = intButtonXPlusRemainder;
+              buttonPolyfill[i][13] = intButtonXPlusDivision;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
@@ -3051,8 +3273,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
+              // Opcode '67' - button polyline
               buttonBorder[i][14] = intButtonY;
               buttonBorder[i][15] = 0;
+              // Opcode '70' - button polygon
+              buttonPolyfill[i][14] = intButtonY;
+              buttonPolyfill[i][15] = 0;
               // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
               if (buttonText1415 > 255) {
@@ -3065,10 +3291,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               }
             }
             else {
+              // Opcode '67' - button polyline
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
               buttonBorder[i][14] = intButtonYRemainder;
               buttonBorder[i][15] = intButtonYDivision;
+              // Opcode '70' - button polygon
+              buttonPolyfill[i][14] = intButtonYRemainder;
+              buttonPolyfill[i][15] = intButtonYDivision;
               // Opcode 76 - button text. Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
               if (buttonText1415 > 255) {
@@ -3139,7 +3369,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonBorder[i][17] = 0;
             buttonBorder[i][18] = intButtonHeight;
             buttonBorder[i][19] = 0;
-
+            // Opcode 70 'buttonPolyfill'
+            buttonPolyfill[i][0] = 70;             // polyFillRectangle
+            buttonPolyfill[i][1] = 0;
+            buttonPolyfill[i][2] = 0b00000101;     // '5' Request length ( n / 4)
+            buttonPolyfill[i][3] = 0;
+            // Target Window ID
+            buttonPolyfill[i][4] = windowID.one;
+            buttonPolyfill[i][5] = windowID.two;
+            buttonPolyfill[i][6] = windowID.three;
+            buttonPolyfill[i][7] = windowID.four;
+            buttonPolyfill[i][8] = gcID.one + gcIDFour;
+            buttonPolyfill[i][9] = gcID.two;
+            buttonPolyfill[i][10] = gcID.three;
+            buttonPolyfill[i][11] = gcID.four;
+            //                12
+            //                13
+            //                14
+            //                15
+            // Width
+            buttonPolyfill[i][16] = intButtonWidth;
+            buttonPolyfill[i][17] = 0;
+            // Height
+            buttonPolyfill[i][18] = intButtonHeight;
+            buttonPolyfill[i][19] = 0;
             // sci button max width = 760
             //            125 = 100(*4)          ( 100 + 10) ;
             // intButtonXPlus = intButtonXPlus + buttonXSpace;
@@ -3166,6 +3419,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           // y - The 20 buttons row uses 'intButtonY' = 100
           textBorder[14] = 50;
           textBorder[15] = 0;
+          // 6) 70 polygon fill.
+          textPolyfill[12] = intButtonX;
+          textPolyfill[13] = 0;
+          textPolyfill[14] = 50;
+          textPolyfill[15] = 0;
+
           //windowLowWidth;      74
           //windowHighWidth;      1
           intButtonColumnWidth = intButtonWidth * buttonColumns;
@@ -3223,7 +3482,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           //textBorder[18] = 30;
           //textBorder[19] = 0;
           textBorderWrite = write(sock, textBorder, sizeof(textBorder));
-
+          // Input and display fill.
+          textPolyfill[16] = textButtonLowWidth;
+          textPolyfill[17] = textButtonHighWidth;
+          textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
           // Button borders and button text with one character 'write()'.
           j = 0;
           i = 1;
@@ -3231,6 +3493,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
               subsetButtonBorder[j] = buttonBorder[i][j];
+              subsetButtonPolyfill[j] = buttonPolyfill[i][j];
               subsetButtonText[j] = buttonText[i][j];
               //printf("subsetButtonText[j] %d      12\n", subsetButtonText[j]);
               //printf("subsetButtonBorder[%d][%d]: %d\n", i, j, subsetButtonBorder[j]);
@@ -3238,6 +3501,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
             //printf("\n");
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
             buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
@@ -3250,7 +3514,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           i = 1;
           // Increments characters in 'charMultiButtonText'.
           j = 0;
-          int charMultiButtonTextCheck = 0;
+          charMultiButtonTextCheck = 0;
           while (i < 3) {
             // The first character's x coordinate based on the middle of the button 'buttonText[i][12]'.
             //                                    middle     +         i.e. -5
@@ -3296,7 +3560,48 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             //printf("  new button\n");
             i++;
           }
-
+          // 'write()' 'charKeyInput' when the screen is reset.
+          // Space between characters.
+          j = 10;
+          // The starting offset is subtracted from the coordinates for the first character and
+          // is the number of characters in the array 'charKeyInput[intKeyInputIterator]' multiplied
+          // by the space between characters 'j'.
+          // If the only character is '0', there is more padding.
+          if (intKeyInputIterator == 0 && charKeyInput[intKeyInputIterator] == '0') {
+            k = (j * (intKeyInputIterator + 1));
+          }
+          // Otherwise the loop tries to 'write()' the null-terminator.
+          else {
+            k = (j * (intKeyInputIterator));
+          }
+          i = 0;
+          while (charKeyInput[i] != '\0') {
+            //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
+            // Overflow for the x coordinate.
+            // '-15' is an arbitrary number to make the text fit in the box.
+            if ( ((textBorder[12] - 15 + textBorder[16] - k) + j ) > 255) {
+              // (low X coordinate - 15 (padding) + low width + 'j' for space) - 255
+              keyInputText[12] = ( (textBorder[12] - 15 + textBorder[16] - k) + j) - 255;
+              // (high X coordiante + high width) + 1 (the larger overflow represents '255').
+              keyInputText[13] = textBorder[13] + textBorder[17] + 1;
+            }
+            else {
+              // low X coordinate - 15 (padding) + low width + 'j' for space
+              keyInputText[12] = (textBorder[12] - 15 + textBorder[16] - k) + j;
+              // high X coordiante + high width
+              keyInputText[13] = textBorder[13] + textBorder[17];
+            }
+            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+            // The text string.
+            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
+            keyInputText[18] = charKeyInput[i];
+            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            i++;
+            // Space incrementer.
+            j = j + 10;
+          }
+          // Increments for the next character in the input window.
+          //intKeyInputIterator++;
         }
         else if (screenCheckWidthOne == 1) {
           screenCheckOne = 1;
@@ -3478,8 +3783,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // Each int coordinate is represented with two sequential bytes in the char[].
             // The X or horizontal coordinate.
             if (intButtonXPlus < 256) {
+              // Opcode 67 - polyline button.
               buttonBorderOne[i][12] = intButtonXPlus;
               buttonBorderOne[i][13] = 0;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][12] = intButtonXPlus;
+              buttonPolyfillOne[i][13] = 0;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlus + (intButtonWidth / 2) - 6;
@@ -3500,8 +3809,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               intButtonXPlusDivision = intButtonXPlus / 256;
               //printf("intButtonXPlusRemainder %d = intButtonXPlus %d  %  256 \n\n", intButtonXPlusRemainder, intButtonXPlus);
               //printf("intButtonXPlusDivision %d = intButtonXPlus %d  /  256 \n\n", intButtonXPlusDivision, intButtonXPlus);
+              // Opcode 67 - polyline button.
               buttonBorderOne[i][12] = intButtonXPlusRemainder;
               buttonBorderOne[i][13] = intButtonXPlusDivision;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][12] = intButtonXPlusRemainder;
+              buttonPolyfillOne[i][13] = intButtonXPlusDivision;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonWidth'.
               buttonText1213 = intButtonXPlusRemainder + (intButtonWidth / 2) - 6;
@@ -3516,8 +3829,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
             // The Y or vertical coordinate is calculated identical to the X.
             if (intButtonY < 256) {
+              // Opcode 67 - polyline button.
               buttonBorderOne[i][14] = intButtonY;
               buttonBorderOne[i][15] = 0;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][14] = intButtonY;
+              buttonPolyfillOne[i][15] = 0;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonY + (intButtonHeight / 2) + 6;
@@ -3533,8 +3850,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             else {
               intButtonYRemainder = intButtonY % 256;
               intButtonYDivision = intButtonY / 256;
+              // Opcode 67 - polyline button.
               buttonBorderOne[i][14] = intButtonYRemainder;
               buttonBorderOne[i][15] = intButtonYDivision;
+              // Opcode 70 - polygon fill.
+              buttonPolyfillOne[i][14] = intButtonYRemainder;
+              buttonPolyfillOne[i][15] = intButtonYDivision;
               // Opcode 76 - button text - division is a power of two and avoids a nested loop.
               // Overflow since it's adding half the length of the 'intButtonHeight'.
               buttonText1415 = intButtonYRemainder + (intButtonHeight / 2) + 6;
@@ -3628,6 +3949,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             buttonTextOne[i][17] = 0;                    // horizontal shift between characters
             buttonTextOne[i][18] = charButtonTextOne[i-1];  // The text strings (STRING8).
             buttonTextOne[i][19] = 0;
+            // Opcode 70 'buttonPolyfillOne'
+            buttonPolyfillOne[i][0] = 70;             // polyFillRectangle
+            buttonPolyfillOne[i][1] = 0;
+            buttonPolyfillOne[i][2] = 0b00000101;     // '5' Request length ( n / 4)
+            buttonPolyfillOne[i][3] = 0;
+            // Target Window ID
+            buttonPolyfillOne[i][4] = windowID.one;
+            buttonPolyfillOne[i][5] = windowID.two;
+            buttonPolyfillOne[i][6] = windowID.three;
+            buttonPolyfillOne[i][7] = windowID.four;
+            buttonPolyfillOne[i][8] = gcID.one + gcIDFour;
+            buttonPolyfillOne[i][9] = gcID.two;
+            buttonPolyfillOne[i][10] = gcID.three;
+            buttonPolyfillOne[i][11] = gcID.four;
+            //                12
+            //                13
+            //                14
+            //                15
+            // Width
+            buttonPolyfillOne[i][16] = intButtonWidth;
+            buttonPolyfillOne[i][17] = 0;
+            // Height
+            buttonPolyfillOne[i][18] = intButtonHeight;
+            buttonPolyfillOne[i][19] = 0;
             // Buttons 0 through 'numberButtons' space is incremented.
             // The last button space is from the edge of the window defined in Opcode 1.
             if (i < numberButtons) {
@@ -3698,22 +4043,32 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           textBorder[16] = textButtonLowWidth;
           textBorder[17] = textButtonHighWidth;
           textBorderWrite = write(sock, textBorder, sizeof(textBorder));
+          // Opcode 70 - input and display fill.
+          textPolyfill[16] = textButtonLowWidth;
+          textPolyfill[17] = textButtonHighWidth;
+          textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
+
           j = 0;
           i = 1;
           while (i < numberButtons) {
             j = 0;
             while (j < sizeof(subsetButtonBorder)) {
+              // Opcode 67 polyline button, 70 polygon button, 76 button text.
               subsetButtonBorder[j] = buttonBorderOne[i][j];
+              subsetButtonPolyfill[j] = buttonPolyfillOne[i][j];
               subsetButtonText[j] = buttonTextOne[i][j];
               //printf("subsetbuttonBorder[%d][%d]:  %d\n", i, j, subsetButtonBorder[j]);
               j++;
             }
             //printf("\n");
+            // Opcode 67 polyline button, 70 polygon button, 76 button text.
             borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
             buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
             i++;
           }
           // Multiple character per button. 'EventCode == 22'.
+
 
           // 'buttonTextOne12XCountStart' is not incremented.
           //signed char buttonText12XCountStart[2];
@@ -3848,7 +4203,48 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               k = 3;
             }
           }
-
+          // 'write()' 'charKeyInput' when the screen is reset.
+          // Space between characters.
+          j = 10;
+          // The starting offset is subtracted from the coordinates for the first character and
+          // is the number of characters in the array 'charKeyInput[intKeyInputIterator]' multiplied
+          // by the space between characters 'j'.
+          // If the only character is '0', there is more padding.
+          if (intKeyInputIterator == 0 && charKeyInput[intKeyInputIterator] == '0') {
+            k = (j * (intKeyInputIterator + 1));
+          }
+          // Otherwise the loop tries to 'write()' the null-terminator.
+          else {
+            k = (j * (intKeyInputIterator));
+          }
+          i = 0;
+          while (charKeyInput[i] != '\0') {
+            //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
+            // Overflow for the x coordinate.
+            // '-15' is an arbitrary number to make the text fit in the box.
+            if ( ((textBorder[12] - 15 + textBorder[16] - k) + j ) > 255) {
+              // (low X coordinate - 15 (padding) + low width + 'j' for space) - 255
+              keyInputText[12] = ( (textBorder[12] - 15 + textBorder[16] - k) + j) - 255;
+              // (high X coordiante + high width) + 1 (the larger overflow represents '255').
+              keyInputText[13] = textBorder[13] + textBorder[17] + 1;
+            }
+            else {
+              // low X coordinate - 15 (padding) + low width + 'j' for space
+              keyInputText[12] = (textBorder[12] - 15 + textBorder[16] - k) + j;
+              // high X coordiante + high width
+              keyInputText[13] = textBorder[13] + textBorder[17];
+            }
+            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+            // The text string.
+            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
+            keyInputText[18] = charKeyInput[i];
+            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            i++;
+            // Space incrementer.
+            j = j + 10;
+          }
+          // Increments for the next character in the input window.
+          //intKeyInputIterator++;
         }
         // Switch to 2.) screen
         else if (screenCheckWidthTwo == 1) {
@@ -4528,6 +4924,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           }
           j++;
         }        // 'while'    end bracket for the XY coordinate check
+        if (x2LowCheck == 0) {
+          j = 0;
+        }
+        if (y2LowCheck == 0) {
+          j = 0;
+        }
+        if (x2HighCheck == 0) {
+          j = 0;
+        }
+        if (y2HighCheck == 0) {
+          j = 0;
+        }
+        if (x1LowCheck == 0) {
+          j = 0;
+        }
+        if (y1LowCheck == 0) {
+          j = 0;
+        }
+        if (x1HighCheck == 0) {
+          j = 0;
+        }
+        if (y1HighCheck == 0) {
+          j = 0;
+        }
 
         // Screen size 0.) working buttons.
         // working buttons: 'j' = 5-16, 18, 20
@@ -4539,13 +4959,17 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         // <- the character array from 'eventCode == 2' for keyboard input where the calculation is completed and written to the text window.
           // charKeyInput[intKeyInputIterator];
 
-        printf("screenCheckOne: %d\n", screenCheckOne);
         buttonPressCheck = 1;
         printf("j:%d \n", j);
+
         // 'screenCheckZero' 0.) small screen size.
         if (screenCheckZero == 1) {
+
+          if (j == 0) {
+            keyInput = '\0'; // ASCII 0
+          }
           // 'Shift' and '9' or '0' = '(' or ')' <- todo
-          if (j == 1) {
+          else if (j == 1) {
             keyInput = 41;
             //previousKeyInputX11 = 50;
           }
@@ -4866,6 +5290,538 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           keyInputText[15] = textBorder[15];
         }
       }          // 'if'       event code 4 else close
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      else if (eventCode == 6) {
+        // ButtonPress (Mouse click) occurred.
+        // Right handed: 1 = Left Click, 2 = Middle, 3 = Right
+        button = responseWindowInput[1];
+        // '0' button mouse click.
+        // printf("button = %d\n", button);
+        //printf("mouseX = %d\n", mouseX);
+        //printf("mouseY = %d\n", mouseY);
+
+        // Number of buttons when screensize is 1.) or 0.)
+        if (screenCheckOne == 1) {
+          numberButtons = 41;
+        }
+        else {
+          numberButtons = 21;
+        }
+        // Longer explanation with visuals exists above when 'eventCode == 4'.
+
+        // 'j' starts at '1' and is the same as the first packet loop used in the 'write()' step.
+        // Buttons are ordered left to right 1-20 or 1-40 and 'j' is used to write the 'charKeyInput[intKeyInputIterator]' after
+        // the correct button has been determined in the first 'while' loop.
+        j = 1;
+        k = 0;
+        // The check values for the first button.
+        x1LowCheck = 0;
+        y1LowCheck = 0;
+        x1HighCheck = 0;
+        y1HighCheck = 0;
+        x2LowCheck = 0;
+        y2LowCheck = 0;
+        x2HighCheck = 0;
+        y2HighCheck = 0;
+        while (j < numberButtons) {
+          // The check values are reset to '0' each iteration.
+          x1LowCheck = 0;
+          y1LowCheck = 0;
+          x1HighCheck = 0;
+          y1HighCheck = 0;
+          x2LowCheck = 0;
+          y2LowCheck = 0;
+          x2HighCheck = 0;
+          y2HighCheck = 0;
+          // 'k' is used in the high limit for x and y coordinates i.e. 'buttonBorderXXYY[k]', 'buttonBorderXXYY[k+1]', etc.
+          k = (j - 1) * 4;
+          //printf("j: %d  k: %d\n", j,k);
+          //
+          //printf("x1 buttonBorder[j][12]:  %d  x2 buttonBorder[j][13]:  %d\n", buttonBorder[j][12], buttonBorder[j][13]);
+          //printf("y1 buttonBorder[j][14]:  %d  y2 buttonBorder[j][15]:  %d\n", buttonBorder[j][14], buttonBorder[j][15]);
+          //printf("high x1 buttonBorderXXYY[k]:  %d  x2 buttonBorderXXYY[k+1]:  %d\n", buttonBorderXXYY[k], buttonBorderXXYY[k+1]);
+          //printf("high y1 buttonBorderXXYY[k+2]:  %d  y2 buttonBorderXXYY[k+3]:  %d\n", buttonBorderXXYY[k+2], buttonBorderXXYY[k+3]);
+
+          //printf("screenCheckOne: %d\n", screenCheckOne);
+          //printf("screenCheckZero: %d\n", screenCheckZero);
+          // Use the other two 'char[]' 'buttonBorderOne' and 'buttonBorderXXYYOne' since you cant resize regular arrays without using heap memory.
+          if (screenCheckOne == 1) {
+            // x2 low boundary
+            if (responseWindowInput[25] >= buttonBorderOne[j][13]) {
+              x2LowCheck = 1;
+              // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
+              // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
+              // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
+              // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
+              // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
+              if (responseWindowInput[25] == buttonBorderOne[j][13] && responseWindowInput[24] >= buttonBorderOne[j][12]) {
+                x1LowCheck = 1;
+              }
+              else if (responseWindowInput[25] > buttonBorderOne[j][13]) {
+                x1LowCheck = 1;
+              }
+            }
+            // 'y2' low is identical to the above explanation.
+            if (responseWindowInput[27] >= buttonBorderOne[j][15]) {
+              y2LowCheck = 1;
+              if (responseWindowInput[27] == buttonBorderOne[j][15] && responseWindowInput[26] >= buttonBorderOne[j][14]) {
+                y1LowCheck = 1;
+              }
+              else if (responseWindowInput[27] > buttonBorderOne[j][15]) {
+                y1LowCheck = 1;
+              }
+            }
+            // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
+            // x2 high
+            if (responseWindowInput[25] <= buttonBorderXXYYOne[k+1]) {
+              x2HighCheck = 1;
+              if (responseWindowInput[25] == buttonBorderXXYYOne[k+1] && responseWindowInput[24] <= buttonBorderXXYYOne[k]) {
+                x1HighCheck = 1;
+              }
+              else if (responseWindowInput[25] < buttonBorderXXYYOne[k+1]) {
+                x1HighCheck = 1;
+              }
+            }
+            // y2 high
+            if (responseWindowInput[27] <= buttonBorderXXYYOne[k+3]) {
+              y2HighCheck = 1;
+              if (responseWindowInput[27] == buttonBorderXXYYOne[k+3] && responseWindowInput[26] <= buttonBorderXXYYOne[k+2]) {
+                y1HighCheck = 1;
+              }
+              else if (responseWindowInput[27] < buttonBorderXXYYOne[k+3]) {
+                y1HighCheck = 1;
+              }
+            }
+          }
+          // Use the other two 'char[]' 'buttonBorder' and 'buttonBorderXXYY'.
+          else if (screenCheckZero == 1) {
+            // x2 low boundary
+            if (responseWindowInput[25] >= buttonBorder[j][13]) {
+              x2LowCheck = 1;
+              // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
+              // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
+              // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
+              // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
+              // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
+              if (responseWindowInput[25] == buttonBorder[j][13] && responseWindowInput[24] >= buttonBorder[j][12]) {
+                x1LowCheck = 1;
+              }
+              else if (responseWindowInput[25] > buttonBorder[j][13]) {
+                x1LowCheck = 1;
+              }
+            }
+            // 'y2' low is identical to the above explanation.
+            if (responseWindowInput[27] >= buttonBorder[j][15]) {
+              y2LowCheck = 1;
+              if (responseWindowInput[27] == buttonBorder[j][15] && responseWindowInput[26] >= buttonBorder[j][14]) {
+                y1LowCheck = 1;
+              }
+              else if (responseWindowInput[27] > buttonBorder[j][15]) {
+                y1LowCheck = 1;
+              }
+            }
+            // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
+            // x2 high
+            if (responseWindowInput[25] <= buttonBorderXXYY[k+1]) {
+              x2HighCheck = 1;
+              if (responseWindowInput[25] == buttonBorderXXYY[k+1] && responseWindowInput[24] <= buttonBorderXXYY[k]) {
+                x1HighCheck = 1;
+              }
+              else if (responseWindowInput[25] < buttonBorderXXYY[k+1]) {
+                x1HighCheck = 1;
+              }
+            }
+            // Clicking the button returns '0-9' or the other calculator inputs.
+            //
+            // y2 high
+            if (responseWindowInput[27] <= buttonBorderXXYY[k+3]) {
+              y2HighCheck = 1;
+              if (responseWindowInput[27] == buttonBorderXXYY[k+3] && responseWindowInput[26] <= buttonBorderXXYY[k+2]) {
+                y1HighCheck = 1;
+              }
+              else if (responseWindowInput[27] < buttonBorderXXYY[k+3]) {
+                y1HighCheck = 1;
+              }
+            }
+          }
+          //printf("x2LowCheck = %d  y2LowCheck = %d  x2HighCheck = %d  y2HighCheck = %d  ", x2LowCheck, y2LowCheck, x2HighCheck, y2HighCheck);
+          //printf("x1LowCheck = %d  y1LowCheck = %d  x1HighCheck = %d  y1HighCheck = %d\n", x1LowCheck, y1LowCheck, x1HighCheck, y1HighCheck);
+          // If all the checks are true, the appropriate button is used for input.
+          if (x2LowCheck == 1) {
+            if (y2LowCheck == 1) {
+              if (x2HighCheck == 1) {
+                if (y2HighCheck == 1) {
+                  if (x1LowCheck == 1) {
+                    if (y1LowCheck == 1) {
+                      if (x1HighCheck == 1) {
+                        if (y1HighCheck == 1) {
+                          // 'j' is the order of the buttons from left to right.
+                          //printf("button '  %d  '\n", j);
+                          //printf("X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
+                          //printf("X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
+                          //printf("Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
+                          //printf("Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
+                          break;
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          j++;
+        }        // 'while'    end bracket for the XY coordinate check
+        if (x2LowCheck == 0) {
+          j = 0;
+        }
+        if (y2LowCheck == 0) {
+          j = 0;
+        }
+        if (x2HighCheck == 0) {
+          j = 0;
+        }
+        if (y2HighCheck == 0) {
+          j = 0;
+        }
+        if (x1LowCheck == 0) {
+          j = 0;
+        }
+        if (y1LowCheck == 0) {
+          j = 0;
+        }
+        if (x1HighCheck == 0) {
+          j = 0;
+        }
+        if (y1HighCheck == 0) {
+          j = 0;
+        }
+
+        // Screen size 0.) working buttons.
+        // working buttons: 'j' = 5-16, 18, 20
+          // 7 8 9 *  |  5  6  7  8
+          // 4 5 6 -  |  9  10 11 12
+          // 1 2 3 +  |  13 14 15 16
+          // o 0 o =  |  o  18 o  20
+
+        // <- the character array from 'eventCode == 2' for keyboard input where the calculation is completed and written to the text window.
+          // charKeyInput[intKeyInputIterator];
+
+        // Use the button coordinates and dimensions to change the button color to 'gcID.one + gcIDSix' when hovered over.
+        subsetButtonPolyfill[buttonElements];
+        subsetButtonPolyfill[0] = 70;
+        subsetButtonPolyfill[1] = 0;
+        subsetButtonPolyfill[2] = 5;
+        subsetButtonPolyfill[3] = 0;
+
+        subsetButtonPolyfill[4] = windowID.one;
+        subsetButtonPolyfill[5] = windowID.two;
+        subsetButtonPolyfill[6] = windowID.three;
+        subsetButtonPolyfill[7] = windowID.four;
+
+        //                  [8]
+        subsetButtonPolyfill[9] = gcID.two;
+        subsetButtonPolyfill[10] = gcID.three;
+        subsetButtonPolyfill[11] = gcID.four;
+
+        printf("j: %d\n", j);
+        // Screen size 0.)
+        if (screenCheckZero == 1) {
+            // might switch these two around i.e.:
+            // if (j == 0) {   ...reset the buttons to default color
+          // Reset the buttons to the original when 'j' is not a button '0'.
+          // This occurs when the mouse is moved off a button to '0' space.
+          if (j == 0) {
+            // Plus and minus 4 from the last pressed button 'secondPreviousJ'.
+            // Resets 8 or 16 buttons instead of all 20 or 40. i.e. previous row and current row starting at the button.
+            // Sometimes only one 'while(1)' iteration captures a non button hover '0' and less buttons need to
+            // be reset, otherwise an excessive amount of buttons are highlighted before being reset to the original color.
+            if (j == 0 && previousJ > 0) {
+              subsetButtonPolyfill[8] = gcID.one + gcIDFour;
+              k = previousJ - buttonColumns;
+              // 'k' is '1' if the subtraction step is below '1'.
+              if (k <= 0) {
+                k = 1;
+              }
+              m = previousJ + buttonColumns;
+              // 'm' is 'numberButtons' if the addition step is above the number of buttons.
+              if (m > numberButtons) {
+                m = numberButtons - 1;
+              }
+            }
+            // Reset all 'numberButtons' (20 or 40) if the mouse hovers off the buttons for two iterations.
+            else if (j == 0 && previousJ == 0) {
+              subsetButtonPolyfill[8] = gcID.one + gcIDFour;
+              k = 1;
+              m = numberButtons - 1;
+            }
+            // Change the buttons (+-4 or all 20 or 40) back to the original color if the mouse hovers outside of the coordinates.
+            while (k < (m + 1)) {
+              subsetButtonPolyfill[12] = buttonPolyfill[k][12];
+              subsetButtonPolyfill[13] = buttonPolyfill[k][13];
+              subsetButtonPolyfill[14] = buttonPolyfill[k][14];
+              subsetButtonPolyfill[15] = buttonPolyfill[k][15];
+              subsetButtonPolyfill[16] = buttonPolyfill[k][16];
+              subsetButtonPolyfill[17] = buttonPolyfill[k][17];
+              subsetButtonPolyfill[18] = buttonPolyfill[k][18];
+              subsetButtonPolyfill[19] = buttonPolyfill[k][19];
+              borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+              buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
+              // 'write()' text for buttons with multiple characters. <- change this when 'screenCheckOne == 1'.
+              if (k == 1 || k == 2) {
+                // Multiple characters for buttons 1 and 2 are written through resizing the x coordinate.
+                buttonText12XStartCoordinate = 0;
+                // The space between characters.
+                buttonText12XIncrementor = 10; // 5
+                charMultiButtonTextCheck = 0;
+                // The first character's x coordinate based on the middle of the button 'buttonText[k][12]'.
+                //                                    middle     +         i.e. -5
+                //printf("  buttonText12XCountStart[k-1]  %d\n", buttonText12XCountStart[k-1]);
+                buttonText12XStartCoordinate = buttonText[k][12] + buttonText12XCountStart[k-1];
+                //printf("buttonText12XStartCoordinate: %d\n", buttonText12XStartCoordinate);
+                // Increments characters in 'charMultiButtonText'.
+                if (k == 1) {
+                  i = 0;
+                }
+                if (k == 2) {
+                  i = 3;
+                }
+                while (i < sizeof(charMultiButtonText)) {
+                  // Button characters > 1 from 'charMultiButtonText[k]' use the ' ' (ascii 32) space character as a
+                  // seperator and the next button's first character is reset 'buttonText12XStartCoordinate'.
+                  if (charMultiButtonText[i] == ' ') {
+                    // Skips the ' ' space word delimiter.
+                    i++;
+                    break;
+                  }
+                  // X coordinate
+                  subsetButtonText[12] = buttonText12XStartCoordinate;
+                  subsetButtonText[13] = buttonText[i][13];
+                  // The first overflow.
+                  if (buttonText12XStartCoordinate > 255) {
+                    subsetButtonText[12] = buttonText12XStartCoordinate - 255;
+                    subsetButtonText[13] = 1;
+                  }
+                  // 'subsetButtonText[12]' remains i.e. '245-255' with 'subsetButtonText[13]' as '1' when
+                  // 'buttonText12XStartCoordinate' is being subtracted through adding a negative 'buttonText12XCountStart'.
+                                                  // why is it '10'? no idea
+                  else if ((subsetButtonText[12] >= (255-10)) && (subsetButtonText[13] == 1) ) {
+                    subsetButtonText[12] = buttonText12XStartCoordinate;
+                    subsetButtonText[13] = 0;
+                  }
+                  //printf("subsetButtonText[12]: %d  subsetButtonText[13]: %d\n", subsetButtonText[12], subsetButtonText[13]);
+                  //printf("charMultiButtonText[%d][%d]:  %c\n", k, i, charMultiButtonText[i]);
+                  // Y coordinate
+                  subsetButtonText[14] = buttonText[k][14];
+                  subsetButtonText[15] = buttonText[k][15];
+                  // Incrementing character in 'charMultiButtonText' and 'write()' to the window.
+                  subsetButtonText[18] = charMultiButtonText[i];
+                  charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+                  // Incrementing the low X coordinate with 'buttonText12XIncrementor'.
+                  //                                     previous  middle     +     5
+                  buttonText12XStartCoordinate = buttonText12XStartCoordinate + buttonText12XIncrementor; // 5
+                  i++;
+                } // closes multiple text while loop
+              }
+              else {
+                subsetButtonText[12] = buttonText[k][12];
+                subsetButtonText[13] = buttonText[k][13];
+                subsetButtonText[14] = buttonText[k][14];
+                subsetButtonText[15] = buttonText[k][15];
+                subsetButtonText[16] = buttonText[k][16];
+                subsetButtonText[17] = buttonText[k][17];
+                subsetButtonText[18] = buttonText[k][18];
+                subsetButtonText[19] = buttonText[k][19];
+                buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+              }
+              printf("  k: %d\n", k);
+              printf("  m+1: %d\n", m+1);
+              k++;
+            } // closes the button background reset while loop
+          }
+          // Changes the background to indicate it is hovered over.
+          if (j > 0) { // used to be j == previousJ
+            subsetButtonPolyfill[8] = gcID.one + gcIDSix;
+            subsetButtonPolyfill[12] = buttonPolyfill[j][12];
+            subsetButtonPolyfill[13] = buttonPolyfill[j][13];
+            subsetButtonPolyfill[14] = buttonPolyfill[j][14];
+            subsetButtonPolyfill[15] = buttonPolyfill[j][15];
+            subsetButtonPolyfill[16] = buttonPolyfill[j][16];
+            subsetButtonPolyfill[17] = buttonPolyfill[j][17];
+            subsetButtonPolyfill[18] = buttonPolyfill[j][18];
+            subsetButtonPolyfill[19] = buttonPolyfill[j][19];
+            borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+            buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
+            // 'write()' text for buttons with multiple characters.
+            if (j == 1 || j == 2) {
+              // Multiple characters for buttons 1 and 2 are written through resizing the x coordinate.
+              buttonText12XStartCoordinate = 0;
+              // The space between characters.
+              buttonText12XIncrementor = 10; // 5
+              charMultiButtonTextCheck = 0;
+              // The first character's x coordinate based on the middle of the button 'buttonText[j][12]'.
+              //                                    middle     +         i.e. -5
+              //printf("  buttonText12XCountStart[j-1]  %d\n", buttonText12XCountStart[j-1]);
+              buttonText12XStartCoordinate = buttonText[j][12] + buttonText12XCountStart[j-1];
+              //printf("buttonText12XStartCoordinate: %d\n", buttonText12XStartCoordinate);
+              // Increments characters in 'charMultiButtonText'.
+              if (j == 1) {
+                i = 0;
+              }
+              if (j == 2) {
+                i = 3;
+              }
+              while (i < sizeof(charMultiButtonText)) {
+                // Button characters > 1 from 'charMultiButtonText[j]' use the ' ' (ascii 32) space character as a
+                // seperator and the next button's first character is reset 'buttonText12XStartCoordinate'.
+                if (charMultiButtonText[i] == ' ') {
+                  // Skips the ' ' space word delimiter.
+                  i++;
+                  break;
+                }
+                // X coordinate
+                subsetButtonText[12] = buttonText12XStartCoordinate;
+                subsetButtonText[13] = buttonText[i][13];
+                // The first overflow.
+                if (buttonText12XStartCoordinate > 255) {
+                  subsetButtonText[12] = buttonText12XStartCoordinate - 255;
+                  subsetButtonText[13] = 1;
+                }
+                // 'subsetButtonText[12]' remains i.e. '245-255' with 'subsetButtonText[13]' as '1' when
+                // 'buttonText12XStartCoordinate' is being subtracted through adding a negative 'buttonText12XCountStart'.
+                                                // why is it '10'? no idea
+                else if ((subsetButtonText[12] >= (255-10)) && (subsetButtonText[13] == 1) ) {
+                  subsetButtonText[12] = buttonText12XStartCoordinate;
+                  subsetButtonText[13] = 0;
+                }
+                //printf("subsetButtonText[12]: %d  subsetButtonText[13]: %d\n", subsetButtonText[12], subsetButtonText[13]);
+                //printf("charMultiButtonText[%d][%d]:  %c\n", j, i, charMultiButtonText[i]);
+                // Y coordinate
+                subsetButtonText[14] = buttonText[j][14];
+                subsetButtonText[15] = buttonText[j][15];
+                // Incrementing character in 'charMultiButtonText' and 'write()' to the window.
+                subsetButtonText[18] = charMultiButtonText[i];
+                charMultiButtonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+                // Incrementing the low X coordinate with 'buttonText12XIncrementor'.
+                //                                     previous  middle     +     5
+                buttonText12XStartCoordinate = buttonText12XStartCoordinate + buttonText12XIncrementor; // 5
+                i++;
+              }
+            }
+            // Resets the non-multiple character buttons i.e. '4'.
+            else {
+              subsetButtonText[12] = buttonText[j][12];
+              subsetButtonText[13] = buttonText[j][13];
+              subsetButtonText[14] = buttonText[j][14];
+              subsetButtonText[15] = buttonText[j][15];
+              subsetButtonText[16] = buttonText[j][16];
+              subsetButtonText[17] = buttonText[j][17];
+              subsetButtonText[18] = buttonText[j][18];
+              subsetButtonText[19] = buttonText[j][19];
+              buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+            }
+          }
+        }
+        //printf("j: %d\n", j);
+        //printf("i: %d\n", i);
+        //printf("  previousJ: %d\n", previousJ);
+        previousJ = j;
+
+        /*
+            // Predict if the mouse is moving up/down, left/right, or diagonal for when the number of buttons is '40' i.e. a moving window (not useful for '4X5' or 20 buttons).
+            int startJ = j;
+            k = j;
+
+              printf("        j:  %d  k:  %d\n", j, k);
+              // Implies mouse motion is right to left or bottom to top.
+              //if (startJ < previousJ) {
+              //  k--;
+              //}
+              //// Left to right or top to bottom.
+              //else {
+              //  k++;
+              //}
+              k++;
+              // Since 'k' starts at the last known 'j' button.
+              if (k == (numberButtons - 1)) {
+                k = 1;
+              }
+              //if (k == 0) {
+              //  k = numberButtons;
+              //}
+
+        printf("screenCheckZero == %d  screenCheckOne == %d\n", screenCheckZero, screenCheckOne);
+        printf("  subsetButtonText[12]: %d\n", subsetButtonText[12]);
+        printf("  subsetButtonText[13]: %d\n", subsetButtonText[13]);
+        printf("  subsetButtonText[14]: %d\n", subsetButtonText[14]);
+        printf("  subsetButtonText[15]: %d\n", subsetButtonText[15]);
+        printf("  subsetButtonText[16]: %d\n", subsetButtonText[16]);
+        printf("  subsetButtonText[17]: %d\n", subsetButtonText[17]);
+        printf("  subsetButtonText[18]: %c\n", subsetButtonText[18]);
+        printf("  subsetButtonText[19]: %d\n", subsetButtonText[19]);
+
+        // Redefine the 'clearArea' opcode 61 packet to the current specifications.
+        // XY coordinates.
+        if (textBorder[12]+1 > 255) {
+          clearArea[8] = (textBorder[12] + 1) - 255;
+          clearArea[9] = textBorder[13] + 1;
+        }
+        else {
+          clearArea[8] = textBorder[12] + 1;
+          clearArea[9] = textBorder[13];
+        }
+        if (textBorder[14]+1 > 255) {
+          clearArea[10] = (textBorder[14] + 1) - 255;
+          clearArea[11] = textBorder[15] + 1;
+        }
+        else {
+          clearArea[10] = textBorder[14] + 1;
+          clearArea[11] = textBorder[15];
+        }
+        // Width and height.
+        if (textBorder[16] - 1 < 0) {
+          clearArea[12] = (textBorder[16] - 1) + 255;
+          clearArea[13] = textBorder[17] - 1;
+        }
+        else {
+          clearArea[12] = textBorder[16] - 1;
+          clearArea[13] = textBorder[17];
+        }
+        if (textBorder[18] - 1 < 0) {
+          clearArea[14] = (textBorder[18] - 1) + 255;
+          clearArea[15] = textBorder[19] - 1;
+        }
+        else {
+          clearArea[14] = textBorder[18] - 1;
+          clearArea[15] = textBorder[19];
+        }
+        clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+        // 'write()' the 'keyInput' to the user input window using 'textBorder' X and Y.
+        //printf("keyInputText[12]: %d  keyInputText[13]: %d\n", textBorder[12] - 15 + textBorder[16], textBorder[13] + textBorder[17]);
+        // Overflow for the y coordinate
+        if ((textBorder[14] + 22.5) > 255) {
+          keyInputText[14] = (textBorder[14] + 22.5) - 255;
+          keyInputText[15] = textBorder[15] + 1 ;
+        }
+        else {
+          keyInputText[14] = textBorder[14] + 22.5;
+          keyInputText[15] = textBorder[15];
+        }
+        */
+      }          // 'if'       event code 6 else close
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       // When a GUI button or keyboard button is pressed, 'buttonPressCheck = 1' and the values from 'eventCode == 2' or 'eventCode == 4' are sent to this conditional
@@ -4928,8 +5884,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         }
         // Similar to 'Backspace' logic without removing the character.
         // To prevent the 'Shift', 'Enter', or '=' button from adding a blank character or removing the first '0' character.
-        // Right 'Shift'         Left 'Shift'         'Enter'           'c' or clear
-        if (keyInputX11 == 62 || keyInputX11 == 50 || keyInput == 61 || keyInput == 99) { //
+        // Right 'Shift'         Left 'Shift'         'Enter'           'c' or clear      // The screen was clicked but not on a button.
+        if (keyInputX11 == 62 || keyInputX11 == 50 || keyInput == 61 || keyInput == 99 || keyInput == 0) { //
           //printf("Shift %d\n", keyInputX11);
           // Keep the '0' text if there were no other input integers.
           if (intKeyInputIterator == 0) {
@@ -4949,6 +5905,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             intKeyInputIterator--;
           }
         }
+        // Input and display fill.
+        //textPolyfill[16] = textButtonLowWidth;
+        //textPolyfill[17] = textButtonHighWidth;
+        // Might not need these in the 'eventCode == 12' or 'eventCode == 22'.
+        textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
+
         // '=' or 'Enter' with a valid input i.e. '1-1=' (length of '3' starting at '0')
         if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 1)) {
           // Prior conditional removes the '=' since functions 'arithmaticInput()' and 'fileLog()' require input i.e '1  -    1'.
@@ -5062,9 +6024,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           // Increments for the next character in the input window.
           intKeyInputIterator++;
         }
-
         ///////////////////////////
-
       }
     }            // 'while(1)' close
   }              // 'if'       packet 'read()' bracket
