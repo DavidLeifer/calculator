@@ -1,3 +1,109 @@
+ unsigned char charMultiButtonTextOne[84];
+  // 1
+  charMultiButtonTextOne[0] = '<';
+  charMultiButtonTextOne[1] = '>';
+  charMultiButtonTextOne[2] = ' ';
+  // 2
+  charMultiButtonTextOne[3] = 'r';
+  charMultiButtonTextOne[4] = 'a';
+  charMultiButtonTextOne[5] = 'd';
+  charMultiButtonTextOne[6] = ' ';
+  // 3
+  charMultiButtonTextOne[7] = 's';
+  charMultiButtonTextOne[8] = 'q';
+  charMultiButtonTextOne[9] = 'r';
+  charMultiButtonTextOne[10] = 't';
+  charMultiButtonTextOne[11] = ' ';
+  //4
+  charMultiButtonTextOne[12] = '|';
+  charMultiButtonTextOne[13] = 'x';
+  charMultiButtonTextOne[14] = '|';
+  charMultiButtonTextOne[15] = ' ';
+  //5
+  charMultiButtonTextOne[16] = '(';
+  charMultiButtonTextOne[17] = ')';
+  charMultiButtonTextOne[18] = ' ';
+  //6
+  charMultiButtonTextOne[19] = 'd';
+  charMultiButtonTextOne[20] = 'e';
+  charMultiButtonTextOne[21] = 'l';
+  charMultiButtonTextOne[22] = ' ';
+  //7 8
+  charMultiButtonTextOne[23] = ' ';
+  charMultiButtonTextOne[24] = ' ';
+  //9
+  charMultiButtonTextOne[25] = 's';
+  charMultiButtonTextOne[26] = 'i';
+  charMultiButtonTextOne[27] = 'n';
+  charMultiButtonTextOne[28] = ' ';
+  //10
+  charMultiButtonTextOne[29] = 'c';
+  charMultiButtonTextOne[30] = 'o';
+  charMultiButtonTextOne[31] = 's';
+  charMultiButtonTextOne[32] = ' ';
+  //11
+  charMultiButtonTextOne[33] = 't';
+  charMultiButtonTextOne[34] = 'a';
+  charMultiButtonTextOne[35] = 'n';
+  charMultiButtonTextOne[36] = ' ';
+  //12
+  charMultiButtonTextOne[37] = 'p'; // 41
+  charMultiButtonTextOne[38] = 'i';
+  charMultiButtonTextOne[39] = ' ';
+  // 13
+  charMultiButtonTextOne[40] = ' ';
+  charMultiButtonTextOne[41] = ' ';
+  charMultiButtonTextOne[42] = ' ';
+  charMultiButtonTextOne[43] = ' ';
+  //17
+  charMultiButtonTextOne[44] = 'l';
+  charMultiButtonTextOne[45] = 'n';
+  charMultiButtonTextOne[46] = ' ';
+
+  charMultiButtonTextOne[47] = 'l';
+  charMultiButtonTextOne[48] = 'o';
+  charMultiButtonTextOne[49] = 'g';
+  charMultiButtonTextOne[50] = ' ';
+  // 19
+  charMultiButtonTextOne[51] = '1';
+  charMultiButtonTextOne[52] = '/';
+  charMultiButtonTextOne[53] = 'x';
+  charMultiButtonTextOne[54] = ' ';
+  // 20
+  charMultiButtonTextOne[55] = ' ';
+  // 21
+  charMultiButtonTextOne[56] = ' ';
+  // 22
+  charMultiButtonTextOne[57] = ' ';
+  // 23
+  charMultiButtonTextOne[58] = ' ';
+  charMultiButtonTextOne[59] = ' ';
+  // 25
+  charMultiButtonTextOne[60] = 'e';
+  charMultiButtonTextOne[61] = '^';
+  charMultiButtonTextOne[62] = '2';
+  charMultiButtonTextOne[63] = ' ';
+  // 26
+  charMultiButtonTextOne[64] = 'x';
+  charMultiButtonTextOne[65] = '^';
+  charMultiButtonTextOne[66] = '2';
+  charMultiButtonTextOne[67] = ' ';
+
+  charMultiButtonTextOne[68] = 'x';
+  charMultiButtonTextOne[69] = '^';
+  charMultiButtonTextOne[70] = 'x';
+  charMultiButtonTextOne[71] = ' ';
+
+  charMultiButtonTextOne[72] = '+';
+  charMultiButtonTextOne[73] = '/';
+  charMultiButtonTextOne[74] = '-';
+  charMultiButtonTextOne[75] = ' ';
+
+
+
+
+
+
 # calculator
 
 Calculator written using C and without bitwise operators and integer arrays.
@@ -56,21 +162,17 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 
 
-  - history window (temporarily extend text input window)
-
-  - change color when pressed (or hovered over?)
-
 - Text input window.
 
-  - log the button input
+  - larger display/history
 
-  - keyboard input
-
-    - larger display/history
+    - history window (temporarily extend text input window)
 
 - Binary division.
 
 - Replace button polygons with polylines.
+
+  - Rounded corners that increase in size with use to mimic the passage of time.
 
 - Disable window manager and get the device's screen dimensions.
 
@@ -191,6 +293,8 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
   - Three screen sizes that mimic smartphone, tablet, desktop device orientation.
 
+  - Resizes buttons using powers of 2 division to reduce nested loops.
+
   - Since the desktop view (dubbed 2.)) is undecided, the obvious answer is to make a map.
 
     - Requires polylines to draw the features.
@@ -205,7 +309,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
       - 'Google Maps v 8billion' should probably a different project.
 
-  - The schematics are pulled from the './src/window.c' file:
+  - The button layout schematics are from the './src/window.c' file:
 
     ```
       // To resize with the window size, use the dimensions of the window to change the button dimension
@@ -222,7 +326,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //  |     |        ]               }    | s s s s s s |    [                                      ]
       //  |     |        ]               }    | s s s s s s |    [ s s s s s s s s s s s s s s s s s s  ]
       //  | 0.) |        ]               }    |             |    [ s s s s s s s s s s s s s s s s s s  ]
-      //   -----         ]               }    |() <x  %  /  |    [ s s s s s s s s s s s s s s s s s s  ]
+      //   -----         ]               }    |() del %  /  |    [ s s s s s s s s s s s s s s s s s s  ]
       //  [              ]               }    | 7  8  9  *  |    [                                      ]
       //  [              ]               }    | 4  5  6  -  |    [ <>  rad  sqrt  |x|  ()  del   %    / ]
       //  [      1.)     ]               }    | 1  2  3  +  |    [                                      ]
@@ -237,7 +341,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       //
     ```
 
-  - Button input explanation.
+  - Button input explanation 'eventCode == 4' and 'eventCode == 6'.
 
     ```
       // char limits int to 255 and this method overflows into two char elements which uses multiplication to achieve
@@ -342,8 +446,60 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
       // Clicking the button returns '0-9' or the other calculator inputs.
     ```
 
+- Data structures and algorithms 'window.c'.
 
-
+    ```
+      // Intermediate screen size 1.) implementation:
+      //
+      // Change button background when hovered 'eventCode == 6'.
+      // Decreased button redrawing from all 40 to +-8 and improved user experience.
+      // Three character arrays of different sizes:
+      //     Dimensions of the previous button  -  buttonTextOne[40]
+      //                         words > 1 char  -  charMultiButtonTextOne[84]
+      //                         words = 1 char  -  charButtonTextOne[40]
+      //
+      // Worst case time complexity O(n) - size of the button label
+      // array 'charMultiButtonTextOne[84]' using the coordinates from 'buttonTextOne[40]'.
+      // The challenge was finding the first character in a multiple character word and
+      // appears in '2.2'. Array 'charMultiButtonTextOne' doesn't have a space to start
+      // the array so the button count was behind by one. Also the first character coordinates
+      // are calculated using an offset from the length of the word (2, 3, 4) for accurate spacing.
+      //
+      // Step 0 - Calculates starting button 'k' and ending button 'm'
+      //          using 'previousJ' +- 'buttonColumns (8).
+      //          Button number 'j' is used to reset buttons to the
+      //          hovered background color.
+      //
+      // Step 1 j > 0
+      // Change hovered button background color darker, same border
+      // color, write button labels
+      //
+      // Step 2
+      // Redraw +-8 buttons directly after the mouse moves off the button.
+      // Order of appearance in the loop: 2.0  2.5  2.2  2.4  2.3  2.1
+      // Step 2.0
+      // End of the multiple character loop when 'ii' equals 'm' or the end
+      // of the 'charMultiButtonTextOne[]'.
+      // Step 2.1
+      // Counts the multiple char buttons and single char buttons.
+      // Step 2.2 (Appears first but the conditional is met after 'Step 2.1').
+      // Uses the starting button 'k'. 'iii' is a check that
+      // indicates 'i' has been set. Starting char 'i' based on incrementing
+      // char 'n' when incrementing button 'ii' = starting button 'k'.
+      // Step 2.3
+      // Length of the button word and first char 'write()'.
+      // todo remove the first button since that button 'k-8' doesn't have a length.
+      // Step 2.4
+      // 'write()' characters from 'charMultiButtonTextOne[n]' '.1,2,...n' 
+      // and skip the '0' char since it's written in 'Step 2.2'.
+      // todo Step 2.5 <- doesnt make sense since this loop is to
+      // reduce lage time between 'write()' the entire 40 buttons.
+      // Remove the conditional to 'write()' the darker button
+      // background color with a single loop.
+      //
+      // Step 3
+      // Redraw all buttons when not hovered.
+    ```
 
 
 
