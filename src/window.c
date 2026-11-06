@@ -1605,8 +1605,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int logCheck;
   struct threeInt userInputAnswer;
   struct threeInt userInputTime;
-  int textBorder1612 = 0;
-  int textBorder1713 = 0;
 
   int previousKeyInputX11 = 0;
   int answerLength;
@@ -1641,6 +1639,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
   int previousKeyStart = 0;
   int charSkip = 1;
+  int previousKeyInput12 = 0;
+  int previousKeyInput13 = 0;
+
 
   int previousJ = 0;
   int buttonText12XCountStartIterator;
@@ -2293,6 +2294,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             //printf("  new button\n");
             i++;
           }
+
           // 'write()' 'charKeyInput' when the screen is reset.
           // Space between characters.
           j = 10;
@@ -2324,21 +2326,78 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-    ////////// dont 'write()' if the x coordinate is less or greater than the width   0
 
-
-
-            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
-            // The text string.
-            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
-            keyInputText[18] = charKeyInput[i];
-            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            // '-15' is an arbitrary number to make the text fit in the box.
+            previousKeyInput12 = (textBorder[12] - 15 + textBorder[16] - k) + j;
+            previousKeyInput13 = textBorder[13] + textBorder[17];
+            // Overflow for the decreasing x coordinate.
+            if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+              keyInputText[12] = previousKeyInput12 - 255;
+              keyInputText[13] = previousKeyInput13 + 1;
+            }
+            else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+              keyInputText[12] = previousKeyInput12;
+              keyInputText[13] = previousKeyInput13;
+            }
+            else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+              keyInputText[12] = previousKeyInput12 + 255;
+              keyInputText[13] = previousKeyInput13 - 1;
+            }
+            else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+              keyInputText[12] = previousKeyInput12 + 510;
+              keyInputText[13] = previousKeyInput13 - 2;
+            }
+            else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+              keyInputText[12] = previousKeyInput12 + 765;
+              keyInputText[13] = previousKeyInput13 - 3;
+            }
+            else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+              keyInputText[12] = previousKeyInput12 + 1020;
+              keyInputText[13] = previousKeyInput13 - 4;
+            }
+            else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+              keyInputText[12] = previousKeyInput12 + 1275;
+              keyInputText[13] = previousKeyInput13 - 5;
+            }
+            else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+              keyInputText[12] = previousKeyInput12 + 1530;
+              keyInputText[13] = previousKeyInput13 - 6;
+            }
+            else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+              keyInputText[12] = previousKeyInput12 + 1785;
+              keyInputText[13] = previousKeyInput13 - 7;
+            }
+            else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+              keyInputText[12] = previousKeyInput12 + 2040;
+              keyInputText[13] = previousKeyInput13 - 8;
+            }
+            else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+              keyInputText[12] = previousKeyInput12 + 2295;
+              keyInputText[13] = previousKeyInput13 - 9;
+            }
+            // 'write()' if the text coordinate is greater than the left most text window boundary. 0
+            // Left most text window boundary.
+            if ((keyInputText[13] > textBorder[13]) || (keyInputText[13] == textBorder[13] && keyInputText[12] >= textBorder[12]) ) {
+              //printf("char[%d] %c\n", i, charKeyInput[i]);
+              //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+              // The text string.
+              keyInputText[18] = charKeyInput[i];
+              keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            }
+            else {
+              //printf("  charSkip\n");
+              // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
+              //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
+              charSkip = 0;
+              //printf("  not writtenchar[%d * %d] %c\n", i, charSkip, charKeyInput[i]);
+            }
             i++;
             // Space incrementer.
             j = j + 10;
           }
           // Increments for the next character in the input window.
           //intKeyInputIterator++;
+
         }
         // Resize the buttons to 1.)
         else if (screenCheckWidthOne == 1) {
@@ -2996,6 +3055,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             n++;
           } // Closes the 'charMultiButtonTextOne[n]' loop.
 
+
           // 'write()' 'charKeyInput' when the screen is reset.
           // Space between characters.
           j = 10;
@@ -3010,6 +3070,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           else {
             k = (j * (intKeyInputIterator));
           }
+
           i = 0;
           while (charKeyInput[i] != '\0') {
             //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
@@ -3027,16 +3088,70 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-
-////////// dont 'write()' if the x coordinate is less or greater than the width  1
-
-
-
-            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
-            // The text string.
-            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
-            keyInputText[18] = charKeyInput[i];
-            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            // '-15' is an arbitrary number to make the text fit in the box.
+            previousKeyInput12 = (textBorder[12] - 15 + textBorder[16] - k) + j;
+            previousKeyInput13 = textBorder[13] + textBorder[17];
+            // Overflow for the decreasing x coordinate.
+            if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+              keyInputText[12] = previousKeyInput12 - 255;
+              keyInputText[13] = previousKeyInput13 + 1;
+            }
+            else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+              keyInputText[12] = previousKeyInput12;
+              keyInputText[13] = previousKeyInput13;
+            }
+            else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+              keyInputText[12] = previousKeyInput12 + 255;
+              keyInputText[13] = previousKeyInput13 - 1;
+            }
+            else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+              keyInputText[12] = previousKeyInput12 + 510;
+              keyInputText[13] = previousKeyInput13 - 2;
+            }
+            else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+              keyInputText[12] = previousKeyInput12 + 765;
+              keyInputText[13] = previousKeyInput13 - 3;
+            }
+            else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+              keyInputText[12] = previousKeyInput12 + 1020;
+              keyInputText[13] = previousKeyInput13 - 4;
+            }
+            else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+              keyInputText[12] = previousKeyInput12 + 1275;
+              keyInputText[13] = previousKeyInput13 - 5;
+            }
+            else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+              keyInputText[12] = previousKeyInput12 + 1530;
+              keyInputText[13] = previousKeyInput13 - 6;
+            }
+            else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+              keyInputText[12] = previousKeyInput12 + 1785;
+              keyInputText[13] = previousKeyInput13 - 7;
+            }
+            else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+              keyInputText[12] = previousKeyInput12 + 2040;
+              keyInputText[13] = previousKeyInput13 - 8;
+            }
+            else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+              keyInputText[12] = previousKeyInput12 + 2295;
+              keyInputText[13] = previousKeyInput13 - 9;
+            }
+            // 'write()' if the text coordinate is greater than the left most text window boundary. 1
+            // Left most text window boundary.
+            if ((keyInputText[13] > textBorder[13]) || (keyInputText[13] == textBorder[13] && keyInputText[12] >= textBorder[12]) ) {
+              //printf("char[%d] %c\n", i, charKeyInput[i]);
+              //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+              // The text string.
+              keyInputText[18] = charKeyInput[i];
+              keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            }
+            else {
+              //printf("  charSkip\n");
+              // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
+              //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
+              charSkip = 0;
+              //printf("  not writtenchar[%d * %d] %c\n", i, charSkip, charKeyInput[i]);
+            }
             i++;
             // Space incrementer.
             j = j + 10;
@@ -3631,6 +3746,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             //printf("  new button\n");
             i++;
           }
+
           // 'write()' 'charKeyInput' when the screen is reset.
           // Space between characters.
           j = 10;
@@ -3662,14 +3778,70 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-
-////////// dont 'write()' if the x coordinate is less or greater than the width  3
-
-            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
-            // The text string.
-            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
-            keyInputText[18] = charKeyInput[i];
-            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            // '-15' is an arbitrary number to make the text fit in the box.
+            previousKeyInput12 = (textBorder[12] - 15 + textBorder[16] - k) + j;
+            previousKeyInput13 = textBorder[13] + textBorder[17];
+            // Overflow for the decreasing x coordinate.
+            if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+              keyInputText[12] = previousKeyInput12 - 255;
+              keyInputText[13] = previousKeyInput13 + 1;
+            }
+            else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+              keyInputText[12] = previousKeyInput12;
+              keyInputText[13] = previousKeyInput13;
+            }
+            else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+              keyInputText[12] = previousKeyInput12 + 255;
+              keyInputText[13] = previousKeyInput13 - 1;
+            }
+            else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+              keyInputText[12] = previousKeyInput12 + 510;
+              keyInputText[13] = previousKeyInput13 - 2;
+            }
+            else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+              keyInputText[12] = previousKeyInput12 + 765;
+              keyInputText[13] = previousKeyInput13 - 3;
+            }
+            else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+              keyInputText[12] = previousKeyInput12 + 1020;
+              keyInputText[13] = previousKeyInput13 - 4;
+            }
+            else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+              keyInputText[12] = previousKeyInput12 + 1275;
+              keyInputText[13] = previousKeyInput13 - 5;
+            }
+            else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+              keyInputText[12] = previousKeyInput12 + 1530;
+              keyInputText[13] = previousKeyInput13 - 6;
+            }
+            else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+              keyInputText[12] = previousKeyInput12 + 1785;
+              keyInputText[13] = previousKeyInput13 - 7;
+            }
+            else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+              keyInputText[12] = previousKeyInput12 + 2040;
+              keyInputText[13] = previousKeyInput13 - 8;
+            }
+            else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+              keyInputText[12] = previousKeyInput12 + 2295;
+              keyInputText[13] = previousKeyInput13 - 9;
+            }
+            // 'write()' if the text coordinate is greater than the left most text window boundary. 2
+            // Left most text window boundary.
+            if ((keyInputText[13] > textBorder[13]) || (keyInputText[13] == textBorder[13] && keyInputText[12] >= textBorder[12]) ) {
+              //printf("char[%d] %c\n", i, charKeyInput[i]);
+              //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+              // The text string.
+              keyInputText[18] = charKeyInput[i];
+              keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            }
+            else {
+              //printf("  charSkip\n");
+              // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
+              //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
+              charSkip = 0;
+              //printf("  not writtenchar[%d * %d] %c\n", i, charSkip, charKeyInput[i]);
+            }
             i++;
             // Space incrementer.
             j = j + 10;
@@ -4365,17 +4537,78 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
-            // The text string.
-            //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
-            keyInputText[18] = charKeyInput[i];
-            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            // '-15' is an arbitrary number to make the text fit in the box.
+            previousKeyInput12 = (textBorder[12] - 15 + textBorder[16] - k) + j;
+            previousKeyInput13 = textBorder[13] + textBorder[17];
+            // Overflow for the decreasing x coordinate.
+            if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+              keyInputText[12] = previousKeyInput12 - 255;
+              keyInputText[13] = previousKeyInput13 + 1;
+            }
+            else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+              keyInputText[12] = previousKeyInput12;
+              keyInputText[13] = previousKeyInput13;
+            }
+            else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+              keyInputText[12] = previousKeyInput12 + 255;
+              keyInputText[13] = previousKeyInput13 - 1;
+            }
+            else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+              keyInputText[12] = previousKeyInput12 + 510;
+              keyInputText[13] = previousKeyInput13 - 2;
+            }
+            else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+              keyInputText[12] = previousKeyInput12 + 765;
+              keyInputText[13] = previousKeyInput13 - 3;
+            }
+            else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+              keyInputText[12] = previousKeyInput12 + 1020;
+              keyInputText[13] = previousKeyInput13 - 4;
+            }
+            else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+              keyInputText[12] = previousKeyInput12 + 1275;
+              keyInputText[13] = previousKeyInput13 - 5;
+            }
+            else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+              keyInputText[12] = previousKeyInput12 + 1530;
+              keyInputText[13] = previousKeyInput13 - 6;
+            }
+            else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+              keyInputText[12] = previousKeyInput12 + 1785;
+              keyInputText[13] = previousKeyInput13 - 7;
+            }
+            else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+              keyInputText[12] = previousKeyInput12 + 2040;
+              keyInputText[13] = previousKeyInput13 - 8;
+            }
+            else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+              keyInputText[12] = previousKeyInput12 + 2295;
+              keyInputText[13] = previousKeyInput13 - 9;
+            }
+            // 'write()' if the text coordinate is greater than the left most text window boundary. 3
+            // Left most text window boundary.
+            if ((keyInputText[13] > textBorder[13]) || (keyInputText[13] == textBorder[13] && keyInputText[12] >= textBorder[12]) ) {
+              //printf("char[%d] %c\n", i, charKeyInput[i]);
+              //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+              // The text string.
+              keyInputText[18] = charKeyInput[i];
+              keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            }
+            else {
+              //printf("  charSkip\n");
+              // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
+              //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
+              charSkip = 0;
+              //printf("  not writtenchar[%d * %d] %c\n", i, charSkip, charKeyInput[i]);
+            }
             i++;
             // Space incrementer.
             j = j + 10;
           }
           // Increments for the next character in the input window.
           //intKeyInputIterator++;
+
+
         }
         // Switch to 2.) screen
         else if (screenCheckWidthTwo == 1) {
@@ -4399,12 +4632,12 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           break;
         }
 
-        printf("keyboard  keyInputX11: %d  charSkip: %d\n", keyInputX11, charSkip);
+        //printf("keyboard  keyInputX11: %d  charSkip: %d\n", keyInputX11, charSkip);
 
         // Removes one or all of the characters.
         //     Backspace      or      clear    'c'
         if (keyInputX11 == 22 || keyInputX11 == 54) {
-          printf("  2 delete charSkip %d\n", charSkip);
+          //printf("  2 delete charSkip %d\n", charSkip);
           charSkip = 1;
         }
         // If the input text window is full, skip until 'Backspace' or 'c' clear.
@@ -6709,11 +6942,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           // is the number of characters in the array 'charKeyInput[intKeyInputIterator]' multiplied
           // by the space between characters 'j'.
           k = (j * (intKeyInputIterator + 1));
-
           while (i < intKeyInputIterator + 1) {
             //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
 
-            // ASCII 40 and 41 conditional has been met.
+            // ASCII 40 and 41 conditional has been met. todo
             if (previousKeyStart == 1) {
               //printf("charKeyInput %c\n", charKeyInput);
               previousKeyStart = 0;
@@ -6725,48 +6957,69 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               m = i;
             }
 
-            // Overflow for the x coordinate.
             // '-15' is an arbitrary number to make the text fit in the box.
-            if ( ((textBorder[12] - 15 + textBorder[16] - k) + j ) > 255) {
-              // (low X coordinate - 15 (padding) + low width + 'j' for space) - 255
-              keyInputText[12] = ( (textBorder[12] - 15 + textBorder[16] - k) + j) - 255;
-              // (high X coordiante + high width) + 1 (the larger overflow represents '255').
-              keyInputText[13] = textBorder[13] + textBorder[17] + 1;
+            previousKeyInput12 = (textBorder[12] - 15 + textBorder[16] - k) + j;
+            previousKeyInput13 = textBorder[13] + textBorder[17];
+            // Overflow for the decreasing x coordinate.
+            if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+              keyInputText[12] = previousKeyInput12 - 255;
+              keyInputText[13] = previousKeyInput13 + 1;
             }
-            else {
-              // low X coordinate - 15 (padding) + low width + 'j' for space
-              keyInputText[12] = (textBorder[12] - 15 + textBorder[16] - k) + j;
-              // high X coordiante + high width
-              keyInputText[13] = textBorder[13] + textBorder[17];
+            else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+              keyInputText[12] = previousKeyInput12;
+              keyInputText[13] = previousKeyInput13;
             }
-
-////////// 'write()' if the x coordinate is less or greater than the width  5
-            // 'write()' if the text coordinate is greater than the left most text window boundary.
+            else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+              keyInputText[12] = previousKeyInput12 + 255;
+              keyInputText[13] = previousKeyInput13 - 1;
+            }
+            else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+              keyInputText[12] = previousKeyInput12 + 510;
+              keyInputText[13] = previousKeyInput13 - 2;
+            }
+            else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+              keyInputText[12] = previousKeyInput12 + 765;
+              keyInputText[13] = previousKeyInput13 - 3;
+            }
+            else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+              keyInputText[12] = previousKeyInput12 + 1020;
+              keyInputText[13] = previousKeyInput13 - 4;
+            }
+            else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+              keyInputText[12] = previousKeyInput12 + 1275;
+              keyInputText[13] = previousKeyInput13 - 5;
+            }
+            else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+              keyInputText[12] = previousKeyInput12 + 1530;
+              keyInputText[13] = previousKeyInput13 - 6;
+            }
+            else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+              keyInputText[12] = previousKeyInput12 + 1785;
+              keyInputText[13] = previousKeyInput13 - 7;
+            }
+            else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+              keyInputText[12] = previousKeyInput12 + 2040;
+              keyInputText[13] = previousKeyInput13 - 8;
+            }
+            else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+              keyInputText[12] = previousKeyInput12 + 2295;
+              keyInputText[13] = previousKeyInput13 - 9;
+            }
+            //if (i == 0) {
+              //printf("char[%d] %c  textBorder[12] %d <= keyInputText[12] %d  previousKeyInput12 %d\n", i, charKeyInput[i], textBorder[12], keyInputText[12], previousKeyInput12);
+              //printf("             textBorder[13] %d <= keyInputText[13] %d  previousKeyInput13 %d\n", textBorder[13], keyInputText[13], previousKeyInput13);
+            //}
+            // 'write()' if the text coordinate is greater than the left most text window boundary. 4
             // Left most text window boundary.
             if ((keyInputText[13] > textBorder[13]) || (keyInputText[13] == textBorder[13] && keyInputText[12] >= textBorder[12]) ) {
-              //printf("coordx1 %d coordx2 %d  firstx1 %d firstx2 %d   widthx16+ %d widthx17+ %d\n", keyInputText[12], keyInputText[13], textBorder[12], textBorder[13], textBorder1612, textBorder1713);
-              printf("char[%d] %c\n", i, charKeyInput[i]);
+              //printf("char[%d] %c\n", i, charKeyInput[i]);
               //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
               // The text string.
               keyInputText[18] = charKeyInput[i];
               keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
-/*                // Right most boundary
-                if (keyInputText[13] <= textBorder1713 ) {
-                  if (keyInputText[13] == textBorder1713 && keyInputText[12] <= textBorder1612) {
-                    // The text string.
-                    keyInputText[18] = charKeyInput[i];
-                  }
-                  else if (keyInputText[13] < textBorder1713) {
-                    // The text string.
-                    keyInputText[18] = charKeyInput[i];
-                  }
-                }
-*/
-              //}
             }
             else {
               //printf("  charSkip\n");
-              //printf("  coordx1 %d coordx2 %d  firstx1 %d firstx2 %d   widthx16+ %d widthx17+ %d\n", keyInputText[12], keyInputText[13], textBorder[12], textBorder[13], textBorder1612, textBorder1713);
               // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
               //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
               charSkip = 0;
@@ -6777,7 +7030,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j = j + 10;
           }    // Closes the 'while' loop.
 
-          printf("\n");
+          //printf("\n");
           // Increments for the next character in the input window.
           intKeyInputIterator++;
         }
