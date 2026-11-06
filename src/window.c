@@ -1598,15 +1598,13 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // // 'write()' the 'keyInput' to the user input window using
   // The initial user input window text '0'
   int keyInputX11;
-  char *charKeyInput = malloc(255 * sizeof(char));
+  char *charKeyInput = malloc(13 * sizeof(char));
   charKeyInput[0] = '0';
   charKeyInput[1] = '\0';
   char *answer;
   int logCheck;
   struct threeInt userInputAnswer;
   struct threeInt userInputTime;
-  int textBorder1612 = 0;
-  int textBorder1713 = 0;
 
   int previousKeyInputX11 = 0;
   int answerLength;
@@ -1639,8 +1637,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   keyInputText[19] = 0;
 
   int keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
-  int previousKeyStart = 0;
-  int charSkip = 1;
 
   int previousJ = 0;
   int buttonText12XCountStartIterator;
@@ -1650,7 +1646,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int n;
   int nn;
   int previousCoordinateIterator;
-
 
   if (geometryRead[0] == 1) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
@@ -2307,10 +2302,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-    ////////// dont 'write()' if the x coordinate is less or greater than the width   0
-
-
-
             //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
             // The text string.
             //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
@@ -3010,11 +3001,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-
-////////// dont 'write()' if the x coordinate is less or greater than the width  1
-
-
-
             //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
             // The text string.
             //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
@@ -3645,9 +3631,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-
-////////// dont 'write()' if the x coordinate is less or greater than the width  3
-
             //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
             // The text string.
             //printf("charKeyInput[%d] = %d\n", i, charKeyInput[i]);
@@ -4374,8 +4357,18 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         // Physical key matrix index for the X11 server.
         keyInputX11 = responseWindowInput[1];
         //printf("keyInputX11 = %d\n", keyInputX11);
-
-
+        printf("  previousKeyInputX11 = %d  keyInput %d\n", previousKeyInputX11, keyInputX11);
+        // int keyboard map.
+        // if (keyInput == 'c') { // clear
+          // free(charKeyInput);
+        //}
+        //////////////////////////////////////////////////////////////
+          // Screen size 0.) working buttons.
+          // working buttons: 'j' = 5-16, 18, 20
+            // 7 8 9 *  |  5  6  7  8
+            // 4 5 6 -  |  9  10 11 12
+            // 1 2 3 +  |  13 14 15 16
+            // o 0 o =  |  o  18 o  20
         // Change to hardware key integers to ASCII integers.
         // Escapes the program.
         if (keyInputX11 == 9) {
@@ -4383,18 +4376,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           free(charKeyInput);
           break;
         }
-        // Removes one or all of the characters.
-        //     Backspace      or      clear    'c'
-        if (keyInputX11 == 22 || keyInputX11 == 54) {
-          charSkip = 1;
-        }
-        // If the input text window is full, skip until 'Backspace' or 'c' clear.
-        if (charSkip == 0) {
-          continue;
-        }
         // Digits 1-9, 0. 'keyInput' is the ASCII character integer.
         // 1
-        if (keyInputX11 == 10) {
+        else if (keyInputX11 == 10) {
           keyInput = 49;
           printf("keyInput = %c\n", keyInput);
         }
@@ -4642,7 +4626,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         // c
         else if (keyInputX11 == 54) {
           keyInput = 99;
-          //charKeyInput = malloc(255 * sizeof(char));
+          charKeyInput = malloc(13 * sizeof(char));
           intKeyInputIterator = 0;
           printf("keyInput = %c\n", keyInput);
         }
@@ -5081,18 +5065,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           if (j == 0) {
             keyInput = '\0'; // ASCII 0
           }
-          // 'Shift' and '9' or '0' = '(' or ')
+          // 'Shift' and '9' or '0' = '(' or ')' <- todo
           else if (j == 1) {
-            // Change 'keyInput' between '(' and ')' for the button press.
-            if (previousKeyStart == 0) {
-              keyInput = 40;
-              previousKeyStart = 40;
-            }
-            else if (previousKeyStart == 40) {
-              keyInput = 41;
-              previousKeyStart = 1;
-            }
-            //printf("keyInput %c  previousKeyStart %c\n", keyInput, previousKeyStart);
+            keyInput = 41;
             //previousKeyInputX11 = 50;
           }
           // 'Backspace' or 'del'
@@ -5165,7 +5140,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           // 'c'
           else if (j == 17) {
             keyInput = 99;
-            //charKeyInput = malloc(255 * sizeof(char));
+            charKeyInput = malloc(13 * sizeof(char));
             intKeyInputIterator = 0;
           }
           // '0'
@@ -5199,18 +5174,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           else if (j == 4) {
             keyInput = 48;
           }
-          // 'Shift' and '9' or '0' = '(' or ')'
+          // 'Shift' and '9' or '0' = '(' or ')' <- todo
           else if (j == 5) {
-            // Change 'keyInput' between '(' and ')' for the button press.
-            if (previousKeyStart == 0) {
-              keyInput = 40;
-              previousKeyStart = 40;
-            }
-            else if (previousKeyStart == 40) {
-              keyInput = 41;
-              previousKeyStart = 0;
-            }
-            printf("keyInput %c  previousKeyStart %c\n", keyInput, previousKeyStart);
+            keyInput = 41;
             //previousKeyInputX11 = 50;
           }
           // 'Backspace' or 'del'
@@ -5347,7 +5313,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           // 'c'
           else if (j == 37) {
             keyInput = 99;
-            //charKeyInput = malloc(255 * sizeof(char));
+            charKeyInput = malloc(13 * sizeof(char));
             intKeyInputIterator = 0;
           }
           // '0'
@@ -5363,6 +5329,9 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             keyInput = 61;
           }
         }
+
+
+
 
 
 
@@ -5637,6 +5606,13 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         if (y1HighCheck == 0) {
           j = 0;
         }
+
+        // Screen size 0.) working buttons.
+        // working buttons: 'j' = 5-16, 18, 20
+          // 7 8 9 *  |  5  6  7  8
+          // 4 5 6 -  |  9  10 11 12
+          // 1 2 3 +  |  13 14 15 16
+          // o 0 o =  |  o  18 o  20
 
         // <- the character array from 'eventCode == 2' for keyboard input where the calculation is completed and written to the text window.
           // charKeyInput[intKeyInputIterator];
@@ -6545,6 +6521,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             charKeyInput[intKeyInputIterator+1] = '\0';
           }
         }
+        // Similar to 'Backspace' logic without removing the character.
         // To prevent the 'Shift', 'Enter', or '=' button from adding a blank character or removing the first '0' character.
         // Right 'Shift'         Left 'Shift'         'Enter'           'c' or clear      // The screen was clicked but not on a button.
         if (keyInputX11 == 62 || keyInputX11 == 50 || keyInput == 61 || keyInput == 99 || keyInput == 0) { //
@@ -6572,19 +6549,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         //textPolyfill[17] = textButtonHighWidth;
         // Might not need these in the 'eventCode == 12' or 'eventCode == 22'.
         textPolyfillWrite = write(sock, textPolyfill, sizeof(textPolyfill));
-
-        // End of the text input window is: textBorder[16]+textBorder[12], textBorder[17]+textBorder[13]
-        // since the box draws from the starting coordinate 'textBorder[12]' and the width is 'textBorder[16]'.
-        //textBorder1612 = textBorder[16] + textBorder[12];
-        //textBorder1713 = textBorder[17] + textBorder[13];
-        if ((textBorder[16] + textBorder[12]) > 255) {
-          textBorder1612 = (textBorder[16] + textBorder[12]) - 255;
-          textBorder1713 = (textBorder[17] + textBorder[13]) + 1;
-        }
-        else {
-          textBorder1612 = textBorder[16] + textBorder[12];
-          textBorder1713 = textBorder[17] + textBorder[13];
-        }
 
         // '=' or 'Enter' with a valid input i.e. '1-1=' (length of '3' starting at '0')
         if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 1)) {
@@ -6661,11 +6625,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           }
             // Send 'charKeyInput' to the history window.
           // Resets for a new 'char[]' in the input window.
-          //charKeyInput = malloc(255 * sizeof(char));
+          charKeyInput = malloc(13 * sizeof(char));
           intKeyInputIterator = 0;
         }
         else {
-          // First one is '0'
           i = 0;
           // Space between characters.
           j = 10;
@@ -6675,19 +6638,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           k = (j * (intKeyInputIterator + 1));
           while (i < intKeyInputIterator + 1) {
             //printf("no overflow: %d\n", (textBorder[12] - 5 + textBorder[16] - k) + j);
-
-            // ASCII 40 and 41 conditional has been met.
-            if (previousKeyStart == 1) {
-              //printf("charKeyInput %c\n", charKeyInput);
-              previousKeyStart = 0;
-              // Replace the parentheses i.e. (1+1) with the answer at character
-              // 'i' in 'charKeyInput[i]' when evaluating step 1:
-              // 0 i.e. ' (1 + 1) * 3 =
-              // 1        (2)     * 3 =
-              // 2                    = 6
-              m = i;
-            }
-
             // Overflow for the x coordinate.
             // '-15' is an arbitrary number to make the text fit in the box.
             if ( ((textBorder[12] - 15 + textBorder[16] - k) + j ) > 255) {
@@ -6702,53 +6652,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // high X coordiante + high width
               keyInputText[13] = textBorder[13] + textBorder[17];
             }
-
-////////// 'write()' if the x coordinate is less or greater than the width  5
-            // 'write()' if the text coordinate is greater than the left most text window boundary.
-            // Left most text window boundary.
-            if ((keyInputText[13] > textBorder[13]) || (keyInputText[13] == textBorder[13] && keyInputText[12] >= textBorder[12]) ) {
-              //printf("coordx1 %d coordx2 %d  firstx1 %d firstx2 %d   widthx16+ %d widthx17+ %d\n", keyInputText[12], keyInputText[13], textBorder[12], textBorder[13], textBorder1612, textBorder1713);
-              printf("char[%d] %c\n", i, charKeyInput[i]);
-              //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
-              // The text string.
-              keyInputText[18] = charKeyInput[i];
-              keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
-/*                // Right most boundary
-                if (keyInputText[13] <= textBorder1713 ) {
-                  if (keyInputText[13] == textBorder1713 && keyInputText[12] <= textBorder1612) {
-                    // The text string.
-                    keyInputText[18] = charKeyInput[i];
-                  }
-                  else if (keyInputText[13] < textBorder1713) {
-                    // The text string.
-                    keyInputText[18] = charKeyInput[i];
-                  }
-                }
-*/
-              //}
-            }
-            else {
-              //printf("  charSkip\n");
-              //printf("  coordx1 %d coordx2 %d  firstx1 %d firstx2 %d   widthx16+ %d widthx17+ %d\n", keyInputText[12], keyInputText[13], textBorder[12], textBorder[13], textBorder1612, textBorder1713);
-              // Don't add characters to 'charKeyInput[i]' when 'eventCode == 2' keyboard press or 'eventCode == 4' button press.
-              charSkip = 0;
-              printf("  not writtenchar[%d * %d] %c\n", i, charSkip, charKeyInput[i]);
-              // Don't 'write()' the first character's coordinate that is decreasing left.
-
-        // ( 1 * 1 ) - 1
-        // 'charSkip' is incremented when text coordinates are outside the text input window and
-        // i' increases regardless. Adding characters to 'charKeyInput[i]' coordinates push element  [0]
-        // to the left and when that element is out of the window, the starting 'i' increases by one [1].
-        //i = (1 * charSkip) - 1;
-
-              //charSkip++;
-            }
+            //printf("  keyInputText[12] %d  keyInputText[13] %d\n", keyInputText[12], keyInputText[13]);
+            // The text string.
+            keyInputText[18] = charKeyInput[i];
+            keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
             i++;
             // Space incrementer.
             j = j + 10;
-          }    // Closes the 'while' loop.
-
-          printf("\n");
+          }
           // Increments for the next character in the input window.
           intKeyInputIterator++;
         }
