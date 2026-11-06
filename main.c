@@ -38,7 +38,6 @@ Notes
 
 todo
   - division
-  - "window.c" GUI.
   - operators > < = etc
 
 minor todo
@@ -81,7 +80,7 @@ minor todo
 */
 // 'version' and 'maxBinaryLength' declared in "binaryChar.h"
 // 'version' and 'features' declared in the file "interface.h"
-const char version[24] = "Calculator\nVersion 0.07\0";
+const char version[24] = "Calculator\nVersion 0.08\0";
 const char features[44] = "Features: addition, input logging, testing.\0";
 
 // 'maxBinaryLength' is used in "binaryChar.c" 'binaryAddition()'
@@ -95,11 +94,11 @@ int main(int argc, char *argv[4]) {
   int pathLength = charLength(path);
   char *mallocPath = malloc(pathLength * sizeof(char));
   strcpy(mallocPath, path);
-  int connect = serverConnect(mallocPath);
+  //int connect = serverConnect(mallocPath);
   // The calculator CLI aka text GUI is shown if terminal doesn't ask for help.
   // change to ask for '-c' or something similar after the GUI.
   if (argc == 1) {
-    //textUI();
+    textUI();
     return 1;
   }
   else {

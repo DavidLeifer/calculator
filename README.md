@@ -44,7 +44,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
   - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers.
 
-  - Include negative calculations and subtraction for '0'.
+  - Fractions.
 
     - There are decimals randomly in the char array instead of binary.
 
@@ -73,7 +73,7 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
 - GUI issues
 
-  - Text buttons - 'screenCheckZero' multiple characters don't resize with the window.
+  - Text buttons - 'screenCheckZero' and sometimes 'screenCheckOne' multiple characters don't resize with the window.
 
   - Remove space button and off button mouse click repeating characters
 
@@ -449,3 +449,113 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
     ```
 
 - There are more details in "./src/window.c" at the 'drawWindow()' function.
+
+```
+Probably a good CS 300 binary class.
+
+    // 1.) Two's complement.
+    //     Binary arithmatic using negative numbers requires using the length to invert O(1) and add '1' O(1) to
+    //     represent the negative sign. Followed by the arithmatic ( i.e. addition is O(1) ).
+    // 2.) Sign-Magnitude Method
+    //     The other option is including a '0' or '1' before or after and isn't used because '0' is negative and positive.
+
+    // Steps to get a negative binary number using (n * -1) with 2's compliment.
+    // Time complexity is O(2).
+    0) invert number (n)
+           i.e. 5    00000101
+       inverted 5    11111010 =
+    1) add 1   -5    11111011
+
+            110110      54
+            001001 =
+          11001010
+  1111111111001010     -54
+
+
+  // This method is found in 'multiplication' and uses 'padding' O(11).
+
+  // const 'maxBinaryLength' from "main.c" and "binaryChar.h"
+
+Implement the functions to convert a positive binary to a negative binary:
+
+    1  struct threeInt intBinaryOne = decimal2intBinary(integerOne, maxBinaryLength);
+    2  struct threeInt intBinaryTwo = decimal2intBinary(integerTwo, maxBinaryLength);
+       // Convert 'binary' to char[] for 'binaryAddition()'.
+    3  char *binaryOne = intBinary2Char(intBinaryOne); // outputs: char binaryOne[] = "100";
+    4  char *binaryTwo = intBinary2Char(intBinaryTwo); // outputs: char binaryOne[] = "11";
+       // printf("%s\n", binaryOne);
+       // Returns length of longest binary digits, difference, and
+       // check value used in 'binaryPadding()' and 'binaryInvert()'.
+    5  struct threeInt intBinaryGreat = intBinaryCheck(intBinaryOne, intBinaryTwo);
+       //printf("char binaryOne: %s  char binaryTwo: %s\n", binaryOne, binaryTwo);
+       // Use the longest minus the difference for 'binaryTwo' length.
+       int binaryOneLength = intBinaryGreat.one;
+    6  int binaryTwoLength = intBinaryGreat.one - intBinaryGreat.two;
+       // 0) Both binary numbers have '0' padding. The longest binary has
+       // one '0' in the first character i.e. '0101'.
+    7  char *binaryOnePadding = binaryPadding(binaryOne, binaryOneLength, intBinaryGreat.one);
+    8  char *binaryTwoPadding = binaryPadding(binaryTwo, binaryTwoLength, intBinaryGreat.one);
+       // printf("binaryOnePadding: %s\n", binaryOnePadding);
+       // printf("binaryTwoPadding: %s\n", binaryTwoPadding);
+       // 1) Invert the second number.
+    9  char *binaryTwoInvert = binaryInvert(binaryTwoPadding, intBinaryGreat.one);
+
+   10  Actual multiplication step
+
+   11  (this step) int intDecimalAdd =  binary2Decimal(binaryAdd.string, binaryAdd.one);
+
+Q0  Why is time or space complexity O(n) preferable to O(n^2)?
+Q0  Lowers memory use.
+
+Q1  What is the worst case time complexity using 'C' for binary addition?
+A1  O(n) * 11 - the number of full loops over the input binary numbers.
+
+Q2  What are two methods for computers to represent negative numbers?
+A2  Two's compliment, signs magnitude.
+
+  Q3  Describe one of them (see above).
+
+Q4  Why is padding necessary in the 'multiplication' invert step?
+A4  You could probably use length? Probably not in the subtraction invert step.
+```
+
+- C and hardware notes from "binaryChar.c".
+
+```
+  // The length of the binary characters (1 or 0) depends on 32 or 64 bit OS (aarch64).
+  binaryLength bits (n + 1).
+
+  Moving bits on hardware instead of 1 byte (8 bits) for each character.
+
+  // C int uses less memory than the character arrays (4 vs 8)
+  32    vs  16    bit operating system (aarch64) int uses
+  4     vs  2     bytes
+  +-2m  vs  +-32k numbers)
+  C has built in functions for lower memory binary addition.
+  Internet example uses bitwise operations similar to
+  Assembly AND, XOR, Left Shift:
+
+  // Using character arrays and more memory.
+  The length of binary representations of decimals depends on 32 vs 64 bit OS.
+  size_t i = sizeof(binaryOne) / sizeof(binaryOne[0]);
+  Largest unsigned 64 bit number is 18,446,744,073,709,551,615 or 0xFFFFFFFFFFFFFFFF
+  1111111111111111111111111111111111111111111111111111111111111111
+  64 digits
+
+  // Change or convert from or to int binary:
+  Internet says to multiply 1 by 10 each iteration to store the binary or use bitwise.
+  C max int on 32 bit is 2 billion and this method doesn't work to calculate
+  numbers around 2000. Try and except or move to calculator.c for bitwise and int arrays.
+
+  // Internet binary addtion example with bitwise operations.
+  int binaryOne1 = 0b0000001;
+  int binaryTwo2 = 0b0000011;
+  while (binaryTwo2 != 0) {
+    int carry = binaryOne1 & binaryTwo2;  // Finds the carry.
+    binaryOne1 = binaryOne1 ^ binaryTwo2; // Adds the bits without the carry.
+    binaryTwo2 = carry << 1;              // Shifts the carry left.
+  }
+  printf("binaryOne1 plus binaryTwo2 = %d\n", binaryOne1);
+
+
+```
