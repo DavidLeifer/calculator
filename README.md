@@ -1,3 +1,51 @@
+
+first 'charKeyInput' is now 255 * sizeof()
+used to get resized several times without calloc() when removing characters
+and is probably screen size related.
+
+ charKeyInput = malloc(
+
+-1)
+eventcode == 4
+
+change backspace and 'c' button from 'eventCode == 2'
+ charSkip = 0;
+
+          // 'Shift' and '9' or '0' = '(' or ')  
+          else if (j == 1) {
+            // 40 = '('
+            keyInput = 41; // ')
+            //previousKeyInputX11 = 50;
+          }
+
+
+  if (geometryRead[0] == 1) {
+
+0) extend text 'write()' the full width of screen
+
+eventCode == 12 and 22 <- screenSizeZero and '...one'
+
+'write()' if the x coordinate is less or greater than the width
+
+
+previousKeyStart = 0
+
+if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 1)) {
+
+FOIL
+
+keyInput -> charKeyInput -> write()
+
+// ASCII 40 and 41 conditional has been met.
+if (previousKeyStart == 1) {
+  0) evaluate expression in '(' ')'
+  1) send answer to the next arithmatic
+    i.e. ' (1 + 1) * 3 =
+           (2)     * 3 =
+                       = 6
+}
+
+
 # calculator
 
 Calculator written using C and without bitwise operators and integer arrays.
@@ -34,19 +82,27 @@ Usage (after downloading the folder):
 gcc main.c ./src/*.c -o calculator200 && ./calculator200
 ```
 
+Compile specific files by listing:
+
+```
+gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
+```
+
 ### Todo:
 
 - Math
 
+  - Screen size 1.) non-arithmatic ( ), +-.
+
   - Binary division.
 
-  - Screen size 1.) arithmatic buttons i.e. 'sqrt()', exponents, etc.
+    - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers.
 
-  - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers.
-
-  - Fractions.
+    - Fractions.
 
     - There are decimals randomly in the char array instead of binary.
+
+  - Screen size 1.) arithmatic buttons i.e. 'sqrt()', exponents, etc.
 
   - Double check if binary arithmatic can increase from 200 -> 256 otherwise cap at 128. Otherwise arithmatic calculations are from 0-200.
 
@@ -70,6 +126,38 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 //             where the division step is O(n) since it's a power of two
 //
 ```
+
+  - Technical binary issues
+
+    - fix inputArithmatic variable names with new struct int pointers and malloc.
+
+    - subtraction() and addition() use same function series to convert int to char[] binary.
+
+    - test 'fileLog()' error messages from 'subtraction()' and 'binaryInvert()'.
+
+    - 'serverConnect()' in "window.c" has a bitwise comparison that's mostly in "binaryChar.c".
+
+    - 'multiplication()' in "arithmaticSteps.c"
+
+    ```
+      - Probably don't need 'binaryAddCheck' for the if/else since 'intBinaryGreatTwo.three' says
+        which one is longer with '0' '1' '2' but the extra int is four extra bytes.
+
+      - 'binaryAddition()' in "arithmatic.c" uses a 'freeCheck' to 'free()' the inputs and the "arithmatic.c".
+        functions were changed. The deceased 'binaryAdditionTwo()' used 'free()' on the second input char[] pointer
+        since 'struct binaryAdd' is both the input and the output. An 'int' check of '0' '1' '2' '3'
+        is used to free in the first 'binaryAddition()', removing 'binaryAdditionTwo()' but doesn't
+        reduce heap usage (actually increases stack memory by (4 * the number) of times it's used throughout
+        // the entire program (~4-6 times)).
+        // might not need to return the length of the char pointer or use a struct at all
+        // not sure if the struct is too large since its only a 'int' a 'char pointer', and two blank 'int'.
+
+        //struct threeInt intBinaryGreat = intBinaryCheck(intBinaryOne, intBinaryTwo);
+        /////////////////////////////////////////////////////
+        // or use the function since 'struct threeInt intBinaryGreatThree' has a blank char[] pointer on heap the entire while loop
+        // in addition to 'struct threeInt binaryAdd' which also exists the entire time.
+        // 'binaryAdd.string' and either 'zeroStep' or 'oneStep' are the same length
+    ```
 
 - GUI issues
 
@@ -99,8 +187,6 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
 
     - larger display/history
 
-      - The character goes over the text window to the left and repeats writing over itself and after deleting there is text on the left of the window.
-
     - history window (temporarily extend text input window)
 
       - After calculation, 'del' removes the entire string -> move to the history window
@@ -116,6 +202,27 @@ gcc main.c ./src/*.c -o calculator200 && ./calculator200
     - Make an 'x' and minimize button to close the program.
 
   - Click text input window to insert number - the coordinates of the text, the 'keyInputIterator' value for the 'charKeyInput[]'.
+
+- Other notes
+
+```
+1) char *string = "Hello";
+   string[0] = "Y"; -> doesn't work since pointer is immutable unlike 'malloc' -> 'strcpy'.
+2) char otherString[6] = "Hello"; -> includes space for a null-terminator and can be
+   returned from array with 'malloc' -> 'strcpy'.
+     - sizeof(otherString) returns the length of the char[].
+- Reviewed "binaryChar.c", "arithmatic.c, arithmaticSteps.c, interface.c, userInput.c"
+  - line 112 the 2 'charBinary2Int()' functions exist because the first 'struct' has three
+    int and one char.
+3) 'const' can't be sent from "oneFile.c" to use another function from "twoFile.c" unless
+   the 'const' is set as another variable with 'malloc()' or 'while{}' even if it's a
+   pointer. The other function has to already accept a 'const' which limits basic
+   functions from "utility.c".
+4) 20260726 - 'char' pointer with 'malloc()' doesn't need 'strcpy(dest, "a")' unlike
+              previous versions. It also doesn't fill the array with duplicate "a" the
+              length of the 'malloc()' 'char' pointer since 'memset()' suddenly exists.
+            - 'charAppend()' in "utility.c" 'strcpy()' was commented out but it might break stuff later.
+```
 
 ### Index
 
