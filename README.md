@@ -1,34 +1,19 @@
-
-first 'charKeyInput' is now 255 * sizeof()
-used to get resized several times without calloc() when removing characters
-and is probably screen size related.
-
- charKeyInput = malloc(
-
--1)
-eventcode == 4
-
-change backspace and 'c' button from 'eventCode == 2'
- charSkip = 0;
-
-          // 'Shift' and '9' or '0' = '(' or ')  
-          else if (j == 1) {
-            // 40 = '('
-            keyInput = 41; // ')
-            //previousKeyInputX11 = 50;
-          }
+First 'charKeyInput' is now 255 * sizeof()
+used to get resized several times without calloc() when removing characters but are commented out.
+Might be screen size related.
+- charKeyInput = malloc(
 
 
-  if (geometryRead[0] == 1) {
+-     if (geometryRead[0] == 1) {
 
-0) extend text 'write()' the full width of screen
-
-eventCode == 12 and 22 <- screenSizeZero and '...one'
-
-'write()' if the x coordinate is less or greater than the width
+-   // 'write()' if the text coordinate is greater than the left most text window boundary.
 
 
-previousKeyStart = 0
+2.)
+
+    - larger display/history
+
+    - history window (temporarily extend text input window)
 
 if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 1)) {
 
@@ -44,6 +29,23 @@ if (previousKeyStart == 1) {
            (2)     * 3 =
                        = 6
 }
+
+3.)
+
+    - Click text input window to insert number - the coordinates of the text, the 'keyInputIterator' value for the 'charKeyInput[]'.
+
+- Text input window issues.
+
+      - After calculation, 'del' removes the entire string -> move to the history window
+
+      - Starting '0' is removed when the screen resizes.
+
+  - Remove space button and off button mouse click repeating characters
+
+  - Pressing 'Enter' after the '0' and '1' character elements without '=' or '-' resets the character array.
+
+
+
 
 
 # calculator
@@ -163,10 +165,6 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
 
   - Text buttons - 'screenCheckZero' and sometimes 'screenCheckOne' multiple characters don't resize with the window.
 
-  - Remove space button and off button mouse click repeating characters
-
-  - Pressing 'Enter' after the '0' and '1' character elements without '=' or '-' resets the character array.
-
   - initial screensize '0' and 'eventCode == 12' buttons are off by several coordinates
 
   - minor todo
@@ -183,15 +181,11 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
 
   - Change the non-decimal button color and '=' button color
 
-  - Text input window.
+  - Repeating '=' i.e. 2 * 2 = 4    or answer * (n)
+                       4 * 2 = 8
+                       8 * 2 = 16
+                      16 * 2 = 32
 
-    - larger display/history
-
-    - history window (temporarily extend text input window)
-
-      - After calculation, 'del' removes the entire string -> move to the history window
-
-      - Starting '0' is removed when the screen resizes and the text is drawn over itself in a small area.
 
   - Replace button polygons with polylines.
 
@@ -200,8 +194,6 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
   - Disable window manager and get the device's screen dimensions.
 
     - Make an 'x' and minimize button to close the program.
-
-  - Click text input window to insert number - the coordinates of the text, the 'keyInputIterator' value for the 'charKeyInput[]'.
 
 - Other notes
 
