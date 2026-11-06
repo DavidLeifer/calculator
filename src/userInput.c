@@ -33,6 +33,11 @@ struct threeInt inputFormat(char input[]) {
   //char *charNumberTwo = malloc(4 * sizeof(char));
   char charNumberOne[4]; //= malloc(4 * sizeof(char));
   char charNumberTwo[4]; //= malloc(4 * sizeof(char));
+  charNumberOne[0] = '\0';
+  //charNumberOne[1] = '\0';
+  //charNumberOne[2] = '\0';
+  //charNumberOne[3] = '\0';
+
   charNumberTwo[4] = '\0';
   // char pointerArithmatic[3] = {0};
   char *arithmaticO = malloc(3 * sizeof(char));
@@ -48,10 +53,17 @@ struct threeInt inputFormat(char input[]) {
   // The length of the split char[] are used to convert to int.
   int intNumberTwoLength = 0;
   int intNumberOneLength = 0;
+
+  struct threeInt output;
+  // Input negative - 0 = none are, 1 = first number, 2 = second number, 3 = both.
+  output.three = 0;
+
   while (input[i] != '\0') {
     if (input[i] != ' ') {
+
+
       // ASCii if it's an int char, set charNumberTwo to those integers.
-      if ( (input[i] > 47) && (input[i] < 58) ) {
+      if ( (input[i] > 47) && (input[i] < 58)) {
         //printf("input[i]  %c  sizeof(charNumberOne) %d  'intNumberTwo' %d\n", input[i], sizeof(charNumberOne), intNumberTwoLength);
         // charNumberTwo[] when arithmaticO[] is not empty.
 
@@ -68,7 +80,6 @@ struct threeInt inputFormat(char input[]) {
         // also does this but can't be returned in functions and is why 'arithmatic0' is a pointer char[].
         // The other two 'char[]' are not pointers since they are used in 'charBinary2Int()' and that
         // function returns a different 'malloc()' pointer array.
-
         if ( arithmaticO[0] != '0' ) {
           charNumberTwo[m] = input[i];
           m++;
@@ -81,21 +92,17 @@ struct threeInt inputFormat(char input[]) {
           j++;
           intNumberOneLength = j;
         }
-        /*
-        // The version with pointers.
-        // charNumberTwo[] when arithmaticO[] is not empty.
-        if ( arithmaticO[0] != '\0') {
-          charNumberTwo[m] = input[i];
-          m++;
-          intNumberTwoLength = m;
-        }
-        // charNumberOne[] when charNumberTwo[] is still empty.
-        else if ( charNumberTwo[0] == '\0' ) {
-          charNumberOne[j] = input[i];
-          j++;
-          intNumberOneLength = j;
-        }
-        */
+      }
+      // Determines if an integer is negative. These two conditionals work
+      // because it occurs after 'arithmatic0[0]' has been set.
+      if (output.three == 0 && arithmaticO[0] != '0' && input[i] == 45) {
+        // Second number is negative.
+        output.three = 2;
+      }
+      // 'charNumberOne' is negative and set, the operator has been set, and the
+      // input is 45, both inputs are negative.
+      if (output.three == 1 && arithmaticO[0] != '0' && input[i] == 45) {
+        output.three = 3;
       }
       // Exponents
       if ((input[i] == 42) && (input[i+1] == 42)) {
@@ -117,7 +124,10 @@ struct threeInt inputFormat(char input[]) {
         //printf("%d  %c\n", i, input[i]);
       }
       // Subtraction
-      else if (input[i] == 45) {
+      // 'charNumberOne[0]' is necessary for negative numbers, otherwise the operator is '-' until a different
+      // operand is found and 'output.three' negative check is not set for the first number. 'arithmaticO[0]' prevents
+      // changes from '*' or '+' to subtraction '-' if the negative sign is meant for the second input integer.
+      else if (charNumberOne[0] != '\0' && input[i] == 45 && arithmaticO[0] == '0') {
         arithmaticO[0] = '-';
         arithmaticO[1] = '\0';
         //printf("%d  %c\n", i, input[i]);
@@ -128,21 +138,20 @@ struct threeInt inputFormat(char input[]) {
         arithmaticO[1] = '\0';
         //printf("%d  %c\n", i, input[i]);
       }
-      // Didnt work after an update and then compiled with this and the last else{}
-      else {
-        // int foo = 0;
+
+      // 'charNumberOne' is negative '-' and the operator has not been set.
+      if (input[i] == 45 && arithmaticO[0] == '0') {
+        output.three = 1;
       }
-    }
-    else {
-      //printf("%d  %d  space\n", i, input[i]);
-    }
+    } // Closes the conditional " input[i] != ' ' "
     i++;
-  }
+  } // Closes the " input[i] != '\0' " loop.
 
   // The two numbers and arithmaticO as their own char[] with NULL terminators.
   // printf("%s  %s  %s\n", charNumberOne, arithmaticO, charNumberTwo);
   intNumberOneLength++;
   intNumberTwoLength++;
+
   charNumberOne[intNumberOneLength] = '\0';
   charNumberTwo[intNumberTwoLength] = '\0';
   intNumberOneLength--;
@@ -150,12 +159,14 @@ struct threeInt inputFormat(char input[]) {
   // Convert 'charNumberOne' and 'charNumberTwo' to int with function from 'binaryChar.c'.
   ///////////////////////////////////////////////////////////////////////////////////////
 
+
+    // Change one to negative with 'output.three'
   int numberOne = charBinary2Int(charNumberOne, intNumberOneLength);
   int numberTwo = charBinary2Int(charNumberTwo, intNumberTwoLength);
-  struct threeInt output;
+
   output.one = numberOne;
   output.two = numberTwo;
-  output.three = 0;
+  //printf("is negative %d\n", output.three);
   output.string = arithmaticO;
 
   // printf("input format %d %s %d\n", output.one, output.string, output.two);
@@ -171,6 +182,13 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   int answer = 0;
   //char *arithmaticO = inputFormatted.string;
 
+  // Difference with negative numbers 0, 1, 2, 3 correspond to: none are negative, first number negative,
+  // inputFormatted.three                                       second number negative, both numbers are.
+  //
+
+  // 'inputFormatted.three' is changed when the 'answer' is negative '0' positive '1' negative and
+  // used in "intBinary2Char()".
+
   // Exponents
   if (inputFormatted.string[0] == 42 && inputFormatted.string[1] == 42 && inputFormatted.string[2] == '\0') {
     answer = exponents(numberOne, numberTwo);
@@ -178,18 +196,178 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   }
   // Multiplication
   else if (inputFormatted.string[0] == 42 && inputFormatted.string[1] == '\0') {
-    answer = multiplication(numberOne, numberTwo);
-    printf("%d * %d = %d\n", numberOne, numberTwo, answer);
+    // One or both input numbers are '0' the answer is '0'.
+    if (numberOne == 0 || numberTwo == 0) {
+      // 'answer' sign is positive for .log purposes.
+      inputFormatted.three = 0;
+      // 'answer' is already '0' and 'print()' to terminal.
+      printf("%d * %d = 0\n", numberOne, numberTwo);
+    }
+    else {
+      // One of either input numbers are negative, the answer is negative by switching the sign.
+      if (inputFormatted.three == 1 || inputFormatted.three == 2) {
+        answer = multiplication(numberOne, numberTwo);
+        // Indicates 'answer' is negative.
+        inputFormatted.three = 1;
+        printf("%d * %d = -%d\n", numberOne, numberTwo, answer);
+      }
+      // Both are positive or negative 'inputFormatted.three == 3'.
+      else {
+        answer = multiplication(numberOne, numberTwo);
+        inputFormatted.three = 0;
+        printf("%d * %d = %d\n", numberOne, numberTwo, answer);
+      }
+    }
   }
   // Addition
   else if (inputFormatted.string[0] == 43 && inputFormatted.string[1] == '\0') {
-    answer = addition(numberOne, numberTwo);
-    printf("%d + %d = %d\n", numberOne, numberTwo, answer);
+    // 0  Both are positive and is regular addition.
+    if (inputFormatted.three == 0) {
+      answer = addition(numberOne, numberTwo);
+      // Indicates 'answer' is negative.
+      inputFormatted.three = 0;
+      printf("%d + %d = %d\n", numberOne, numberTwo, answer);
+    }
+    // 'numberOne' is negative and 'numberTwo' is positive.
+    if (inputFormatted.three == 1) {
+      // 'numberTwo' is smaller.
+      // -5 + 2 = -3  == 5 - 2 = 3 (without '-').
+      if (numberOne > numberTwo) {
+        answer = subtraction(numberOne, numberTwo);
+        // Indicates 'answer' is negative.
+        inputFormatted.three = 1;
+        printf("-%d + %d = -%d\n", numberOne, numberTwo, answer);
+      }
+      // 'numberOne' is negative and smaller.
+      // -5 + 10 = 5  ==  10 - 5 = 5
+      else if (numberOne < numberTwo) {
+        answer = subtraction(numberTwo, numberOne);
+        inputFormatted.three = 0;
+        printf("-%d + %d = %d\n", numberOne, numberTwo, answer);
+      }
+      // -5 + 5 = 0
+      else {
+        // 'answer' is '0'.
+        inputFormatted.three = 0;
+        printf("-%d + %d = 0\n", numberOne, numberTwo);
+      }
+    }
+    // 'numberTwo' is negative.
+    else if (inputFormatted.three == 2) {
+      // 'numberTwo' is smaller.
+      // 10 + -5 = 5   ==   10 - 5 = 5
+      if (numberOne > numberTwo) {
+        answer = subtraction(numberOne, numberTwo);
+        inputFormatted.three = 0;
+        printf("%d + -%d = %d\n", numberOne, numberTwo, answer);
+      }
+      // 'numberOne' is smaller.
+      // 5 + -10 = -5  ==  10 - 5 = 5 (without the sign '-').
+      else if (numberOne < numberTwo) {
+        answer = subtraction(numberTwo, numberOne);
+        // Indicates 'answer' is negative.
+        inputFormatted.three = 1;
+        printf("%d + -%d = -%d\n", numberOne, numberTwo, answer);
+      }
+      // 5 + -5 = 0
+      else {
+        // 'answer' is '0'.
+        inputFormatted.three = 0;
+        printf("%d + -%d = 0\n", numberOne, numberTwo);
+      }
+    }
+    // Both are negative.
+    // -5 + -5 = -10
+    else if (inputFormatted.three == 3) {
+      answer = addition(numberOne, numberTwo);
+      // Indicates 'answer' is negative.
+      inputFormatted.three = 1;
+      printf("-%d + -%d = -%d\n", numberOne, numberTwo, answer);
+    }
   }
-  // Subtraction
+  // Subtraction - does negative 'answers' not negative input
   else if (inputFormatted.string[0] == 45 && inputFormatted.string[1] == '\0') {
-    answer = subtraction(numberOne, numberTwo);
-    printf("%d - %d = %d\n", numberOne, numberTwo, answer);
+    // Both inputs are positive.
+    if (inputFormatted.three == 0) {
+      if (numberOne == numberTwo) {
+        // 'answer' is already '0'
+        inputFormatted.three = 0;
+        printf("%d - %d = 0\n", numberOne, numberTwo);
+      }
+      // Positive difference i.e. '5 - 4 = 1'
+      else if (numberOne > numberTwo) {
+        answer = subtraction(numberOne, numberTwo);
+        inputFormatted.three = 0;
+        printf("%d - %d = %d\n", numberOne, numberTwo, answer);
+      }
+      // 'answer' is negative i.e. '3 - 10 = -7'
+      //        Flipped around it's '10 - 3 = 7' allowing binary subtraction with '-' inserted after.
+      else {
+        answer = subtraction(numberTwo, numberOne);
+        // Indicates 'answer' is negative.
+        inputFormatted.three = 1;
+        printf("%d - %d = -%d\n", numberOne, numberTwo, answer);
+      }
+    }
+    // 'numberOne' is negative and 'numberTwo' is positive.
+    else if (inputFormatted.three == 1) {
+      // 'answer' is from adding the number regardless.
+      answer = addition(numberOne, numberTwo);
+      // Indicates 'answer' is negative.
+      inputFormatted.three = 1;
+      // -10 - 5 = -15  ==  10 + 5 = 15 (without '-')
+      // The first integer is larger.
+      if (numberOne > numberTwo) {
+        printf("-%d - %d = -%d\n", numberOne, numberTwo, answer);
+      }
+      // '-3 - 10 = -13'  ==  '3 + 10 = 13' (without '-')
+      // 'nmberTwo' is larger or equal.
+      // '-3 - 3 = -6'    ==  '3 + 3 = 6'
+      else {
+        printf("-%d - %d = -%d\n", numberOne, numberTwo, answer);
+      }
+    }
+    // 'numberOne' is positive and 'numberTwo' is negative.
+    else if (inputFormatted.three == 2) {
+      // 'answer' is from adding the number regardless.
+      answer = addition(numberOne, numberTwo);
+      inputFormatted.three = 0;
+      // The first integer is larger.
+      // '5 - -2 = 7'  ==  '5 + 2 = 7'
+      if (numberOne > numberTwo) {
+        printf("%d - -%d = %d\n", numberOne, numberTwo, answer);
+      }
+      // 'nmberTwo' is larger or equal.
+      // '5 - -7 = 12'  ==  '5 + 7 = 12'
+      else {
+        //answer = addition(numberTwo, numberOne);
+        printf("%d - -%d = %d\n", numberOne, numberTwo, answer);
+      }
+    }
+    // 'numberOne' is negative and 'numberTwo' is negative.
+    else if (inputFormatted.three == 3) {
+      // The input integers are equal.
+      // '-5 - -5 = 0'
+      if (numberOne == numberTwo) {
+        inputFormatted.three = 0;
+        printf("-%d - -%d = 0\n", numberOne, numberTwo);
+      }
+      // The first integer is larger.
+      // '-5 - -2 = -3'  ==  '5 - 2 = 3' (without the sign)
+      else if (numberOne > numberTwo) {
+        answer = subtraction(numberOne, numberTwo);
+        // Indicates 'answer' is negative.
+        inputFormatted.three = 1;
+        printf("-%d - -%d = -%d\n", numberOne, numberTwo, answer);
+      }
+      // 'nmberTwo' is larger or equal.
+      // '-5 - -7 = 2'  ==  '7 - 5 = 2'
+      else if (numberOne < numberTwo) {
+        answer = subtraction(numberTwo, numberOne);
+        inputFormatted.three = 0;
+        printf("-%d - -%d = %d\n", numberOne, numberTwo, answer);
+      }
+    }
   }
   // Division
   else if (inputFormatted.string[0] == 47 && inputFormatted.string[1] == '\0') {
@@ -210,10 +388,16 @@ char* inputArithmatic(struct threeInt inputFormatted) {
   struct threeInt structAnswer;
   structAnswer.one = answerLength;
   structAnswer.two = answer;
-  structAnswer.three = 0;
+  //printf("inputFormatted.three  %d  ", inputFormatted.three);
+  structAnswer.three = inputFormatted.three;
   structAnswer.string = '\0';
-  char *output = intBinary2Char(structAnswer);
 
+  //printf("answer length  %d\n\n", structAnswer.one);
+  // resuse 'inputFormatted.three' to indicate 'answer' sign at 'structAnswer.three = 0;'
+  // change 'intBinary2Char()': if 'structAnswer.three ==' '0' positive or '1' negative.
+  char *output = intBinary2Char(structAnswer);
+  //printf("answer length: %d\n", structAnswer.one);
+  //printf("  output  %s\n", output);
   return output;
 }
 
@@ -310,7 +494,7 @@ char* outputArithmatic(char *userInput) {
   struct threeInt splitUserInput = inputFormat(userInput);
   // Send to arithmatic functions and print the answer.
   char *answer = inputArithmatic(splitUserInput);
-  // printf("%s\n", strUserInput);
+  //printf("    %s\n", strUserInput);
   return answer;
 }
 

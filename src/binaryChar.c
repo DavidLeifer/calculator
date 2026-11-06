@@ -96,12 +96,28 @@ struct threeInt decimal2intBinary(int decimal, int binaryLength) {
 // Convert int binary to char[] binary.
 char* intBinary2Char(struct threeInt intZerosBinary) {
   // char pointer holds the binaryLength.
-  char *charBinary = malloc(intZerosBinary.one * sizeof(char));
-  strcpy(charBinary, "a");
+  char *charBinary;
   // i is decremented for the duration of the loop.
-  charBinary[intZerosBinary.one] = '\0';
+  // Length of the binary - 1.
   int i = intZerosBinary.one - 1;
+  // Allocate more heap space for the negative sign.
+  if (intZerosBinary.three == 1) {
+    i++;
+    charBinary = malloc((intZerosBinary.one + 1) * sizeof(char));
+    // Null-terminate the last character.
+    charBinary[intZerosBinary.one + 1] = '\0';
+  }
+  else {
+    charBinary = malloc(intZerosBinary.one * sizeof(char));
+    // Null-terminate the last character.
+    charBinary[intZerosBinary.one] = '\0';
+  }
+  // At one point the internet said to do this to fill  heap pointers and
+  // it may not still be needed.
+  strcpy(charBinary, "a");
   int intBinaryDigit = 0;
+
+  //printf("intZerosBinary.three %d\n", intZerosBinary.three);
   while(i >= 0) {
     // Reverse intZerosBinary.two as a char.
     // todo 'int intBinaryDigit = 0;' and see if it compiles.
@@ -110,11 +126,16 @@ char* intBinary2Char(struct threeInt intZerosBinary) {
     intBinaryDigit = intZerosBinary.two % 10;
     charBinary[i] = intBinaryDigit + '0';
     intZerosBinary.two /= 10;
-    // printf("%d  %d    %c\n", i, intBinaryDigit, charBinary[i]);
+    //printf("  %d  %d    %c\n", i, intBinaryDigit, charBinary[i]);
     i--;
   }
   // change 'charbinary[i] = '\0';' and make sure the malloc is correct.
-  // printf("intBinary2Char:  %s\n", charBinary);
+
+  // Change sign to negative.
+  if (intZerosBinary.three == 1) {
+    charBinary[0] = '-';
+  }
+  //printf("intBinary2Char[i]:  %s\n", charBinary);
   return charBinary;
 }
 
@@ -166,6 +187,7 @@ int binary2Decimal(char charBinaryAdd[], int binaryAddOne) {
   }
   // Removed 20260921. Have to free 'malloc()' heap pointer after input.
   //free(charBinaryAdd);
+
   return decimal;
 }
 
