@@ -1686,9 +1686,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // Holds the length of each input expression for access.
   char keyInputAnswerLength[answerIterator];
 
-
-
   // Text for the input and output window.
+  // Also used as the 'h' in the history button.
   unsigned char historyText[20];
   // Opcode 76 (imageText8) write text
   historyText[0] = 74; // 76?
@@ -1705,50 +1704,65 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   historyText[10] = gcID.three;
   historyText[11] = gcID.four;
 
-  //printf("historyText[12]: %d  historyText[13]: %d\n", textBorder[12] - 15 + textBorder[16], textBorder[13] + textBorder[17]);
-  historyText[12] = 9;    // X
-  historyText[13] = 1;
-  historyText[14] = textBorder[14] + 55; // + 22.5; // Y
-  historyText[15] = textBorder[15];
-  historyText[16] = 1;                    // length of the string
-  historyText[17] = 0;                    // horizontal shift between characters
-  historyText[18] = charKeyInput[0];  // The text strings (STRING8).
-  historyText[19] = 0;
-
-
-
-
   // History/no history button.
+  char historyButton[20];
+  historyButton[0] = subsetButtonBorder[0];
+  historyButton[1] = subsetButtonBorder[1];
+  historyButton[2] = subsetButtonBorder[2];
+  historyButton[3] = subsetButtonBorder[3];
+
+  historyButton[4] = subsetButtonBorder[4];
+  historyButton[5] = subsetButtonBorder[5];
+  historyButton[6] = subsetButtonBorder[6];
+  historyButton[7] = subsetButtonBorder[7];
+
+  historyButton[8] = subsetButtonBorder[8];
+  historyButton[9] = subsetButtonBorder[9];
+  historyButton[10] = subsetButtonBorder[10];
+  historyButton[11] = subsetButtonBorder[11];
+
   // XY coordinates.
-  subsetButtonBorder[12] = buttonBorder[1][12] - 35;
-  subsetButtonBorder[13] = buttonBorder[1][13];
-  subsetButtonBorder[14] = buttonBorder[1][14] + 12.5;
-  subsetButtonBorder[15] = buttonBorder[1][15];
+  historyButton[12] = buttonBorder[1][12] - 35;
+  historyButton[13] = buttonBorder[1][13];
+  historyButton[14] = buttonBorder[1][14] + 12.5;
+  historyButton[15] = buttonBorder[1][15];
   // Height and width.
-  subsetButtonBorder[16] = 25;
-  subsetButtonBorder[17] = 0;
-  subsetButtonBorder[18] = 25;
-  subsetButtonBorder[19] = 0;
-  borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+  historyButton[16] = 25;
+  historyButton[17] = 0;
+  historyButton[18] = 25;
+  historyButton[19] = 0;
+  borderRectangleWrite = write(sock, historyButton, sizeof(historyButton));
 
-  subsetButtonPolyfill[12] = subsetButtonBorder[12];
-  subsetButtonPolyfill[13] = buttonPolyfill[1][13];
-  subsetButtonPolyfill[14] = subsetButtonBorder[14];
-  subsetButtonPolyfill[15] = buttonPolyfill[1][15];
-  subsetButtonPolyfill[16] = 25;
-  subsetButtonPolyfill[17] = 0;
-  subsetButtonPolyfill[18] = 25;
-  subsetButtonPolyfill[19] = 0;
+  // History button background fill.
+  char historyButtonPolyfill[20];
+  historyButtonPolyfill[0] = subsetButtonBorder[0];
+  historyButtonPolyfill[1] = subsetButtonBorder[1];
+  historyButtonPolyfill[2] = subsetButtonBorder[2];
+  historyButtonPolyfill[3] = subsetButtonBorder[3];
 
-  buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
+  historyButtonPolyfill[4] = subsetButtonBorder[4];
+  historyButtonPolyfill[5] = subsetButtonBorder[5];
+  historyButtonPolyfill[6] = subsetButtonBorder[6];
+  historyButtonPolyfill[7] = subsetButtonBorder[7];
 
+  historyButtonPolyfill[8] = subsetButtonBorder[8];
+  historyButtonPolyfill[9] = subsetButtonBorder[9];
+  historyButtonPolyfill[10] = subsetButtonBorder[10];
+  historyButtonPolyfill[11] = subsetButtonBorder[11];
 
+  historyButtonPolyfill[12] = historyButton[12];
+  historyButtonPolyfill[13] = buttonPolyfill[1][13];
+  historyButtonPolyfill[14] = historyButton[14];
+  historyButtonPolyfill[15] = buttonPolyfill[1][15];
+  historyButtonPolyfill[16] = 25;
+  historyButtonPolyfill[17] = 0;
+  historyButtonPolyfill[18] = 25;
+  historyButtonPolyfill[19] = 0;
+  buttonPolyfillWrite = write(sock, historyButtonPolyfill, sizeof(historyButtonPolyfill));
 
-
-
-/////
   // History symbol is '0', arrow '^', and smaller 'h' for 'History'.
   // Turns into a keyboard symbol once clicked.
+  int historyCheck = 1;
 
   // Arrow is drawn at the end of the loop.
   int polyLineWrite;
@@ -1782,7 +1796,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // Offset centers the circle.
   int xOffset = 12;
   int yOffset = -7;
-/*
+
   while (i <= j) {
     // Visually starts drawing at the bottom of the circle since
     // screen coordinates 'y' are drawn upside down but it's the
@@ -1795,23 +1809,23 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       k = k + ((2 * (i - j)) + 1);
     }
     //printf("x %d  y %d  p %d\n", i, j, k);
-    printf("i %d\n", i);
+    //printf("i %d\n", i);
     // They are numbered clockwise.
     // 1) (x, -y)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
+    polyPoint[12] = (historyButton[12] + xOffset) + i;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) - j;
     polyPoint[15] = buttonText[1][15];
     polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
     // These two arcs are not skipped
     // 2) (y, -x)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) + j;
+    polyPoint[12] = (historyButton[12] + xOffset) + j;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) - i;
     polyPoint[15] = buttonText[1][15];
     //polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
     // 3) (y, x)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) + j;
+    polyPoint[12] = (historyButton[12] + xOffset) + j;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) + i;
     polyPoint[15] = buttonText[1][15];
@@ -1838,31 +1852,31 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
     }
 
     // 4) (x, y)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
+    polyPoint[12] = (historyButton[12] + xOffset) + i;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) + j;
     polyPoint[15] = buttonText[1][15];
     polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
     // 5) (-x, y)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
+    polyPoint[12] = (historyButton[12] + xOffset) - i;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) + j;
     polyPoint[15] = buttonText[1][15];
     polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
     // 6) (-y, -x)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - j;
+    polyPoint[12] = (historyButton[12] + xOffset) - j;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) + i;
     polyPoint[15] = buttonText[1][15];
     polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
     // 7) (-y, -x)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - j;
+    polyPoint[12] = (historyButton[12] + xOffset) - j;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) - i;
     polyPoint[15] = buttonText[1][15];
     polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
     // 8) (-x, -y)
-    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
+    polyPoint[12] = (historyButton[12] + xOffset) - i;
     polyPoint[13] = buttonText[1][13];
     polyPoint[14] = (buttonText[1][14] + yOffset) - j;
     polyPoint[15] = buttonText[1][15];
@@ -1872,231 +1886,35 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
 
   // gcIDSeven; - smaller font.
   // 'write()' the 'h'.
-  subsetButtonText[12] = subsetButtonBorder[12] + xOffset - 6;
-  subsetButtonText[14] = buttonText[1][14]; //+ yOffset;
-  subsetButtonText[18] = 'h';
-  buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+  historyText[12] = historyButton[12] + 7;                   // X
+  historyText[13] = historyButton[13];
+  historyText[14] = historyButton[14] + 18;                   // + 22.5; // Y
+  historyText[15] = historyButton[15];
+  historyText[16] = 1;                                   // length of the string
+  historyText[17] = 0;                                   // horizontal shift between characters
+  historyText[18] = 'h';                                 // The text strings (STRING8).
+  historyText[19] = 0;
+  buttonTextWrite = write(sock, historyText, sizeof(historyText));
 
 
-*/
-// todo
-//      hover change color
-//      history window (changes to keyboard button)
-//      'write()' calculations
-//      clear history button
-  // Return to keyboard - button (slides history window back).
-  //   _
-  //  ["]
-  //   _
 
-  // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
-  i = 0;      // x
-  m = 10;     // radius
-  j = m;      // y = R (radius)
-  k = 1 - j;  // P = 1 - R
-  // The loop draws points 0-j at the same time for each 1/8 of the circle.
-  // Offset centers the circle.
-  xOffset = 12;
-  yOffset = -7;
+  // button 4 - 12
+  //
+  char historyWindow[20];
+  historyWindow[0] = buttonPolyfill[4][0];
+  historyWindow[1] = buttonPolyfill[4][1];
+  historyWindow[2] = buttonPolyfill[4][2];
+  historyWindow[3] = buttonPolyfill[4][3];
+  historyWindow[4] = buttonPolyfill[4][4];
+  historyWindow[5] = buttonPolyfill[4][5];
+  historyWindow[6] = buttonPolyfill[4][6];
+  historyWindow[7] = buttonPolyfill[4][7];
+  historyWindow[8] = gcID.one + gcIDFive;
+  historyWindow[9] = gcID.two;
+  historyWindow[10] = gcID.three;
+  historyWindow[11] = gcID.four;
 
-  while (i <= j) {
-    // Visually starts drawing at the bottom of the circle since
-    // screen coordinates 'y' are drawn upside down but it's the
-    // top of the circle mathematically.
-    if (k < 0) {
-      k = k + ((2 * i) + 1);
-    }
-    else if (k >= 0) {
-      j--;
-      k = k + ((2 * (i - j)) + 1);
-    }
-    //printf("x %d  y %d  p %d\n", i, j, k);
-    //printf("i %d\n", i);
-    // The 1/8 arcs are numbered clockwise and
-    // these arcs are skipped:
-    //   2) (y, -x)
-    //   3) (y, x)
-    //   6) (-y, -x)
-    //   7) (-y, -x)
-
-    // 'write()' the horizontal lines using the first
-    // point from 1-8 and 4-5. The third point is repeated
-    // to reuse 'polyLine' char[] from the history button.
-    if (i == 5) {
-      // 1) (x, -y)
-      // First point.
-      polyLine[12] = (subsetButtonBorder[12] + xOffset) + i;
-      polyLine[13] = buttonText[1][13];
-      polyLine[14] = (buttonText[1][14] + yOffset) - j;
-      polyLine[15] = buttonText[1][15];
-      // 8) (-x, -y)
-      // Second point.
-      polyLine[16] = (subsetButtonBorder[12] + xOffset) - i;
-      polyLine[17] = buttonText[1][13];
-      polyLine[18] = (buttonText[1][14] + yOffset) - j;
-      polyLine[19] = buttonText[1][15];
-      // Third point.
-      polyLine[20] = polyLine[16];
-      polyLine[21] = polyLine[17];
-      polyLine[22] = polyLine[18];
-      polyLine[23] = polyLine[19];
-      polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-      // 4) (x, y)
-      // First point.
-      polyLine[12] = (subsetButtonBorder[12] + xOffset) + i;
-      polyLine[13] = buttonText[1][13];
-      polyLine[14] = (buttonText[1][14] + yOffset) + j;
-      polyLine[15] = buttonText[1][15];
-      // 5) (-x, y)
-      // Second point.
-      polyLine[16] = (subsetButtonBorder[12] + xOffset) - i;
-      polyLine[17] = buttonText[1][13];
-      polyLine[18] = (buttonText[1][14] + yOffset) + j;
-      polyLine[19] = buttonText[1][15];
-      // Third point.
-      polyLine[20] = polyLine[16];
-      polyLine[21] = polyLine[17];
-      polyLine[22] = polyLine[18];
-      polyLine[23] = polyLine[19];
-      polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-    }
-    // 'write()' the 1/8 corners for 1,4,5,8 and
-    // vertical and horizontal lines.
-    if (i > 4) {
-      // 1) (x, -y)
-      polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
-      polyPoint[13] = buttonText[1][13];
-      polyPoint[14] = (buttonText[1][14] + yOffset) - j;
-      polyPoint[15] = buttonText[1][15];
-      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-      // 1 and 4 right vertical line coordinate 'write()'.
-      if (i == j) {
-        // First point.
-        polyLine[12] = polyPoint[12];
-        polyLine[13] = polyPoint[13];
-        polyLine[14] = polyPoint[14];
-        polyLine[15] = polyPoint[15];
-      }
-      // 4) (x, y)
-      polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
-      polyPoint[13] = buttonText[1][13];
-      polyPoint[14] = (buttonText[1][14] + yOffset) + j;
-      polyPoint[15] = buttonText[1][15];
-      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-      // 1 and 4 right vertical line coordinate 'write()' uses the last coordinate.
-      if (i == j) {
-        // Second point.
-        polyLine[16] = polyPoint[12];
-        polyLine[17] = polyPoint[13];
-        polyLine[18] = polyPoint[14];
-        polyLine[19] = polyPoint[15];
-        // Third point.
-        polyLine[20] = polyPoint[12];
-        polyLine[21] = polyPoint[13];
-        polyLine[22] = polyPoint[14];
-        polyLine[23] = polyPoint[15];
-        polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-      }
-      // 5) (-x, y)
-      polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
-      polyPoint[13] = buttonText[1][13];
-      polyPoint[14] = (buttonText[1][14] + yOffset) + j;
-      polyPoint[15] = buttonText[1][15];
-      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-      // 5 and 8 left vertical line coordinate 'write()'.
-      if (i == j) {
-        // First point.
-        polyLine[12] = polyPoint[12];
-        polyLine[13] = polyPoint[13];
-        polyLine[14] = polyPoint[14];
-        polyLine[15] = polyPoint[15];
-      }
-      // 8) (-x, -y)
-      polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
-      polyPoint[13] = buttonText[1][13];
-      polyPoint[14] = (buttonText[1][14] + yOffset) - j;
-      polyPoint[15] = buttonText[1][15];
-      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-      // 5 and 8 left vertical line coordinate 'write()'.
-      if (i == j) {
-        // Second point.
-        polyLine[16] = polyPoint[12];
-        polyLine[17] = polyPoint[13];
-        polyLine[18] = polyPoint[14];
-        polyLine[19] = polyPoint[15];
-        // Third point.
-        polyLine[20] = polyPoint[12];
-        polyLine[21] = polyPoint[13];
-        polyLine[22] = polyPoint[14];
-        polyLine[23] = polyPoint[15];
-        polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-      }
-    }
-    i++;
-  }
-
-  // 'write()' the 'screen' and 'keyboard' for the button.
-  // 'screen' first point.
-  polyLine[12] = (subsetButtonBorder[12] + xOffset) - 2;
-  polyLine[13] = buttonText[1][13];
-  polyLine[14] = (buttonText[1][14] + yOffset) - 5;
-  polyLine[15] = buttonText[1][15];
-  // 8) (-x, -y)
-  // Second point.
-  polyLine[16] = (subsetButtonBorder[12] + xOffset) + 3;
-  polyLine[17] = buttonText[1][13];
-  polyLine[18] = (buttonText[1][14] + yOffset) - 5;
-  polyLine[19] = buttonText[1][15];
-  // Third point.
-  polyLine[20] = polyLine[16];
-  polyLine[21] = polyLine[17];
-  polyLine[22] = polyLine[18];
-  polyLine[23] = polyLine[19];
-  polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-  i = 0;
-  j = 0;
-  while (i < 5) {
-    // 'write()' the 'keyboard' for the button.
-    printf("i %d  j %d\n", i, j);
-    // First point.
-    polyLine[12] = (subsetButtonBorder[12] + xOffset) + (i-1);
-    polyLine[13] = buttonText[1][13];
-    polyLine[14] = (buttonText[1][14] + yOffset) + (j-1); // -1;
-    polyLine[15] = buttonText[1][15];
-    // 8) (-x, -y)
-    // Second point.
-    polyLine[16] = (subsetButtonBorder[12] + xOffset) + (i-1);
-    polyLine[17] = buttonText[1][13];
-    polyLine[18] = (buttonText[1][14] + yOffset) + j;
-    polyLine[19] = buttonText[1][15];
-    // Third point is repeated.
-    polyLine[20] = polyLine[16];
-    polyLine[21] = polyLine[17];
-    polyLine[22] = polyLine[18];
-    polyLine[23] = polyLine[19];
-    polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-    // 'break' during after the second row 'write()'.
-    if (i == 3 && j == 3) {
-      break;
-    }
-    // Repeats the second row incrementing 'y' coordinate with 'j'.
-    if (i == 3) {
-      j = 3;
-      i = 0;
-    }
-    // Increase 'i' or the 'x' coordiante.
-    else {
-      i++;
-      i++;
-      i++;
-    }
-  }
 ////
-
-
-
-
-
 
   if (geometryRead[0] == 1) {
     printf("Window created via raw sockets! Keep process alive to view.\n");
@@ -5655,6 +5473,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               }
             }
           }
+
+
+
+
           // Use the other two 'char[]' 'buttonBorder' and 'buttonBorderXXYY'.
           else if (screenCheckZero == 1) {
             // x2 low boundary
@@ -5743,12 +5565,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                     }
                   }
                 }
-              }
+               }
             }
           }
           j++;
         }        // 'while'    end bracket for the XY coordinate check
 
+
+        // 'j' is not a button.
         if (x2LowCheck == 0) {
           j = 0;
         }
@@ -5772,6 +5596,115 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         }
         if (y1HighCheck == 0) {
           j = 0;
+        }
+
+        // Check for history/keyboard button
+        if (j == 0) {
+          x1LowCheck = 0;
+          y1LowCheck = 0;
+          x1HighCheck = 0;
+          y1HighCheck = 0;
+          x2LowCheck = 0;
+          y2LowCheck = 0;
+          x2HighCheck = 0;
+          y2HighCheck = 0;
+
+          //printf("x %d %d y %d %d width %d %d height %d %d\n", historyButtonPolyfill[12], historyButtonPolyfill[13], historyButtonPolyfill[14], historyButtonPolyfill[15], historyButtonPolyfill[16], historyButtonPolyfill[17], historyButtonPolyfill[18], historyButtonPolyfill[19]);
+          // x2 low boundary
+          if (responseWindowInput[25] >= historyButtonPolyfill[13]) {
+            x2LowCheck = 1;
+            // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
+            // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
+            // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
+            // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
+            // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
+            if (responseWindowInput[25] == historyButtonPolyfill[13] && responseWindowInput[24] >= historyButtonPolyfill[12]) {
+              x1LowCheck = 1;
+            }
+            else if (responseWindowInput[25] > historyButtonPolyfill[13]) {
+              x1LowCheck = 1;
+            }
+          }
+          // 'y2' low is identical to the above explanation.
+          if (responseWindowInput[27] >= historyButtonPolyfill[15]) {
+            y2LowCheck = 1;
+            if (responseWindowInput[27] == historyButtonPolyfill[15] && responseWindowInput[26] >= historyButtonPolyfill[14]) {
+              y1LowCheck = 1;
+            }
+            else if (responseWindowInput[27] > historyButtonPolyfill[15]) {
+              y1LowCheck = 1;
+            }
+          }
+
+
+          // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
+          // x2 high
+          if (responseWindowInput[25] <= (historyButtonPolyfill[13] + historyButtonPolyfill[17]) ) {
+            x2HighCheck = 1;
+            if (responseWindowInput[25] == (historyButtonPolyfill[13] +historyButtonPolyfill[17]) && responseWindowInput[24] <= (historyButtonPolyfill[12] + historyButtonPolyfill[16]) ) {
+              x1HighCheck = 1;
+            }
+            else if (responseWindowInput[25] < (historyButtonPolyfill[13] + historyButtonPolyfill[17]) ) {
+              x1HighCheck = 1;
+            }
+          }
+          // y2 high
+          if (responseWindowInput[27] <= (historyButtonPolyfill[15] + historyButtonPolyfill[19]) ) {
+            y2HighCheck = 1;
+            if (responseWindowInput[27] == (historyButtonPolyfill[15] + historyButtonPolyfill[19]) && responseWindowInput[26] <= (historyButtonPolyfill[14] + historyButtonPolyfill[18]) ) {
+              y1HighCheck = 1;
+            }
+            else if (responseWindowInput[27] < (historyButtonPolyfill[15] + historyButtonPolyfill[19]) ) {
+              y1HighCheck = 1;
+            }
+          }
+
+          // If all the checks are true, the appropriate button is used for input.
+          if (x2LowCheck == 1) {
+            if (y2LowCheck == 1) {
+              if (x2HighCheck == 1) {
+                if (y2HighCheck == 1) {
+                  if (x1LowCheck == 1) {
+                    if (y1LowCheck == 1) {
+                      if (x1HighCheck == 1) {
+                        if (y1HighCheck == 1) {
+                          // 'j' is the history/keyboard button.
+                          j = 42;
+                          //printf("button '  %d  '\n", j);
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+
+          // 'j' is not a button.
+          if (x2LowCheck == 0) {
+            j = 0;
+          }
+          if (y2LowCheck == 0) {
+            j = 0;
+          }
+          if (x2HighCheck == 0) {
+            j = 0;
+          }
+          if (y2HighCheck == 0) {
+            j = 0;
+          }
+          if (x1LowCheck == 0) {
+            j = 0;
+          }
+          if (y1LowCheck == 0) {
+            j = 0;
+          }
+          if (x1HighCheck == 0) {
+            j = 0;
+          }
+          if (y1HighCheck == 0) {
+            j = 0;
+          }
         }
 
         // charKeyInput[intKeyInputIterator];
@@ -6091,8 +6024,408 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         }
 
 //
+        if (j == 42) {
+          if (historyCheck == 0) {
+            // Redefine the 'clearArea' opcode 61 packet to the current specifications.
+            // XY coordinates.
+            clearArea[8] = historyButton[12];
+            clearArea[9] = historyButton[13];
+            clearArea[10] = historyButton[14];
+            clearArea[11] = historyButton[15];
+            // Width and height.
+            clearArea[12] = historyButton[16];
+            clearArea[13] = historyButton[17];
+            clearArea[14] = historyButton[18];
+            clearArea[15] = historyButton[19];
+            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+            historyCheck = 1;
+            //printf("write the history button\n");
+
+            // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
+            i = 0;      // x
+            m = 10;     // radius
+            j = m;      // y = R (radius)
+            k = 1 - j;  // P = 1 - R
+            // The loop draws points 0-j at the same time for each 1/8 of the circle.
+            // Offset centers the circle.
+            xOffset = 12;
+            yOffset = -7;
+
+            while (i <= j) {
+              // Visually starts drawing at the bottom of the circle since
+              // screen coordinates 'y' are drawn upside down but it's the
+              // top of the circle mathematically.
+              if (k < 0) {
+                k = k + ((2 * i) + 1);
+              }
+              else if (k >= 0) {
+                j--;
+                k = k + ((2 * (i - j)) + 1);
+              }
+              //printf("x %d  y %d  p %d\n", i, j, k);
+              //printf("i %d\n", i);
+              // They are numbered clockwise.
+              // 1) (x, -y)
+              polyPoint[12] = (historyButton[12] + xOffset) + i;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+              polyPoint[15] = buttonText[1][15];
+              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              // These two arcs are not skipped
+              // 2) (y, -x)
+              polyPoint[12] = (historyButton[12] + xOffset) + j;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) - i;
+              polyPoint[15] = buttonText[1][15];
+              //polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              // 3) (y, x)
+              polyPoint[12] = (historyButton[12] + xOffset) + j;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) + i;
+              polyPoint[15] = buttonText[1][15];
+              //polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+
+              // 'write()' the arrow using the last coordinate of the third 1/8.
+              if (i == j) {
+                // First point.
+                polyLine[12] = polyPoint[12] - 2;
+                polyLine[13] = polyPoint[13];
+                polyLine[14] = polyPoint[14] - 2;
+                polyLine[15] = polyPoint[15];
+                // Second point.
+                polyLine[16] = polyPoint[12] + 1;
+                polyLine[17] = polyPoint[13];
+                polyLine[18] = polyPoint[14] - 5;
+                polyLine[19] = polyPoint[15];
+                // Third point.
+                polyLine[20] = polyPoint[12] + 3;
+                polyLine[21] = polyPoint[13];
+                polyLine[22] = polyPoint[14] - 1;
+                polyLine[23] = polyPoint[15];
+                polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+              }
+
+              // 4) (x, y)
+              polyPoint[12] = (historyButton[12] + xOffset) + i;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+              polyPoint[15] = buttonText[1][15];
+              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              // 5) (-x, y)
+              polyPoint[12] = (historyButton[12] + xOffset) - i;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+              polyPoint[15] = buttonText[1][15];
+              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              // 6) (-y, -x)
+              polyPoint[12] = (historyButton[12] + xOffset) - j;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) + i;
+              polyPoint[15] = buttonText[1][15];
+              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              // 7) (-y, -x)
+              polyPoint[12] = (historyButton[12] + xOffset) - j;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) - i;
+              polyPoint[15] = buttonText[1][15];
+              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              // 8) (-x, -y)
+              polyPoint[12] = (historyButton[12] + xOffset) - i;
+              polyPoint[13] = buttonText[1][13];
+              polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+              polyPoint[15] = buttonText[1][15];
+              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              i++;
+            }
+
+            // gcIDSeven; - smaller font.
+            // 'write()' the 'h'.
+            historyText[12] = historyButton[12] + 7;                   // X
+            historyText[13] = historyButton[13];
+            historyText[14] = historyButton[14] + 18;                   // + 22.5; // Y
+            historyText[15] = historyButton[15];
+            historyText[16] = 1;                                   // length of the string
+            historyText[17] = 0;                                   // horizontal shift between characters
+            historyText[18] = 'h';                                 // The text strings (STRING8).
+            historyText[19] = 0;
+            buttonTextWrite = write(sock, historyText, sizeof(historyText));
+          }
+          else if (historyCheck == 1) {
+            // Redefine the 'clearArea' opcode 61 packet to the current specifications.
+            // XY coordinates.
+            clearArea[8] = historyButton[12];
+            clearArea[9] = historyButton[13];
+            clearArea[10] = historyButton[14];
+            clearArea[11] = historyButton[15];
+            // Width and height.
+            clearArea[12] = historyButton[16];
+            clearArea[13] = historyButton[17];
+            clearArea[14] = historyButton[18];
+            clearArea[15] = historyButton[19];
+            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+            // 'write()' the 'keyInput' to the user input window using 'textBorder' X and Y.
+            //printf("keyInputText[12]: %d  keyInputText[13]: %d\n", textBorder[12] - 15 + textBorder[16], textBorder[13] + textBorder[17]);
+            // Overflow for the y coordinate
+            if ((textBorder[14] + 22.5) > 255) {
+              keyInputText[14] = (textBorder[14] + 55) - 255;
+              keyInputText[15] = textBorder[15] + 1 ;
+            }
+            else {
+              keyInputText[14] = textBorder[14] + 55;
+              keyInputText[15] = textBorder[15];
+            }
+            historyCheck = 0;
+
+        // todo
+        //      'h' y coordinate doesnt work
+        //      hover change color
+        //      history window (changes to keyboard button)
+        //      'write()' calculations
+        //      clear history button
+            // Return to keyboard - button (slides history window back).
+            // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
+            i = 0;      // x
+            m = 10;     // radius
+            j = m;      // y = R (radius)
+            k = 1 - j;  // P = 1 - R
+            // The loop draws points 0-j at the same time for each 1/8 of the circle.
+            // Offset centers the circle.
+            xOffset = 12;
+            yOffset = -7;
+
+            while (i <= j) {
+              // Visually starts drawing at the bottom of the circle since
+              // screen coordinates 'y' are drawn upside down but it's the
+              // top of the circle mathematically.
+              if (k < 0) {
+                k = k + ((2 * i) + 1);
+              }
+              else if (k >= 0) {
+                j--;
+                k = k + ((2 * (i - j)) + 1);
+              }
+              //printf("x %d  y %d  p %d\n", i, j, k);
+              //printf("i %d\n", i);
+              // The 1/8 arcs are numbered clockwise and
+              // these arcs are skipped:
+              //   2) (y, -x)
+              //   3) (y, x)
+              //   6) (-y, -x)
+              //   7) (-y, -x)
+
+              // 'write()' the horizontal lines using the first
+              // point from 1-8 and 4-5. The third point is repeated
+              // to reuse 'polyLine' char[] from the history button.
+              if (i == 5) {
+                // 1) (x, -y)
+                // First point.
+                polyLine[12] = (historyButton[12] + xOffset) + i;
+                polyLine[13] = buttonText[1][13];
+                polyLine[14] = (buttonText[1][14] + yOffset) - j;
+                polyLine[15] = buttonText[1][15];
+                // 8) (-x, -y)
+                // Second point.
+                polyLine[16] = (historyButton[12] + xOffset) - i;
+                polyLine[17] = buttonText[1][13];
+                polyLine[18] = (buttonText[1][14] + yOffset) - j;
+                polyLine[19] = buttonText[1][15];
+                // Third point.
+                polyLine[20] = polyLine[16];
+                polyLine[21] = polyLine[17];
+                polyLine[22] = polyLine[18];
+                polyLine[23] = polyLine[19];
+                polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                // 4) (x, y)
+                // First point.
+                polyLine[12] = (historyButton[12] + xOffset) + i;
+                polyLine[13] = buttonText[1][13];
+                polyLine[14] = (buttonText[1][14] + yOffset) + j;
+                polyLine[15] = buttonText[1][15];
+                // 5) (-x, y)
+                // Second point.
+                polyLine[16] = (historyButton[12] + xOffset) - i;
+                polyLine[17] = buttonText[1][13];
+                polyLine[18] = (buttonText[1][14] + yOffset) + j;
+                polyLine[19] = buttonText[1][15];
+                // Third point.
+                polyLine[20] = polyLine[16];
+                polyLine[21] = polyLine[17];
+                polyLine[22] = polyLine[18];
+                polyLine[23] = polyLine[19];
+                polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+              }
+              // 'write()' the 1/8 corners for 1,4,5,8 and
+              // vertical and horizontal lines.
+              if (i > 4) {
+                // 1) (x, -y)
+                polyPoint[12] = (historyButton[12] + xOffset) + i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 1 and 4 right vertical line coordinate 'write()'.
+                if (i == j) {
+                  // First point.
+                  polyLine[12] = polyPoint[12];
+                  polyLine[13] = polyPoint[13];
+                  polyLine[14] = polyPoint[14];
+                  polyLine[15] = polyPoint[15];
+                }
+                // 4) (x, y)
+                polyPoint[12] = (historyButton[12] + xOffset) + i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 1 and 4 right vertical line coordinate 'write()' uses the last coordinate.
+                if (i == j) {
+                  // Second point.
+                  polyLine[16] = polyPoint[12];
+                  polyLine[17] = polyPoint[13];
+                  polyLine[18] = polyPoint[14];
+                  polyLine[19] = polyPoint[15];
+                  // Third point.
+                  polyLine[20] = polyPoint[12];
+                  polyLine[21] = polyPoint[13];
+                  polyLine[22] = polyPoint[14];
+                  polyLine[23] = polyPoint[15];
+                  polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                }
+                // 5) (-x, y)
+                polyPoint[12] = (historyButton[12] + xOffset) - i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 5 and 8 left vertical line coordinate 'write()'.
+                if (i == j) {
+                  // First point.
+                  polyLine[12] = polyPoint[12];
+                  polyLine[13] = polyPoint[13];
+                  polyLine[14] = polyPoint[14];
+                  polyLine[15] = polyPoint[15];
+                }
+                // 8) (-x, -y)
+                polyPoint[12] = (historyButton[12] + xOffset) - i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 5 and 8 left vertical line coordinate 'write()'.
+                if (i == j) {
+                  // Second point.
+                  polyLine[16] = polyPoint[12];
+                  polyLine[17] = polyPoint[13];
+                  polyLine[18] = polyPoint[14];
+                  polyLine[19] = polyPoint[15];
+                  // Third point.
+                  polyLine[20] = polyPoint[12];
+                  polyLine[21] = polyPoint[13];
+                  polyLine[22] = polyPoint[14];
+                  polyLine[23] = polyPoint[15];
+                  polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                }
+              }
+              i++;
+            }
+
+            // 'write()' the 'screen' and 'keyboard' for the button.
+            // 'screen' first point.
+            polyLine[12] = (historyButton[12] + xOffset) - 2;
+            polyLine[13] = buttonText[1][13];
+            polyLine[14] = (buttonText[1][14] + yOffset) - 5;
+            polyLine[15] = buttonText[1][15];
+            // 8) (-x, -y)
+            // Second point.
+            polyLine[16] = (historyButton[12] + xOffset) + 3;
+            polyLine[17] = buttonText[1][13];
+            polyLine[18] = (buttonText[1][14] + yOffset) - 5;
+            polyLine[19] = buttonText[1][15];
+            // Third point.
+            polyLine[20] = polyLine[16];
+            polyLine[21] = polyLine[17];
+            polyLine[22] = polyLine[18];
+            polyLine[23] = polyLine[19];
+            polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+            i = 0;
+            j = 0;
+            while (i < 5) {
+              // 'write()' the 'keyboard' for the button.
+              //printf("i %d  j %d\n", i, j);
+              // First point.
+              polyLine[12] = (historyButton[12] + xOffset) + (i-1);
+              polyLine[13] = buttonText[1][13];
+              polyLine[14] = (buttonText[1][14] + yOffset) + (j-1); // -1;
+              polyLine[15] = buttonText[1][15];
+              // 8) (-x, -y)
+              // Second point.
+              polyLine[16] = (historyButton[12] + xOffset) + (i-1);
+              polyLine[17] = buttonText[1][13];
+              polyLine[18] = (buttonText[1][14] + yOffset) + j;
+              polyLine[19] = buttonText[1][15];
+              // Third point is repeated.
+              polyLine[20] = polyLine[16];
+              polyLine[21] = polyLine[17];
+              polyLine[22] = polyLine[18];
+              polyLine[23] = polyLine[19];
+              polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+              // 'break' during after the second row 'write()'.
+              if (i == 3 && j == 3) {
+                break;
+              }
+              // Repeats the second row incrementing 'y' coordinate with 'j'.
+              if (i == 3) {
+                j = 3;
+                i = 0;
+              }
+              // Increase 'i' or the 'x' coordiante.
+              else {
+                i++;
+                i++;
+                i++;
+              }
+            }
 
 
+            // 'historyWindow' slide animation.
+            // x, y
+            historyWindow[12] = 0;
+            historyWindow[13] = 0;
+            historyWindow[14] = buttonBorder[8][14];
+            historyWindow[15] = buttonBorder[8][15];
+            // width, height  + n to cover the borders.
+            historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
+            historyWindow[19] = buttonBorder[4][19];
+            i = 0;
+            j = 0;
+            int historyWindowWrite;
+            //while (i < ( (buttonBorder[4][16] * 4) + 20 + 1) ) {      // 5
+            // Increasing the number and modulo division by a decimal place determines speed.
+            while (i < 25000) {
+              if (i % 100 == 0) {
+                historyWindow[16] = j; // (buttonBorder[4][16] * i) + 20 + 1
+                historyWindow[17] = buttonBorder[4][17];
+                historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
+                if (j == ( (buttonBorder[4][16] * 4) + 20 + 2) ) {
+                  break;
+                }
+                j++;
+                //printf("j %d  x %d %d\n", j, historyWindow[16], historyWindow[17]);
+              }
+              // Delays the graphic by consuming resources. Depends on 'X11' compared with
+              // a different resource equation and assumes OS scaling.
+              polyPoint[12] = 0;
+              polyPoint[13] = 0;
+              polyPoint[14] = 0;
+              polyPoint[15] = 0;
+              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+              //printf("i %d\n", i);
+              i++;
+            }
+
+
+          }  // Closes the 'screenCheckZero'
+        }    // Closes the 'j' == 42
 
         // Redefine the 'clearArea' opcode 61 packet to the current specifications.
         // XY coordinates.
