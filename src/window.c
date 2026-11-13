@@ -1742,6 +1742,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
 
   buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
 
+
+
+
+
 /////
   // History symbol is '0', arrow '^', and smaller 'h' for 'History'.
   // Turns into a keyboard symbol once clicked.
@@ -1778,6 +1782,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // Offset centers the circle.
   int xOffset = 12;
   int yOffset = -7;
+/*
   while (i <= j) {
     // Visually starts drawing at the bottom of the circle since
     // screen coordinates 'y' are drawn upside down but it's the
@@ -1871,9 +1876,11 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   subsetButtonText[14] = buttonText[1][14]; //+ yOffset;
   subsetButtonText[18] = 'h';
   buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-////
 
-// todo hover
+
+*/
+// todo
+//      hover change color
 //      history window (changes to keyboard button)
 //      'write()' calculations
 //      clear history button
@@ -1881,6 +1888,213 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   //   _
   //  ["]
   //   _
+
+  // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
+  i = 0;      // x
+  m = 10;     // radius
+  j = m;      // y = R (radius)
+  k = 1 - j;  // P = 1 - R
+  // The loop draws points 0-j at the same time for each 1/8 of the circle.
+  // Offset centers the circle.
+  xOffset = 12;
+  yOffset = -7;
+
+  while (i <= j) {
+    // Visually starts drawing at the bottom of the circle since
+    // screen coordinates 'y' are drawn upside down but it's the
+    // top of the circle mathematically.
+    if (k < 0) {
+      k = k + ((2 * i) + 1);
+    }
+    else if (k >= 0) {
+      j--;
+      k = k + ((2 * (i - j)) + 1);
+    }
+    //printf("x %d  y %d  p %d\n", i, j, k);
+    //printf("i %d\n", i);
+    // The 1/8 arcs are numbered clockwise and
+    // these arcs are skipped:
+    //   2) (y, -x)
+    //   3) (y, x)
+    //   6) (-y, -x)
+    //   7) (-y, -x)
+
+    // 'write()' the horizontal lines using the first
+    // point from 1-8 and 4-5. The third point is repeated
+    // to reuse 'polyLine' char[] from the history button.
+    if (i == 5) {
+      // 1) (x, -y)
+      // First point.
+      polyLine[12] = (subsetButtonBorder[12] + xOffset) + i;
+      polyLine[13] = buttonText[1][13];
+      polyLine[14] = (buttonText[1][14] + yOffset) - j;
+      polyLine[15] = buttonText[1][15];
+      // 8) (-x, -y)
+      // Second point.
+      polyLine[16] = (subsetButtonBorder[12] + xOffset) - i;
+      polyLine[17] = buttonText[1][13];
+      polyLine[18] = (buttonText[1][14] + yOffset) - j;
+      polyLine[19] = buttonText[1][15];
+      // Third point.
+      polyLine[20] = polyLine[16];
+      polyLine[21] = polyLine[17];
+      polyLine[22] = polyLine[18];
+      polyLine[23] = polyLine[19];
+      polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+      // 4) (x, y)
+      // First point.
+      polyLine[12] = (subsetButtonBorder[12] + xOffset) + i;
+      polyLine[13] = buttonText[1][13];
+      polyLine[14] = (buttonText[1][14] + yOffset) + j;
+      polyLine[15] = buttonText[1][15];
+      // 5) (-x, y)
+      // Second point.
+      polyLine[16] = (subsetButtonBorder[12] + xOffset) - i;
+      polyLine[17] = buttonText[1][13];
+      polyLine[18] = (buttonText[1][14] + yOffset) + j;
+      polyLine[19] = buttonText[1][15];
+      // Third point.
+      polyLine[20] = polyLine[16];
+      polyLine[21] = polyLine[17];
+      polyLine[22] = polyLine[18];
+      polyLine[23] = polyLine[19];
+      polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+    }
+    // 'write()' the 1/8 corners for 1,4,5,8 and
+    // vertical and horizontal lines.
+    if (i > 4) {
+      // 1) (x, -y)
+      polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
+      polyPoint[13] = buttonText[1][13];
+      polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+      polyPoint[15] = buttonText[1][15];
+      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+      // 1 and 4 right vertical line coordinate 'write()'.
+      if (i == j) {
+        // First point.
+        polyLine[12] = polyPoint[12];
+        polyLine[13] = polyPoint[13];
+        polyLine[14] = polyPoint[14];
+        polyLine[15] = polyPoint[15];
+      }
+      // 4) (x, y)
+      polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
+      polyPoint[13] = buttonText[1][13];
+      polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+      polyPoint[15] = buttonText[1][15];
+      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+      // 1 and 4 right vertical line coordinate 'write()' uses the last coordinate.
+      if (i == j) {
+        // Second point.
+        polyLine[16] = polyPoint[12];
+        polyLine[17] = polyPoint[13];
+        polyLine[18] = polyPoint[14];
+        polyLine[19] = polyPoint[15];
+        // Third point.
+        polyLine[20] = polyPoint[12];
+        polyLine[21] = polyPoint[13];
+        polyLine[22] = polyPoint[14];
+        polyLine[23] = polyPoint[15];
+        polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+      }
+      // 5) (-x, y)
+      polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
+      polyPoint[13] = buttonText[1][13];
+      polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+      polyPoint[15] = buttonText[1][15];
+      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+      // 5 and 8 left vertical line coordinate 'write()'.
+      if (i == j) {
+        // First point.
+        polyLine[12] = polyPoint[12];
+        polyLine[13] = polyPoint[13];
+        polyLine[14] = polyPoint[14];
+        polyLine[15] = polyPoint[15];
+      }
+      // 8) (-x, -y)
+      polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
+      polyPoint[13] = buttonText[1][13];
+      polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+      polyPoint[15] = buttonText[1][15];
+      polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+      // 5 and 8 left vertical line coordinate 'write()'.
+      if (i == j) {
+        // Second point.
+        polyLine[16] = polyPoint[12];
+        polyLine[17] = polyPoint[13];
+        polyLine[18] = polyPoint[14];
+        polyLine[19] = polyPoint[15];
+        // Third point.
+        polyLine[20] = polyPoint[12];
+        polyLine[21] = polyPoint[13];
+        polyLine[22] = polyPoint[14];
+        polyLine[23] = polyPoint[15];
+        polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+      }
+    }
+    i++;
+  }
+
+  // 'write()' the 'screen' and 'keyboard' for the button.
+  // 'screen' first point.
+  polyLine[12] = (subsetButtonBorder[12] + xOffset) - 2;
+  polyLine[13] = buttonText[1][13];
+  polyLine[14] = (buttonText[1][14] + yOffset) - 5;
+  polyLine[15] = buttonText[1][15];
+  // 8) (-x, -y)
+  // Second point.
+  polyLine[16] = (subsetButtonBorder[12] + xOffset) + 3;
+  polyLine[17] = buttonText[1][13];
+  polyLine[18] = (buttonText[1][14] + yOffset) - 5;
+  polyLine[19] = buttonText[1][15];
+  // Third point.
+  polyLine[20] = polyLine[16];
+  polyLine[21] = polyLine[17];
+  polyLine[22] = polyLine[18];
+  polyLine[23] = polyLine[19];
+  polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+  i = 0;
+  j = 0;
+  while (i < 5) {
+    // 'write()' the 'keyboard' for the button.
+    printf("i %d  j %d\n", i, j);
+    // First point.
+    polyLine[12] = (subsetButtonBorder[12] + xOffset) + (i-1);
+    polyLine[13] = buttonText[1][13];
+    polyLine[14] = (buttonText[1][14] + yOffset) + (j-1); // -1;
+    polyLine[15] = buttonText[1][15];
+    // 8) (-x, -y)
+    // Second point.
+    polyLine[16] = (subsetButtonBorder[12] + xOffset) + (i-1);
+    polyLine[17] = buttonText[1][13];
+    polyLine[18] = (buttonText[1][14] + yOffset) + j;
+    polyLine[19] = buttonText[1][15];
+    // Third point is repeated.
+    polyLine[20] = polyLine[16];
+    polyLine[21] = polyLine[17];
+    polyLine[22] = polyLine[18];
+    polyLine[23] = polyLine[19];
+    polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+    // 'break' during after the second row 'write()'.
+    if (i == 3 && j == 3) {
+      break;
+    }
+    // Repeats the second row incrementing 'y' coordinate with 'j'.
+    if (i == 3) {
+      j = 3;
+      i = 0;
+    }
+    // Increase 'i' or the 'x' coordiante.
+    else {
+      i++;
+      i++;
+      i++;
+    }
+  }
+////
+
+
+
 
 
 
