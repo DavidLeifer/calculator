@@ -3,7 +3,6 @@ used to get resized several times without calloc() when removing characters but 
 Might be screen size related.
 - charKeyInput = malloc(
 
-
 -     if (geometryRead[0] == 1) {
 
 -   // 'write()' if the text coordinate is greater than the left most text window boundary.
@@ -11,9 +10,15 @@ Might be screen size related.
 
 2.)
 
-    - larger display/history
-
     - history window (temporarily extend text input window)
+
+      - history button turns into a number button -> screenSizeZero -> sliding window over the button 5-7, 9-11, 13-15, 17-19
+                                                                     - click previous expression as a button to arithmatic more numbers
+                                                                     - clear history button 'c'
+                                                                     - click number button to return to regular screen and history button orientation
+                                                  -> screenSizeOne  -> drop down info window with an 'x' button to return to regular screen
+
+
 
 if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 1)) {
 
@@ -32,6 +37,8 @@ if (previousKeyStart == 1) {
 
 3.)
 
+- Fix 'screenSizeOne' text box dimensions
+
     - Click text input window to insert number - the coordinates of the text, the 'keyInputIterator' value for the 'charKeyInput[]'.
 
 - Text input window issues.
@@ -43,8 +50,6 @@ if (previousKeyStart == 1) {
   - Remove space button and off button mouse click repeating characters
 
   - Pressing 'Enter' after the '0' and '1' character elements without '=' or '-' resets the character array.
-
-
 
 
 
@@ -99,6 +104,8 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
   - Binary division.
 
     - Division -> powers of 2 to reduce iterations and theres another algorithm (Newton-Raphson Division) for larger numbers.
+
+    - Modulo division without remainder is O(1) time complexity but 10-40 CPU cycles instead of '1' when powers of 2 are used i.e. 2, 4, ... 16...etc.
 
     - Fractions.
 
@@ -616,7 +623,221 @@ A2  Two's compliment, signs magnitude.
 
 Q4  Why is padding necessary in the 'multiplication' invert step?
 A4  You could probably use length? Probably not in the subtraction invert step.
+
 ```
+
+- C graphics project.
+
+```
+
+// 45 degree rotated square.
+
+The goal is to draw a circle combining the below code with the parabolic upward arc equation:
+
+    y = peak_y + steepness * (x - center_x) * (x - center_x)
+
+unsigned char polyLine[20];
+polyLine[0]  = 65;
+polyLine[1]  = 0;
+polyLine[2]  = 5;
+polyLine[3]  = 0;
+
+polyLine[4]  = windowID.one;
+polyLine[5]  = windowID.two;
+polyLine[6]  = windowID.three;
+polyLine[7]  = windowID.four;
+
+polyLine[8]  = gcID.one;
+polyLine[9]  = gcID.two;
+polyLine[10] = gcID.three;
+polyLine[11] = gcID.four;
+
+
+i = 1;
+j = 0;
+k = 0;
+int polyLineWrite;
+// 'xOffsetIncrementor' represents each pixel.
+// The loop below draws a line between i.e. 1 and 2.
+int xOffsetIncrementor = 1;
+// x coordinate is based off the first button. The
+// offset makes sure they don't overlap.
+int xOffsetOne = 12;
+int xOffsetTwo = xOffsetOne + xOffsetIncrementor; // '... + 1'
+int yOffsetOne = -3;
+int yOffsetTwo = yOffsetOne + xOffsetIncrementor; // '... + 1'
+int rightLeftSwitch = 11;
+int topBottomSwitch = 21;
+int leftRightSwitch = 31;
+
+//int quarterSwitchIncrementor = 5;
+//int quarterSwitch = 5;
+
+//  5  10  15  20  25  30  35  40
+//     11      21      31      41
+
+// 7 14 21 28
+// 9 18 27 36
+while (i < 41) {
+  // Starts drawing at the bottom of the rotated square.
+  // Point 1 X
+  polyLine[12] = subsetButtonBorder[12] + xOffsetOne + j;
+  polyLine[13] = buttonText[1][13];
+  // Point 2 X
+  polyLine[16] = subsetButtonBorder[12] + xOffsetTwo + j;
+  polyLine[17] = buttonText[1][13];
+  // Point 1 Y
+  polyLine[14] = buttonText[1][14] - yOffsetTwo - k;
+  polyLine[15] = buttonText[1][15];
+  // Point 2 Y
+  polyLine[18] = buttonText[1][14] - yOffsetTwo - k;
+  polyLine[19] = buttonText[1][15];
+  //printf("i %d    j %d  X1 %d x2 %d\n", i, j, polyLine[12], polyLine[16]);
+  //printf("k %d   Y1 %d y2 %d\n", i, polyLine[14], polyLine[18]);
+  // The offsets switch Point 1 and Point 2 when the line changes direction.
+  // 0) Right
+  if (i == rightLeftSwitch) {
+    //printf("  j--;\n");
+    //j++;
+    xOffsetOne = xOffsetTwo;
+    xOffsetTwo = xOffsetOne - xOffsetIncrementor;
+  }
+  // 1) Top
+  if (i == topBottomSwitch) {
+    //printf("  k--;\n");
+    k++;
+    yOffsetOne = yOffsetTwo;
+    yOffsetTwo = yOffsetOne - xOffsetIncrementor;
+  }
+  // 2) Left
+  if (i == leftRightSwitch) {
+    //printf("  j++;\n");
+    //j++;
+    xOffsetOne = xOffsetTwo;
+    xOffsetTwo = xOffsetOne + xOffsetIncrementor;
+  }
+  //polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+  // 'j' is responsible for the 'x' axis.
+  // When 'i' reaches the left most edge, switch directions.
+  // 2) Right
+  if (i >= leftRightSwitch) {
+    j++;
+  }
+  // When 'i' reaches the top of the shape, start drawing 'k' down (increases the 'Y' axis).
+  // 1) Top
+  if (i >= topBottomSwitch) {
+    k--;
+  }
+  // Otherwise 'k' or 'Y' is decreasing
+  else if (i < topBottomSwitch) {
+    k = i;
+  }
+  // 0)
+  if (i >= rightLeftSwitch && i < leftRightSwitch) {
+    j--;
+  }
+  // -1) First right to left.
+  else if (i < rightLeftSwitch) {
+    j = i;
+  }
+  i++;
+}
+
+Hint use polygon points opCode 64.
+
+Example answer:
+
+  // Parabolic upward arc 45 degrees:
+  // y = peak_y + steepness * (x - center_x) * (x - center_x)
+  // Cartesian square root:
+  // y = center_y - sqrtf(r * r - (x - center_x) * (x - center_x))
+
+  // Midpoint algorithm doesn't use 'sqrt()' or 'pi'.
+  // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
+  i = 0;     // x
+  m = 10;     // radius
+  j = m;     // y = R (radius)
+  k = 1 - j; // P = 1 - R
+  int polyPointWrite;
+
+  // The loop below draws points.
+  // Offset centers the circle.
+  int xOffset = 12;
+  int yOffset = -7;
+
+  while (i <= j) {
+    // Visually starts drawing at the bottom of the circle since
+    // screen coordinates 'y' are drawn upside down but it's the
+    // top of the circle mathematically.
+    if (k < 0) {
+      k = k + ((2 * i) + 1);
+    }
+    else if (k >= 0) {
+      j--;
+      k = k + ((2 * (i - j)) + 1);
+    }
+    //printf("x %d  y %d  p %d\n", i, j, k);
+    printf("i %d\n", i);
+    // 0) (x, y)
+    polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+    // 1) (y, x)
+/*   polyPoint[12] = (subsetButtonBorder[12] + xOffset) + j;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) + i;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+*/    // 2) (-y, -x)
+    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - j;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) + i;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+    // 3) (-x, y)
+    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+    // 4) (-x, -y)
+    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - i;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+    // 5) (-y, -x)
+    polyPoint[12] = (subsetButtonBorder[12] + xOffset) - j;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) - i;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+    // 6) (y, -x)
+/*   polyPoint[12] = (subsetButtonBorder[12] + xOffset) + j;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) - i;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+*/    // 7) (x, -y)
+    polyPoint[12] = (subsetButtonBorder[12] + xOffset) + i;
+    polyPoint[13] = buttonText[1][13];
+    polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+    polyPoint[15] = buttonText[1][15];
+    printf("  x %d  y %d\n", polyPoint[12], polyPoint[14]);
+    polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+    i++;
+  }
+```
+
 
 - C and hardware notes from "binaryChar.c".
 
