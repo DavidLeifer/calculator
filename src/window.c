@@ -1684,7 +1684,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   // Holds the input expression and answer of unknown size.
   char charKeyInputAnswer[previousCharKeyInputAnswerLength];
   // Holds the length of each input expression for access.
-  char keyInputAnswerLength[answerIterator];
+  char keyInputAnswerLength[previousCharKeyInputAnswerLength];
 
   // Text for the input and output window.
   // Also used as the 'h' in the history button.
@@ -5721,7 +5721,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
         // the character array from 'eventCode == 2' for keyboard input where the calculation is completed and written to the text window.
 
         buttonPressCheck = 1;
-        printf("j:%d\n", j);
+        //printf("j:%d\n", j);
         //printf("    j %d  input:%c  charSkip: %d\n", j, keyInput, charSkip);
         //printf("Backspace 'charKeyInput[%d]' %c\n", intKeyInputIterator, keyInput);
 
@@ -6309,22 +6309,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               keyInputText[15] = textBorder[15];
             }
             historyCheck = 0;
-
-
-////////////
-
-        // todo
-        //      'write()' calculations
-        //      clear history button
-
-        // write expanded/not expanded window on hover eventCode == 6
-
-          //      move to eventCode 22 and 12 if (historyCheck == 1/0) show/dont show expanded window to rewrite the buttons
-          //      when the window slides back in.
-
-////////////
-
-
             // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
             i = 0;      // x
             m = 10;     // radius
@@ -6572,11 +6556,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             clearArea[14] = 1;
             clearArea[15] = 0;
             clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-
           }  // Closes the 'screenCheckZero'
-
-          j = 0;
-
         }    // Closes the 'j' == 42
 
         // Redefine the 'clearArea' opcode 61 packet to the current specifications.
@@ -6626,6 +6606,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           keyInputText[14] = textBorder[14] + 55;
           keyInputText[15] = textBorder[15];
         }
+        j = 0;
       }          // 'if'       event code 4 else close
 
 
@@ -8203,11 +8184,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               i++;
               i++;
             }
+
+          // 'write()' the history window if it is extended.
+          // x, y
+          historyWindow[12] = 0;
+          historyWindow[13] = 0;
+          historyWindow[14] = buttonBorder[8][14];
+          historyWindow[15] = buttonBorder[8][15];
+          // width, height  + n to cover the borders.
+          historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
+          historyWindow[19] = buttonBorder[4][19];
+          historyWindow[16] = (buttonBorder[4][16] * 4) + 20 + 1;
+          historyWindow[17] = buttonBorder[4][17];
+          historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
+
+
+
+
+
+
+
+
           }
         }  // Closes the 'screenCheckZero'
         j = 0;
-
-
       }          // 'if'       event code 6 else close
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -8448,6 +8448,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j = j + 10;
           }
 
+
+
+
+
+
+
+
+
 ///////////////////////
           // Previous length 'keyInputAnswer.string' has been determined.
 
@@ -8496,20 +8504,137 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             i++;
             j++;
           }
-       //}
 
-          //todo after 'while(1)'
-          //eventCode==22 or 12
-          //  if (screenSizeZero == 1) {
-          //    if (history button pressed) {
-          //      'write()' history window polygon slide right over integer buttons 5-7, 9-11, 13-15, 17-19
-          //      'write()' charKeyInputAnswer()'
-          //  else if (screenSizeOne == 1) {
-          //    'write()' history window polygon slide down over scientific buttons.
-//////////////////////
+        // 'write()' the 'charKeyInputAnswer[i]' in the history window.
+        //if (historyCheck == 1) {
 
+// todo the y coordinate overflow
+// 'charSkipVertical' to move the words up one slot in the
+//     historyWindow when text reaches y coordinate + height
+// eventCode 6 hover write the text
 
+          // Initial 'y' coordinate. Incremented after every arithmatic in the loop.
+        // Overflow for the initial y coordinate
+          if ((historyWindow[14] + 20 ) > 255) {
+            keyInputText[14] = ( historyWindow[14] + 20 ) - 255;
+            keyInputText[15] = historyWindow[15] + 1 ;
+          }
+          else {
+            keyInputText[14] = historyWindow[14] + 20;
+            keyInputText[15] = historyWindow[15];
+          }
 
+          // 'i' increments the length of all of the arithmatic 'charKeyInputAnswerLength'.
+          i = 0;
+          // 'm' and 'n' are responsible for tracking current length and increasing y coordinate.
+          m = 0;
+          n = 1;
+          // Decreasing space between characters.
+          j = 10;
+          // Equation is 'historyWindow' right x coordinate minus the length of the char spacing.
+          k = (10 * keyInputAnswerLength[0]) + 15;
+          // 'write()' the history input/output arithmatic 'charKeyInputAnswer[]' in the 'historyWindow'.
+          while (i < charKeyInputAnswerLength) {
+            // x coordinate plus 'historyWindow' width minus the current expression's length * 10, plus 'j' for character spacing.
+            previousKeyInput12 = (historyWindow[12] + historyWindow[16] - k) + j;
+            //previousKeyInput12 = historyWindow[12] + j;
+            previousKeyInput13 = historyWindow[13] + historyWindow[17];
+
+            // Overflow for the decreasing x coordinate.
+            if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+              keyInputText[12] = previousKeyInput12 - 255;
+              keyInputText[13] = previousKeyInput13 + 1;
+            }
+            else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+              keyInputText[12] = previousKeyInput12;
+              keyInputText[13] = previousKeyInput13;
+            }
+            else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+              keyInputText[12] = previousKeyInput12 + 255;
+              keyInputText[13] = previousKeyInput13 - 1;
+            }
+            else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+              keyInputText[12] = previousKeyInput12 + 510;
+              keyInputText[13] = previousKeyInput13 - 2;
+            }
+            else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+              keyInputText[12] = previousKeyInput12 + 765;
+              keyInputText[13] = previousKeyInput13 - 3;
+            }
+            else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+              keyInputText[12] = previousKeyInput12 + 1020;
+              keyInputText[13] = previousKeyInput13 - 4;
+            }
+            else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+              keyInputText[12] = previousKeyInput12 + 1275;
+              keyInputText[13] = previousKeyInput13 - 5;
+            }
+            else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+              keyInputText[12] = previousKeyInput12 + 1530;
+              keyInputText[13] = previousKeyInput13 - 6;
+            }
+            else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+              keyInputText[12] = previousKeyInput12 + 1785;
+              keyInputText[13] = previousKeyInput13 - 7;
+            }
+            else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+              keyInputText[12] = previousKeyInput12 + 2040;
+              keyInputText[13] = previousKeyInput13 - 8;
+            }
+            else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+              keyInputText[12] = previousKeyInput12 + 2295;
+              keyInputText[13] = previousKeyInput13 - 9;
+            }
+            // 'write()' if the text coordinate is greater than the left most text window boundary.
+            // Left most text window boundary.
+            if ((keyInputText[13] > historyWindow[13]) || (keyInputText[13] == historyWindow[13] && keyInputText[12] >= historyWindow[12]) ) {
+              // The text string.
+              keyInputText[18] = charKeyInputAnswer[i];
+              //printf("%d %c  x %d\n", i, charKeyInputAnswer[i]);
+              keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+            }
+            else {
+              //printf("  charSkip\n");
+              // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
+              //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
+
+  // to prevent writing past the left boundary charSkip = 0;
+
+            }
+            // Increases the y coordinate when the current expression's length 'n' equals
+            // that expression's length previously recorded on input with 'keyInputAnswerLength[m]'.
+            // 'm' is increased and 'n' is reset as '0'. Space 'j' is also reset to '0'.
+            //       m   0  1  2  3  4
+            // '...l[m]' 5  7  6  ....
+            //       n   5  7  6  ....
+            if ( n == keyInputAnswerLength[m] ) {
+              //printf("  n %d  m %d  len %d\n", n, m, keyInputAnswerLength[m]);
+              m++;
+              if ((historyWindow[14] + 20 + (m * 20) ) > 255) {
+                keyInputText[14] = ( historyWindow[14] + 20 + (m * 20) ) - 255;
+                keyInputText[15] = historyWindow[15] + 1 ;
+              }
+              else {
+                keyInputText[14] = historyWindow[14] + 20 + (m * 20);
+                keyInputText[15] = historyWindow[15];
+              }
+              // char spacing '10' * the length of the next expression.
+              k = (10 * keyInputAnswerLength[m]) + 15;
+              j = 0;
+              n = 0;
+            }
+            // Length of the current arithmatic (starts at '1').
+            n++;
+            // Entire historical char[].
+            i++;
+            // Space incrementer.
+            j = j + 10;
+          }
+        //} // Closes the 'if (historyCheck == 1)'
+
+        //
+
+        // For the text box input window.
           // 'write()' the 'answer' and set 'charKeyInput' as only the 'answer'.
           // Overflow for the y coordinate
           if ((textBorder[14] + 22.5) > 255) {
@@ -8527,9 +8652,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           k = (j * (answerLength));
           // 'write()' the answer at the same place.
           while (i < answerLength) {
-            // '-15' is an arbitrary number to make the text fit in the box.
+          // '-15' is an arbitrary number to make the text fit in the box.
             previousKeyInput12 = (textBorder[12] - 15 + textBorder[16] - k) + j;
             previousKeyInput13 = textBorder[13] + textBorder[17];
+
             // Overflow for the decreasing x coordinate.
             if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
               keyInputText[12] = previousKeyInput12 - 255;
@@ -8706,7 +8832,8 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           }    // Closes the 'while' loop.
 
           //printf("\n");
-          // Increments for the next character in the input window.
+          // Zeros 'keyInput' and increments for the next character in the input window.
+          keyInput = '\0';
           intKeyInputIterator++;
         }
         ///////////////////////////
