@@ -1671,6 +1671,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   int keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
   int previousKeyStart = 0;
   int charSkip = 1;
+
   int previousKeyInput12 = 0;
   int previousKeyInput13 = 0;
 
@@ -1924,6 +1925,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   historyWindowButton[7] = 9;
   historyWindowButton[8] = 13;
 
+  int newM = 0;
+  int previousNewM = 0;
+  int keyInputAnswerCharLength = 0;
+  int scrollM = 0;
 ////
 
   if (geometryRead[0] == 1) {
@@ -5197,53 +5202,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           keyInput = 109;
           printf("keyInput = %c\n", keyInput);
         }
-        // Redefine the 'clearArea' opcode 61 packet to the current specifications.
-        // XY coordinates.
-        if (textBorder[12]+1 > 255) {
-          clearArea[8] = (textBorder[12] + 1) - 255;
-          clearArea[9] = textBorder[13] + 1;
-        }
-        else {
-          clearArea[8] = textBorder[12] + 1;
-          clearArea[9] = textBorder[13];
-        }
-        if (textBorder[14]+1 > 255) {
-          clearArea[10] = (textBorder[14] + 1) - 255;
-          clearArea[11] = textBorder[15] + 1;
-        }
-        else {
-          clearArea[10] = textBorder[14] + 1;
-          clearArea[11] = textBorder[15];
-        }
-        // Width and height.
-        if (textBorder[16] - 1 < 0) {
-          clearArea[12] = (textBorder[16] - 1) + 255;
-          clearArea[13] = textBorder[17] - 1;
-        }
-        else {
-          clearArea[12] = textBorder[16] - 1;
-          clearArea[13] = textBorder[17];
-        }
-        if (textBorder[18] - 1 < 0) {
-          clearArea[14] = (textBorder[18] - 1) + 255;
-          clearArea[15] = textBorder[19] - 1;
-        }
-        else {
-          clearArea[14] = textBorder[18] - 1;
-          clearArea[15] = textBorder[19];
-        }
-        clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-        // 'write()' the 'keyInput' to the user input window using 'textBorder' X and Y.
-        //printf("keyInputText[12]: %d  keyInputText[13]: %d\n", textBorder[12] - 15 + textBorder[16], textBorder[13] + textBorder[17]);
-        // Overflow for the y coordinate
-        if ((textBorder[14] + 22.5) > 255) {
-          keyInputText[14] = (textBorder[14] + 55) - 255;
-          keyInputText[15] = textBorder[15] + 1 ;
-        }
-        else {
-          keyInputText[14] = textBorder[14] + 55;
-          keyInputText[15] = textBorder[15];
-        }
+
         //printf("charKeyInput: %s  intKeyInputIterator  %d\n", charKeyInput, intKeyInputIterator);
         // ASCII 'keyInput' is either sent to 'charKeyInput[intKeyInputIterator]' or the calculation is completed.
         buttonPressCheck = 1;
@@ -5276,64 +5235,68 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
       else if (eventCode == 4) {
         // ButtonPress (Mouse click) occurred.
         // Right handed: 1 = Left Click, 2 = Middle, 3 = Right
+        //               4 = up scroll wheel 5 = down scroll wheel
+
+        // "The Modifier State (Bytes 28–29): This is a 16-bit bitmask
+          // showing what keys were held while scrolling. For example,
+          // scrolling while holding Ctrl (often used for zooming) alters these bytes.
+
+        // The Timestamp (Bytes 4–7): A 32-bit millisecond integer. This lets you
+          // calculate scroll velocity (how fast the user is spinning the wheel)
+          // by measuring the time elapsed between packets."
+
+
         button = responseWindowInput[1];
-        // '0' button mouse click.
-        // printf("button = %d\n", button);
-        //printf("mouseX = %d\n", mouseX);
-        //printf("mouseY = %d\n", mouseY);
-        // Drawing window from the top left (or right).
-        printf("    X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
-        printf("    X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
-        printf("    Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
-        printf("    Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
+        //printf("%d\n", button);
 
-        // The below 'while' loop calculates the coordinate borders for n buttons.
-        // Tested on new char 4 columns of * 5 rows = '20'.
-          // [12] and [13] have overflow accounted for x
-          // [14] and [15] have overflow accounted for y
-            // if '[12] + width' is > 255, add overflow to '[13]'.
-        // Method is more complicated but useful if you resize the initial window and button sizes.
-          // The variables to resize are in the '67' packet 'while' loop above. Examples:
-            //printf("width: 50  buttonBorder[1][16]: %d\n", buttonBorder[1][16]);
-            //printf("height: 50  buttonBorder[1][18]: %d\n", buttonBorder[1][18]);
+        if (button == 1) {
+          // '0' button mouse click.
+          // printf("button = %d\n", button);
+          //printf("mouseX = %d\n", mouseX);
+          //printf("mouseY = %d\n", mouseY);
+          // Drawing window from the top left (or right).
+          //printf("    X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
+          //printf("    X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
+          //printf("    Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
+          //printf("    Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
 
-        // 2 binary divisions are 0(nlogn) for worst case which is more than comparions ('>=', '>', etc) 0(logn)
-          // Newton-Raphson is another binary division method that seems to work for containerized numbers
-          // (i.e. below a small threshold 'n' like 255) but doesn't scale well (i.e. multiplication tables
-          // with any of the various search algorithms). Internet implied O(nlogn).
-        // The mouse clicks 'responseWindowInput[24]-[27]' are compared with 'buttonBorder[j][12]-[15]' for
-        // the low and high x and y boundary coordinates to return 8 checks. If all the checks are '1' the button
-        // number within the x and y boundaries are returned. Another method uses bit shifting to convert which
-        // simplifies the comparison step.
-          // Extract mouse X and Y coordinates (Bytes 24-27) with bit shifting.
-          //mouseX = responseWindowInput[24] | (responseWindowInput[25] << 8);
-          //mouseY = responseWindowInput[26] | (responseWindowInput[27] << 8);
-        // A more detailed explanation exists for the first 'if' statement.
-          // hypothetical not tested until the window and button xy coordinates are expanded to the screen widths
+          // The below 'while' loop calculates the coordinate borders for n buttons.
+          // Tested on new char 4 columns of * 5 rows = '20'.
+            // [12] and [13] have overflow accounted for x
+            // [14] and [15] have overflow accounted for y
+              // if '[12] + width' is > 255, add overflow to '[13]'.
+          // Method is more complicated but useful if you resize the initial window and button sizes.
+            // The variables to resize are in the '67' packet 'while' loop above. Examples:
+              //printf("width: 50  buttonBorder[1][16]: %d\n", buttonBorder[1][16]);
+              //printf("height: 50  buttonBorder[1][18]: %d\n", buttonBorder[1][18]);
 
-        // The calculator template text:
-        // a  a  a  /
-        // 7  8  9  X
-        // 4  5  6  -
-        // 1  2  3  +
-        // (  )  0  =
+          // 2 binary divisions are 0(nlogn) for worst case which is more than comparions ('>=', '>', etc) 0(logn)
+            // Newton-Raphson is another binary division method that seems to work for containerized numbers
+            // (i.e. below a small threshold 'n' like 255) but doesn't scale well (i.e. multiplication tables
+            // with any of the various search algorithms). Internet implied O(nlogn).
+          // The mouse clicks 'responseWindowInput[24]-[27]' are compared with 'buttonBorder[j][12]-[15]' for
+          // the low and high x and y boundary coordinates to return 8 checks. If all the checks are '1' the button
+          // number within the x and y boundaries are returned. Another method uses bit shifting to convert which
+          // simplifies the comparison step.
+            // Extract mouse X and Y coordinates (Bytes 24-27) with bit shifting.
+            //mouseX = responseWindowInput[24] | (responseWindowInput[25] << 8);
+            //mouseY = responseWindowInput[26] | (responseWindowInput[27] << 8);
+          // A more detailed explanation exists for the first 'if' statement.
+            // hypothetical not tested until the window and button xy coordinates are expanded to the screen widths
 
-        // 'j' starts at '1' and is the same as the first packet loop used in the 'write()' step.
-        // Buttons are ordered left to right 1-20 or 1-40 and 'j' is used to write the 'charKeyInput[intKeyInputIterator]' after
-        // the correct button has been determined in the first 'while' loop.
-        j = 1;
-        k = 0;
-        // The check values for the first button.
-        x1LowCheck = 0;
-        y1LowCheck = 0;
-        x1HighCheck = 0;
-        y1HighCheck = 0;
-        x2LowCheck = 0;
-        y2LowCheck = 0;
-        x2HighCheck = 0;
-        y2HighCheck = 0;
-        while (j < numberButtons) {
-          // The check values are reset to '0' each iteration.
+          // The calculator template text:
+          // a  a  a  /
+          // 7  8  9  X
+          // 4  5  6  -
+          // 1  2  3  +
+          // (  )  0  =
+
+          // 'j' starts at '1' and is the same as the first packet loop used in the 'write()' step.
+          // Buttons are ordered left to right 1-20 or 1-40 and 'j' is used to write the 'charKeyInput[intKeyInputIterator]' after
+          // the correct button has been determined in the first 'while' loop.
+          j = 1;
+          k = 0;
+          // The check values for the first button.
           x1LowCheck = 0;
           y1LowCheck = 0;
           x1HighCheck = 0;
@@ -5342,353 +5305,255 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           y2LowCheck = 0;
           x2HighCheck = 0;
           y2HighCheck = 0;
-          // 'k' is used in the high limit for x and y coordinates i.e. 'buttonBorderXXYY[k]', 'buttonBorderXXYY[k+1]', etc.
-          k = (j - 1) * 4;
-          //printf("j: %d  k: %d\n", j,k);
-          //
-          // char limits int to 255 and this method overflows into two char elements which uses multiplication to achieve
-          // larger numbers (i.e. the mouse click input responseWindowInput[24] and [25]). To find the bottom border for the
-          // button, the larger input '[25]' is compared using greater than or equal '>=' to the previously calculated array
-          // 'buttonBorder[j][13]' that contains the larger bottom 'x' coordinate border. The larger number is the second
-          // element in the two char array elements used to represent larger int numbers and are refered to as 'x2' or 'y2' in
-          // contrast with the first element 'x1' or 'y1'. The equation is ((x1 * 256^0) + (x2 * 256^1)...etc). If the 'x2' input
-          // (responseWindowInput[25]) is '>=' to the comparison (buttonBorder[j][13]), 'x2LowCheck' passes and proceeds to the
-          // next check for 'x1LowCheck'.
-          //
-          // The 'x1' 'x2' 'low' and 'high' values are difficult to visualize and a diagram is included:
-          //
-          //          y1y2 low
-          //          ________
-          //     x1  |        |  x1
-          //     x2  |        |  x2
-          //    low  |        |  high
-          //         |________|
-          //          y1y2 high
-          //
-          // Summary: -'x1x2 low' represents one number.
-          //
-          //      x1   = 55    =   ( 55  X  256^0 )       x1 = 55
-          //      x2   = 0     =   ( 0   X  256^1 )       x2 =  0
-          //                                               x =  55    ( 55 + 0 )
-          //
-          //      y1   = 100   =   ( 100 X  256^0 )       y1 =   100
-          //      y2   = 1     =   ( 1   X  256^1 )       y2 =   256
-          //                                               y =   356   ( 100 + 256 )
-          //
-          //          - The standard graph (not flipped) with a point.
-          //
-          //  400   _|
-          //  300   _|     * (x,y)
-          //  200   _|
-          //  100   _|
-          //    0   _|___________
-          //         |    |    |
-          //        0    50   100
-          //
-          //          - Coordinates are an upside down graph for y and usual left to right x direction.
-          //
-          //        0    50   100
-          //    0   _|____|____|__
-          //  100   _|
-          //  200   _|
-          //  300   _|
-          //  400   _|     * (x,y)
-          //
-          //         - The coordinates represent a polyline boundary.
-          //
-          //        0    50   100
-          //    0   _|____|____|__
-          //  100   _|     |
-          //  200   _|     | x = 55
-          //  300   _|     |
-          //  400   _| ----|-------
-          //             y = 356
-          //
-          //printf("x1 buttonBorder[j][12]:  %d  x2 buttonBorder[j][13]:  %d\n", buttonBorder[j][12], buttonBorder[j][13]);
-          //printf("y1 buttonBorder[j][14]:  %d  y2 buttonBorder[j][15]:  %d\n", buttonBorder[j][14], buttonBorder[j][15]);
-          //printf("high x1 buttonBorderXXYY[k]:  %d  x2 buttonBorderXXYY[k+1]:  %d\n", buttonBorderXXYY[k], buttonBorderXXYY[k+1]);
-          //printf("high y1 buttonBorderXXYY[k+2]:  %d  y2 buttonBorderXXYY[k+3]:  %d\n", buttonBorderXXYY[k+2], buttonBorderXXYY[k+3]);
+          while (j < numberButtons) {
+            // The check values are reset to '0' each iteration.
+            x1LowCheck = 0;
+            y1LowCheck = 0;
+            x1HighCheck = 0;
+            y1HighCheck = 0;
+            x2LowCheck = 0;
+            y2LowCheck = 0;
+            x2HighCheck = 0;
+            y2HighCheck = 0;
+            // 'k' is used in the high limit for x and y coordinates i.e. 'buttonBorderXXYY[k]', 'buttonBorderXXYY[k+1]', etc.
+            k = (j - 1) * 4;
+            //printf("j: %d  k: %d\n", j,k);
+            //
+            // char limits int to 255 and this method overflows into two char elements which uses multiplication to achieve
+            // larger numbers (i.e. the mouse click input responseWindowInput[24] and [25]). To find the bottom border for the
+            // button, the larger input '[25]' is compared using greater than or equal '>=' to the previously calculated array
+            // 'buttonBorder[j][13]' that contains the larger bottom 'x' coordinate border. The larger number is the second
+            // element in the two char array elements used to represent larger int numbers and are refered to as 'x2' or 'y2' in
+            // contrast with the first element 'x1' or 'y1'. The equation is ((x1 * 256^0) + (x2 * 256^1)...etc). If the 'x2' input
+            // (responseWindowInput[25]) is '>=' to the comparison (buttonBorder[j][13]), 'x2LowCheck' passes and proceeds to the
+            // next check for 'x1LowCheck'.
+            //
+            // The 'x1' 'x2' 'low' and 'high' values are difficult to visualize and a diagram is included:
+            //
+            //          y1y2 low
+            //          ________
+            //     x1  |        |  x1
+            //     x2  |        |  x2
+            //    low  |        |  high
+            //         |________|
+            //          y1y2 high
+            //
+            // Summary: -'x1x2 low' represents one number.
+            //
+            //      x1   = 55    =   ( 55  X  256^0 )       x1 = 55
+            //      x2   = 0     =   ( 0   X  256^1 )       x2 =  0
+            //                                               x =  55    ( 55 + 0 )
+            //
+            //      y1   = 100   =   ( 100 X  256^0 )       y1 =   100
+            //      y2   = 1     =   ( 1   X  256^1 )       y2 =   256
+            //                                               y =   356   ( 100 + 256 )
+            //
+            //          - The standard graph (not flipped) with a point.
+            //
+            //  400   _|
+            //  300   _|     * (x,y)
+            //  200   _|
+            //  100   _|
+            //    0   _|___________
+            //         |    |    |
+            //        0    50   100
+            //
+            //          - Coordinates are an upside down graph for y and usual left to right x direction.
+            //
+            //        0    50   100
+            //    0   _|____|____|__
+            //  100   _|
+            //  200   _|
+            //  300   _|
+            //  400   _|     * (x,y)
+            //
+            //         - The coordinates represent a polyline boundary.
+            //
+            //        0    50   100
+            //    0   _|____|____|__
+            //  100   _|     |
+            //  200   _|     | x = 55
+            //  300   _|     |
+            //  400   _| ----|-------
+            //             y = 356
+            //
+            //printf("x1 buttonBorder[j][12]:  %d  x2 buttonBorder[j][13]:  %d\n", buttonBorder[j][12], buttonBorder[j][13]);
+            //printf("y1 buttonBorder[j][14]:  %d  y2 buttonBorder[j][15]:  %d\n", buttonBorder[j][14], buttonBorder[j][15]);
+            //printf("high x1 buttonBorderXXYY[k]:  %d  x2 buttonBorderXXYY[k+1]:  %d\n", buttonBorderXXYY[k], buttonBorderXXYY[k+1]);
+            //printf("high y1 buttonBorderXXYY[k+2]:  %d  y2 buttonBorderXXYY[k+3]:  %d\n", buttonBorderXXYY[k+2], buttonBorderXXYY[k+3]);
 
 
 
 
-          //printf("screenCheckOne: %d\n", screenCheckOne);
-          //printf("screenCheckZero: %d\n", screenCheckZero);
-          // Use the other two 'char[]' 'buttonBorderOne' and 'buttonBorderXXYYOne' since you cant resize regular arrays without using heap memory.
-          if (screenCheckOne == 1) {
-            // x2 low boundary
-            if (responseWindowInput[25] >= buttonBorderOne[j][13]) {
-              x2LowCheck = 1;
-              // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
-              // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
-              // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
-              // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
-              // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
-              if (responseWindowInput[25] == buttonBorderOne[j][13] && responseWindowInput[24] >= buttonBorderOne[j][12]) {
-                x1LowCheck = 1;
+            //printf("screenCheckOne: %d\n", screenCheckOne);
+            //printf("screenCheckZero: %d\n", screenCheckZero);
+            // Use the other two 'char[]' 'buttonBorderOne' and 'buttonBorderXXYYOne' since you cant resize regular arrays without using heap memory.
+            if (screenCheckOne == 1) {
+              // x2 low boundary
+              if (responseWindowInput[25] >= buttonBorderOne[j][13]) {
+                x2LowCheck = 1;
+                // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
+                // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
+                // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
+                // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
+                // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
+                if (responseWindowInput[25] == buttonBorderOne[j][13] && responseWindowInput[24] >= buttonBorderOne[j][12]) {
+                  x1LowCheck = 1;
+                }
+                else if (responseWindowInput[25] > buttonBorderOne[j][13]) {
+                  x1LowCheck = 1;
+                }
               }
-              else if (responseWindowInput[25] > buttonBorderOne[j][13]) {
-                x1LowCheck = 1;
+              // 'y2' low is identical to the above explanation.
+              if (responseWindowInput[27] >= buttonBorderOne[j][15]) {
+                y2LowCheck = 1;
+                if (responseWindowInput[27] == buttonBorderOne[j][15] && responseWindowInput[26] >= buttonBorderOne[j][14]) {
+                  y1LowCheck = 1;
+                }
+                else if (responseWindowInput[27] > buttonBorderOne[j][15]) {
+                  y1LowCheck = 1;
+                }
+              }
+              // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
+              // x2 high
+              if (responseWindowInput[25] <= buttonBorderXXYYOne[k+1]) {
+                x2HighCheck = 1;
+                if (responseWindowInput[25] == buttonBorderXXYYOne[k+1] && responseWindowInput[24] <= buttonBorderXXYYOne[k]) {
+                  x1HighCheck = 1;
+                }
+                else if (responseWindowInput[25] < buttonBorderXXYYOne[k+1]) {
+                  x1HighCheck = 1;
+                }
+              }
+              //
+              // x low  = 55
+              // x high = 105
+              // y low  = 356
+              // y high = 506
+              //     +  = button clickable area
+              //
+              //        0    50   100   ...n
+              //    0   _|_____|_____|_______
+              //  100   _|      |    |
+              //  200   _| xlow |    | x high
+              //  300   _|      |    |
+              //  400   _| -----|----|----
+              //         |      |++++| y low
+              //         |      |++++|
+              //  ...n   | -----|----|----
+              //                 y high
+              //
+              // Clicking the button returns '0-9' or the other calculator inputs.
+              //
+              // y2 high
+              if (responseWindowInput[27] <= buttonBorderXXYYOne[k+3]) {
+                y2HighCheck = 1;
+                if (responseWindowInput[27] == buttonBorderXXYYOne[k+3] && responseWindowInput[26] <= buttonBorderXXYYOne[k+2]) {
+                  y1HighCheck = 1;
+                }
+                else if (responseWindowInput[27] < buttonBorderXXYYOne[k+3]) {
+                  y1HighCheck = 1;
+                }
               }
             }
-            // 'y2' low is identical to the above explanation.
-            if (responseWindowInput[27] >= buttonBorderOne[j][15]) {
-              y2LowCheck = 1;
-              if (responseWindowInput[27] == buttonBorderOne[j][15] && responseWindowInput[26] >= buttonBorderOne[j][14]) {
-                y1LowCheck = 1;
-              }
-              else if (responseWindowInput[27] > buttonBorderOne[j][15]) {
-                y1LowCheck = 1;
-              }
-            }
-            // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
-            // x2 high
-            if (responseWindowInput[25] <= buttonBorderXXYYOne[k+1]) {
-              x2HighCheck = 1;
-              if (responseWindowInput[25] == buttonBorderXXYYOne[k+1] && responseWindowInput[24] <= buttonBorderXXYYOne[k]) {
-                x1HighCheck = 1;
-              }
-              else if (responseWindowInput[25] < buttonBorderXXYYOne[k+1]) {
-                x1HighCheck = 1;
-              }
-            }
-            //
-            // x low  = 55
-            // x high = 105
-            // y low  = 356
-            // y high = 506
-            //     +  = button clickable area
-            //
-            //        0    50   100   ...n
-            //    0   _|_____|_____|_______
-            //  100   _|      |    |
-            //  200   _| xlow |    | x high
-            //  300   _|      |    |
-            //  400   _| -----|----|----
-            //         |      |++++| y low
-            //         |      |++++|
-            //  ...n   | -----|----|----
-            //                 y high
-            //
-            // Clicking the button returns '0-9' or the other calculator inputs.
-            //
-            // y2 high
-            if (responseWindowInput[27] <= buttonBorderXXYYOne[k+3]) {
-              y2HighCheck = 1;
-              if (responseWindowInput[27] == buttonBorderXXYYOne[k+3] && responseWindowInput[26] <= buttonBorderXXYYOne[k+2]) {
-                y1HighCheck = 1;
-              }
-              else if (responseWindowInput[27] < buttonBorderXXYYOne[k+3]) {
-                y1HighCheck = 1;
-              }
-            }
-          }
 
 
 
 
-          // Use the other two 'char[]' 'buttonBorder' and 'buttonBorderXXYY'.
-          else if (screenCheckZero == 1) {
-            // x2 low boundary
-            if (responseWindowInput[25] >= buttonBorder[j][13]) {
-              x2LowCheck = 1;
-              // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
-              // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
-              // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
-              // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
-              // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
-              if (responseWindowInput[25] == buttonBorder[j][13] && responseWindowInput[24] >= buttonBorder[j][12]) {
-                x1LowCheck = 1;
+            // Use the other two 'char[]' 'buttonBorder' and 'buttonBorderXXYY'.
+            else if (screenCheckZero == 1) {
+              // x2 low boundary
+              if (responseWindowInput[25] >= buttonBorder[j][13]) {
+                x2LowCheck = 1;
+                // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
+                // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
+                // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
+                // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
+                // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
+                if (responseWindowInput[25] == buttonBorder[j][13] && responseWindowInput[24] >= buttonBorder[j][12]) {
+                  x1LowCheck = 1;
+                }
+                else if (responseWindowInput[25] > buttonBorder[j][13]) {
+                  x1LowCheck = 1;
+                }
               }
-              else if (responseWindowInput[25] > buttonBorder[j][13]) {
-                x1LowCheck = 1;
+              // 'y2' low is identical to the above explanation.
+              if (responseWindowInput[27] >= buttonBorder[j][15]) {
+                y2LowCheck = 1;
+                if (responseWindowInput[27] == buttonBorder[j][15] && responseWindowInput[26] >= buttonBorder[j][14]) {
+                  y1LowCheck = 1;
+                }
+                else if (responseWindowInput[27] > buttonBorder[j][15]) {
+                  y1LowCheck = 1;
+                }
+              }
+              // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
+              // x2 high
+              if (responseWindowInput[25] <= buttonBorderXXYY[k+1]) {
+                x2HighCheck = 1;
+                if (responseWindowInput[25] == buttonBorderXXYY[k+1] && responseWindowInput[24] <= buttonBorderXXYY[k]) {
+                  x1HighCheck = 1;
+                }
+                else if (responseWindowInput[25] < buttonBorderXXYY[k+1]) {
+                  x1HighCheck = 1;
+                }
+              }
+              //
+              // x low  = 55
+              // x high = 105
+              // y low  = 356
+              // y high = 506
+              //     +  = button clickable area
+              //
+              //        0    50   100   ...n
+              //    0   _|_____|_____|_______
+              //  100   _|      |    |
+              //  200   _| xlow |    | x high
+              //  300   _|      |    |
+              //  400   _| -----|----|----
+              //         |      |++++| y low
+              //         |      |++++|
+              //  ...n   | -----|----|----
+              //                 y high
+              //
+              // Clicking the button returns '0-9' or the other calculator inputs.
+              //
+              // y2 high
+              if (responseWindowInput[27] <= buttonBorderXXYY[k+3]) {
+                y2HighCheck = 1;
+                if (responseWindowInput[27] == buttonBorderXXYY[k+3] && responseWindowInput[26] <= buttonBorderXXYY[k+2]) {
+                  y1HighCheck = 1;
+                }
+                else if (responseWindowInput[27] < buttonBorderXXYY[k+3]) {
+                  y1HighCheck = 1;
+                }
               }
             }
-            // 'y2' low is identical to the above explanation.
-            if (responseWindowInput[27] >= buttonBorder[j][15]) {
-              y2LowCheck = 1;
-              if (responseWindowInput[27] == buttonBorder[j][15] && responseWindowInput[26] >= buttonBorder[j][14]) {
-                y1LowCheck = 1;
-              }
-              else if (responseWindowInput[27] > buttonBorder[j][15]) {
-                y1LowCheck = 1;
-              }
-            }
-            // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
-            // x2 high
-            if (responseWindowInput[25] <= buttonBorderXXYY[k+1]) {
-              x2HighCheck = 1;
-              if (responseWindowInput[25] == buttonBorderXXYY[k+1] && responseWindowInput[24] <= buttonBorderXXYY[k]) {
-                x1HighCheck = 1;
-              }
-              else if (responseWindowInput[25] < buttonBorderXXYY[k+1]) {
-                x1HighCheck = 1;
-              }
-            }
-            //
-            // x low  = 55
-            // x high = 105
-            // y low  = 356
-            // y high = 506
-            //     +  = button clickable area
-            //
-            //        0    50   100   ...n
-            //    0   _|_____|_____|_______
-            //  100   _|      |    |
-            //  200   _| xlow |    | x high
-            //  300   _|      |    |
-            //  400   _| -----|----|----
-            //         |      |++++| y low
-            //         |      |++++|
-            //  ...n   | -----|----|----
-            //                 y high
-            //
-            // Clicking the button returns '0-9' or the other calculator inputs.
-            //
-            // y2 high
-            if (responseWindowInput[27] <= buttonBorderXXYY[k+3]) {
-              y2HighCheck = 1;
-              if (responseWindowInput[27] == buttonBorderXXYY[k+3] && responseWindowInput[26] <= buttonBorderXXYY[k+2]) {
-                y1HighCheck = 1;
-              }
-              else if (responseWindowInput[27] < buttonBorderXXYY[k+3]) {
-                y1HighCheck = 1;
-              }
-            }
-          }
-          //printf("x2LowCheck = %d  y2LowCheck = %d  x2HighCheck = %d  y2HighCheck = %d  ", x2LowCheck, y2LowCheck, x2HighCheck, y2HighCheck);
-          //printf("x1LowCheck = %d  y1LowCheck = %d  x1HighCheck = %d  y1HighCheck = %d\n", x1LowCheck, y1LowCheck, x1HighCheck, y1HighCheck);
-          // If all the checks are true, the appropriate button is used for input.
-          if (x2LowCheck == 1) {
-            if (y2LowCheck == 1) {
-              if (x2HighCheck == 1) {
-                if (y2HighCheck == 1) {
-                  if (x1LowCheck == 1) {
-                    if (y1LowCheck == 1) {
-                      if (x1HighCheck == 1) {
-                        if (y1HighCheck == 1) {
-                          // 'j' is the order of the buttons from left to right.
-                          printf("button '  %d  '\n", j);
-                          break;
+            //printf("x2LowCheck = %d  y2LowCheck = %d  x2HighCheck = %d  y2HighCheck = %d  ", x2LowCheck, y2LowCheck, x2HighCheck, y2HighCheck);
+            //printf("x1LowCheck = %d  y1LowCheck = %d  x1HighCheck = %d  y1HighCheck = %d\n", x1LowCheck, y1LowCheck, x1HighCheck, y1HighCheck);
+            // If all the checks are true, the appropriate button is used for input.
+            if (x2LowCheck == 1) {
+              if (y2LowCheck == 1) {
+                if (x2HighCheck == 1) {
+                  if (y2HighCheck == 1) {
+                    if (x1LowCheck == 1) {
+                      if (y1LowCheck == 1) {
+                        if (x1HighCheck == 1) {
+                          if (y1HighCheck == 1) {
+                            // 'j' is the order of the buttons from left to right.
+                            printf("button '  %d  '\n", j);
+                            break;
+                          }
                         }
                       }
                     }
                   }
-                }
-               }
-            }
-          }
-          j++;
-        }        // 'while'    end bracket for the XY coordinate check
-
-
-        // 'j' is not a button.
-        if (x2LowCheck == 0) {
-          j = 0;
-        }
-        if (y2LowCheck == 0) {
-          j = 0;
-        }
-        if (x2HighCheck == 0) {
-          j = 0;
-        }
-        if (y2HighCheck == 0) {
-          j = 0;
-        }
-        if (x1LowCheck == 0) {
-          j = 0;
-        }
-        if (y1LowCheck == 0) {
-          j = 0;
-        }
-        if (x1HighCheck == 0) {
-          j = 0;
-        }
-        if (y1HighCheck == 0) {
-          j = 0;
-        }
-
-        // Check for history/keyboard button
-        if (j == 0) {
-          x1LowCheck = 0;
-          y1LowCheck = 0;
-          x1HighCheck = 0;
-          y1HighCheck = 0;
-          x2LowCheck = 0;
-          y2LowCheck = 0;
-          x2HighCheck = 0;
-          y2HighCheck = 0;
-
-          //printf("x %d %d y %d %d width %d %d height %d %d\n", historyButtonPolyfill[12], historyButtonPolyfill[13], historyButtonPolyfill[14], historyButtonPolyfill[15], historyButtonPolyfill[16], historyButtonPolyfill[17], historyButtonPolyfill[18], historyButtonPolyfill[19]);
-          // x2 low boundary
-          if (responseWindowInput[25] >= historyButtonPolyfill[13]) {
-            x2LowCheck = 1;
-            // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
-            // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
-            // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
-            // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
-            // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
-            if (responseWindowInput[25] == historyButtonPolyfill[13] && responseWindowInput[24] >= historyButtonPolyfill[12]) {
-              x1LowCheck = 1;
-            }
-            else if (responseWindowInput[25] > historyButtonPolyfill[13]) {
-              x1LowCheck = 1;
-            }
-          }
-          // 'y2' low is identical to the above explanation.
-          if (responseWindowInput[27] >= historyButtonPolyfill[15]) {
-            y2LowCheck = 1;
-            if (responseWindowInput[27] == historyButtonPolyfill[15] && responseWindowInput[26] >= historyButtonPolyfill[14]) {
-              y1LowCheck = 1;
-            }
-            else if (responseWindowInput[27] > historyButtonPolyfill[15]) {
-              y1LowCheck = 1;
-            }
-          }
-
-
-          // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
-          // x2 high
-          if (responseWindowInput[25] <= (historyButtonPolyfill[13] + historyButtonPolyfill[17]) ) {
-            x2HighCheck = 1;
-            if (responseWindowInput[25] == (historyButtonPolyfill[13] +historyButtonPolyfill[17]) && responseWindowInput[24] <= (historyButtonPolyfill[12] + historyButtonPolyfill[16]) ) {
-              x1HighCheck = 1;
-            }
-            else if (responseWindowInput[25] < (historyButtonPolyfill[13] + historyButtonPolyfill[17]) ) {
-              x1HighCheck = 1;
-            }
-          }
-          // y2 high
-          if (responseWindowInput[27] <= (historyButtonPolyfill[15] + historyButtonPolyfill[19]) ) {
-            y2HighCheck = 1;
-            if (responseWindowInput[27] == (historyButtonPolyfill[15] + historyButtonPolyfill[19]) && responseWindowInput[26] <= (historyButtonPolyfill[14] + historyButtonPolyfill[18]) ) {
-              y1HighCheck = 1;
-            }
-            else if (responseWindowInput[27] < (historyButtonPolyfill[15] + historyButtonPolyfill[19]) ) {
-              y1HighCheck = 1;
-            }
-          }
-
-          // If all the checks are true, the appropriate button is used for input.
-          if (x2LowCheck == 1) {
-            if (y2LowCheck == 1) {
-              if (x2HighCheck == 1) {
-                if (y2HighCheck == 1) {
-                  if (x1LowCheck == 1) {
-                    if (y1LowCheck == 1) {
-                      if (x1HighCheck == 1) {
-                        if (y1HighCheck == 1) {
-                          // 'j' is the history/keyboard button.
-                          j = 42;
-                          //printf("button '  %d  '\n", j);
-                        }
-                      }
-                    }
-                  }
-                }
+                 }
               }
             }
-          }
+            j++;
+          }        // 'while'    end bracket for the XY coordinate check
+
 
           // 'j' is not a button.
           if (x2LowCheck == 0) {
@@ -5715,849 +5580,1193 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           if (y1HighCheck == 0) {
             j = 0;
           }
-        } // Closes 'if j == 0' check for 'j == 42' history button.
 
-        // charKeyInput[intKeyInputIterator];
-        // the character array from 'eventCode == 2' for keyboard input where the calculation is completed and written to the text window.
-
-        buttonPressCheck = 1;
-        //printf("j:%d\n", j);
-        //printf("    j %d  input:%c  charSkip: %d\n", j, keyInput, charSkip);
-        //printf("Backspace 'charKeyInput[%d]' %c\n", intKeyInputIterator, keyInput);
-
-        // 'screenCheckZero' 0.) small screen size.
-        if (screenCheckZero == 1) {
-          // key inputs are: keyInputX11 == 22 || keyInputX11 == 54
-          // 'screenSizeZero' and '...One' button clicks for 'j'
-          //    'del'                          'c'
-          if ( ( j == 2 || j == 17) ) {
-            charSkip = 1;
-          }
-          // If the input text window is full, skip until 'Backspace' or 'c' clear.
-          if (charSkip == 0) {
-            continue;
-          }
+          // Check for history/keyboard button
           if (j == 0) {
-            keyInput = '\0'; // ASCII 0
-          }
-          // 'Shift' and '9' or '0' = '(' or ')
-          else if (j == 1) {
-            // Change 'keyInput' between '(' and ')' for the button press.
-            if (previousKeyStart == 0) {
-              keyInput = 40;
-              previousKeyStart = 40;
-            }
-            else if (previousKeyStart == 40) {
-              keyInput = 41;
-              previousKeyStart = 1;
-            }
-            //printf("keyInput %c  previousKeyStart %c\n", keyInput, previousKeyStart);
-            //previousKeyInputX11 = 50;
-          }
-          // 'Backspace' or 'del'
-          else if (j == 2) {
-            keyInputX11 = 22;
-          }
-          // 'Shift' and '5' = '%'
-          else if (j == 3) {
-            keyInput = 37;
-            //previousKeyInputX11 = 50;
-          }
-          // '/'
-          else if (j == 4) {
-            keyInput = 47;
-          }
+            x1LowCheck = 0;
+            y1LowCheck = 0;
+            x1HighCheck = 0;
+            y1HighCheck = 0;
+            x2LowCheck = 0;
+            y2LowCheck = 0;
+            x2HighCheck = 0;
+            y2HighCheck = 0;
 
-          // '7'
-          else if (j == 5) {
-            keyInput = 55;
-          }
-          // '8'
-          else if (j == 6) {
-            keyInput = 56;
-          }
-          // '9'
-          else if (j == 7) {
-            keyInput = 57;
-          }
-          // 'Shift' and '8' = '*'
-          else if (j == 8) {
-            keyInput = 42;
-            //previousKeyInputX11 = 50;
-          }
-
-          // '4'
-          else if (j == 9) {
-            keyInput = 52;
-          }
-          // '5'
-          else if (j == 10) {
-            keyInput = 53;
-          }
-          // '6'
-          else if (j == 11) {
-            keyInput = 54;
-          }
-          // '-'
-          else if (j == 12) {
-            keyInput = 45;
-          }
-
-          // '1'
-          else if (j == 13) {
-            keyInput = 49;
-          }
-          // '2'
-          else if (j == 14) {
-            keyInput = 50;
-          }
-          // '3'
-          else if (j == 15) {
-            keyInput = 51;
-          }
-          // 'Shift' and '=' '+'
-          else if (j == 16) {
-            keyInput = 43;
-            //previousKeyInputX11 = ;
-          }
-
-          // 'c'
-          else if (j == 17) {
-            keyInput = 99;
-            //charKeyInput = malloc(255 * sizeof(char));
-            intKeyInputIterator = 0;
-          }
-          // '0'
-          else if (j == 18) {
-            keyInput = 48;
-          }
-          // '.'
-          else if (j == 19) {
-            keyInput = 46;
-          }
-          // '='
-          else if (j == 20) {
-            keyInput = 61;
-          }
-        }
-        // 'screenCheckOne' 1.) larger screen size.
-        else if (screenCheckOne == 1) {
-          // key inputs are: keyInputX11 == 22 || keyInputX11 == 54
-          // 'screenSizeZero' and '...One' button clicks for 'j'
-          //    'del'        'c'
-          if (j == 6 || j == 37) {
-            charSkip = 1;
-          }
-          // If the input text window is full, skip until 'Backspace' or 'c' clear.
-          if (charSkip == 0) {
-            continue;
-          }
-          // '<>'
-          if (j == 1) {
-            keyInput = 48;
-          }
-          // 'rad'
-          else if (j == 2) {
-            keyInput = 48;
-          }
-          // 'sqrt'
-          else if (j == 3) {
-            keyInput = 48;
-          }
-          // '|x|'
-          else if (j == 4) {
-            keyInput = 48;
-          }
-          // 'Shift' and '9' or '0' = '(' or ')'
-          else if (j == 5) {
-            // Change 'keyInput' between '(' and ')' for the button press.
-            if (previousKeyStart == 0) {
-              keyInput = 40;
-              previousKeyStart = 40;
-            }
-            else if (previousKeyStart == 40) {
-              keyInput = 41;
-              previousKeyStart = 0;
-            }
-            //printf("keyInput %c  previousKeyStart %c\n", keyInput, previousKeyStart);
-            //previousKeyInputX11 = 50;
-          }
-          // 'Backspace' or 'del'
-          else if (j == 6) {
-            keyInputX11 = 22;
-          }
-          // 'Shift' and '5' = '%'
-          else if (j == 7) {
-            keyInput = 37;
-            //previousKeyInputX11 = 50;
-          }
-          // '/'
-          else if (j == 8) {
-            keyInput = 47;
-          }
-
-          // 'sin'
-          else if (j == 9) {
-            keyInput = 48;
-          }
-          // 'cos'
-          else if (j == 10) {
-            keyInput = 48;
-          }
-          // 'tan'
-          else if (j == 11) {
-            keyInput = 48;
-          }
-          // 'pi'
-          else if (j == 12) {
-            keyInput = 48;
-          }
-          // '7'
-          else if (j == 13) {
-            keyInput = 55;
-          }
-          // '8'
-          else if (j == 14) {
-            keyInput = 56;
-          }
-          // '9'
-          else if (j == 15) {
-            keyInput = 57;
-          }
-          // 'Shift' and '8' '*'
-          else if (j == 16) {
-            keyInput = 42;
-            //previousKeyInputX11 = 50;
-          }
-
-          // 'ln'
-          else if (j == 17) {
-            keyInput = 48;
-          }
-          // 'log'
-          else if (j == 18) {
-            keyInput = 48;
-          }
-          // '1/x'
-          else if (j == 19) {
-            keyInput = 48;
-          }
-          // 'e'
-          else if (j == 20) {
-            keyInput = 48;
-          }
-          // '4'
-          else if (j == 21) {
-            keyInput = 52;
-          }
-          // '5'
-          else if (j == 22) {
-            keyInput = 53;
-          }
-          // '6'
-          else if (j == 23) {
-            keyInput = 54;
-          }
-          // ''-'
-          else if (j == 24) {
-            keyInput = 45;
-          }
-
-          // 'e^2'
-          else if (j == 25) {
-            keyInput = 48;
-          }
-          // 'x^2'
-          else if (j == 26) {
-            keyInput = 48;
-          }
-          // 'x^x'
-          else if (j == 27) {
-            keyInput = 48;
-          }
-          // 'x^x'
-          else if (j == 28) {
-            keyInput = 48;
-          }
-          // '1'
-          else if (j == 29) {
-            keyInput = 49;
-          }
-          // '2'
-          else if (j == 30) {
-            keyInput = 50;
-          }
-          // '3'
-          else if (j == 31) {
-            keyInput = 51;
-          }
-          // 'Shift' and '=' '+'
-          else if (j == 32) {
-            keyInput = 43;
-            //previousKeyInputX11 = ;
-          }
-
-          // 'o'
-          else if (j == 33) {
-            keyInput = 48;
-          }
-          // 'o'
-          else if (j == 34) {
-            keyInput = 48;
-          }
-          // 'o'
-          else if (j == 35) {
-            keyInput = 48;
-          }
-          // 'o'
-          else if (j == 36) {
-            keyInput = 48;
-          }
-          // 'c'
-          else if (j == 37) {
-            keyInput = 99;
-            //charKeyInput = malloc(255 * sizeof(char));
-            intKeyInputIterator = 0;
-          }
-          // '0'
-          else if (j == 38) {
-            keyInput = 48;
-          }
-          // '.'
-          else if (j == 39) {
-            keyInput = 46;
-          }
-          // '='
-          else if (j == 40) {
-            keyInput = 61;
-          }
-        }
-
-//
-        if (j == 42) {
-          // 'write()' the button's background.
-          historyButtonPolyfill[8] = gcID.one + gcIDFour;
-          historyButtonPolyfillWrite = write(sock, historyButtonPolyfill, sizeof(historyButtonPolyfill));
-          if (historyCheck == 0) {
-            // Redefine the 'clearArea' opcode 61 packet to the current specifications.
-            // XY coordinates.
-            clearArea[8] = historyButton[12];
-            clearArea[9] = historyButton[13];
-            clearArea[10] = historyButton[14];
-            clearArea[11] = historyButton[15];
-            // Width and height.
-            clearArea[12] = historyButton[16];
-            clearArea[13] = historyButton[17];
-            clearArea[14] = historyButton[18];
-            clearArea[15] = historyButton[19];
-            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-            historyCheck = 1;
-            //printf("write the history button\n");
-
-            // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
-            i = 0;      // x
-            m = 10;     // radius
-            j = m;      // y = R (radius)
-            k = 1 - j;  // P = 1 - R
-            // The loop draws points 0-j at the same time for each 1/8 of the circle.
-            // Offset centers the circle.
-            xOffset = 12;
-            yOffset = -7;
-
-            while (i <= j) {
-              // Visually starts drawing at the bottom of the circle since
-              // screen coordinates 'y' are drawn upside down but it's the
-              // top of the circle mathematically.
-              if (k < 0) {
-                k = k + ((2 * i) + 1);
+            //printf("x %d %d y %d %d width %d %d height %d %d\n", historyButtonPolyfill[12], historyButtonPolyfill[13], historyButtonPolyfill[14], historyButtonPolyfill[15], historyButtonPolyfill[16], historyButtonPolyfill[17], historyButtonPolyfill[18], historyButtonPolyfill[19]);
+            // x2 low boundary
+            if (responseWindowInput[25] >= historyButtonPolyfill[13]) {
+              x2LowCheck = 1;
+              // The next comparison splits based on if the larger 'x2' number is '==' or '>'. The first 'if' has another
+              // condition for the 'x1' value which asks if the mouse click input 'responseWindowInput[24]' is '>=' the
+              // 'buttonBorder[j][12]' 'x1' border. If both those conditions are true, 'x1Lowcheck' is set to '1'. If they're
+              // not, the second split asks if only the 'x2' is '>' 'buttonBorder[j][13]' and sets 'x1LowCheck' to '1'. Otherwise
+              // 'x1LowCheck' remains '0' and a 'break;' would probably work to reduce further iterations.
+              if (responseWindowInput[25] == historyButtonPolyfill[13] && responseWindowInput[24] >= historyButtonPolyfill[12]) {
+                x1LowCheck = 1;
               }
-              else if (k >= 0) {
-                j--;
-                k = k + ((2 * (i - j)) + 1);
+              else if (responseWindowInput[25] > historyButtonPolyfill[13]) {
+                x1LowCheck = 1;
               }
-              //printf("x %d  y %d  p %d\n", i, j, k);
-              //printf("i %d\n", i);
-              // They are numbered clockwise.
-              // 1) (x, -y)
-              polyPoint[12] = (historyButton[12] + xOffset) + i;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) - j;
-              polyPoint[15] = buttonText[1][15];
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              // These two arcs are not skipped
-              // 2) (y, -x)
-              polyPoint[12] = (historyButton[12] + xOffset) + j;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) - i;
-              polyPoint[15] = buttonText[1][15];
-              //polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              // 3) (y, x)
-              polyPoint[12] = (historyButton[12] + xOffset) + j;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) + i;
-              polyPoint[15] = buttonText[1][15];
-              //polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-
-              // 'write()' the arrow using the last coordinate of the third 1/8.
-              if (i == j) {
-                // First point.
-                polyLine[12] = polyPoint[12] - 2;
-                polyLine[13] = polyPoint[13];
-                polyLine[14] = polyPoint[14] - 2;
-                polyLine[15] = polyPoint[15];
-                // Second point.
-                polyLine[16] = polyPoint[12] + 1;
-                polyLine[17] = polyPoint[13];
-                polyLine[18] = polyPoint[14] - 5;
-                polyLine[19] = polyPoint[15];
-                // Third point.
-                polyLine[20] = polyPoint[12] + 3;
-                polyLine[21] = polyPoint[13];
-                polyLine[22] = polyPoint[14] - 1;
-                polyLine[23] = polyPoint[15];
-                polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+            }
+            // 'y2' low is identical to the above explanation.
+            if (responseWindowInput[27] >= historyButtonPolyfill[15]) {
+              y2LowCheck = 1;
+              if (responseWindowInput[27] == historyButtonPolyfill[15] && responseWindowInput[26] >= historyButtonPolyfill[14]) {
+                y1LowCheck = 1;
               }
-
-              // 4) (x, y)
-              polyPoint[12] = (historyButton[12] + xOffset) + i;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) + j;
-              polyPoint[15] = buttonText[1][15];
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              // 5) (-x, y)
-              polyPoint[12] = (historyButton[12] + xOffset) - i;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) + j;
-              polyPoint[15] = buttonText[1][15];
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              // 6) (-y, -x)
-              polyPoint[12] = (historyButton[12] + xOffset) - j;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) + i;
-              polyPoint[15] = buttonText[1][15];
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              // 7) (-y, -x)
-              polyPoint[12] = (historyButton[12] + xOffset) - j;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) - i;
-              polyPoint[15] = buttonText[1][15];
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              // 8) (-x, -y)
-              polyPoint[12] = (historyButton[12] + xOffset) - i;
-              polyPoint[13] = buttonText[1][13];
-              polyPoint[14] = (buttonText[1][14] + yOffset) - j;
-              polyPoint[15] = buttonText[1][15];
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              i++;
+              else if (responseWindowInput[27] > historyButtonPolyfill[15]) {
+                y1LowCheck = 1;
+              }
             }
 
-            // gcIDSeven; - smaller font.
-            // 'write()' the 'h'.
-            historyText[12] = historyButton[12] + 7;                   // X
-            historyText[13] = historyButton[13];
-            historyText[14] = historyButton[14] + 18;                   // + 22.5; // Y
-            historyText[15] = historyButton[15];
-            historyText[16] = 1;                                   // length of the string
-            historyText[17] = 0;                                   // horizontal shift between characters
-            historyText[18] = 'h';                                 // The text strings (STRING8).
-            historyText[19] = 0;
-            buttonTextWrite = write(sock, historyText, sizeof(historyText));
 
-            // 'historyWindow' slide in animation.
-            // x, y
-            historyWindow[12] = 0;
-            historyWindow[13] = 0;
-            historyWindow[14] = buttonBorder[8][14];
-            historyWindow[15] = buttonBorder[8][15];
-            // height, width + n to cover the borders.
-            historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
-            historyWindow[19] = buttonBorder[4][19];
-            // Clear the window before.
-            clearArea[8] = 0;
-            clearArea[9] = 0;
-            clearArea[10] = historyWindow[14];
-            clearArea[11] = historyWindow[15];
-            //
-            //
-            clearArea[14] = historyWindow[18];
-            clearArea[15] = historyWindow[19];
+            // 'x2' high border reverses the greater than '>' comparisions to less than '<' and follows the same logic.
+            // x2 high
+            if (responseWindowInput[25] <= (historyButtonPolyfill[13] + historyButtonPolyfill[17]) ) {
+              x2HighCheck = 1;
+              if (responseWindowInput[25] == (historyButtonPolyfill[13] +historyButtonPolyfill[17]) && responseWindowInput[24] <= (historyButtonPolyfill[12] + historyButtonPolyfill[16]) ) {
+                x1HighCheck = 1;
+              }
+              else if (responseWindowInput[25] < (historyButtonPolyfill[13] + historyButtonPolyfill[17]) ) {
+                x1HighCheck = 1;
+              }
+            }
+            // y2 high
+            if (responseWindowInput[27] <= (historyButtonPolyfill[15] + historyButtonPolyfill[19]) ) {
+              y2HighCheck = 1;
+              if (responseWindowInput[27] == (historyButtonPolyfill[15] + historyButtonPolyfill[19]) && responseWindowInput[26] <= (historyButtonPolyfill[14] + historyButtonPolyfill[18]) ) {
+                y1HighCheck = 1;
+              }
+              else if (responseWindowInput[27] < (historyButtonPolyfill[15] + historyButtonPolyfill[19]) ) {
+                y1HighCheck = 1;
+              }
+            }
 
-            i = 0;
-            j = (buttonBorder[4][16] * 4) + 20 + 2;
-            //while (i < ( (buttonBorder[4][16] * 4) + 20 + 1) ) {      // 5
-            // Increasing the number and modulo division by a decimal place determines speed.
-            while (i < 25000) {
-              if (i % 100 == 0) {
-                // Clears the entire width of the history window.
-              // might have to clear sections instead of the entire window
-                //clearArea[12] = (buttonBorder[4][16] * 4) + 20 + 2;
-                clearArea[12] = j+5;
-                clearArea[13] = buttonBorder[4][17];
-                clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+            // If all the checks are true, the appropriate button is used for input.
+            if (x2LowCheck == 1) {
+              if (y2LowCheck == 1) {
+                if (x2HighCheck == 1) {
+                  if (y2HighCheck == 1) {
+                    if (x1LowCheck == 1) {
+                      if (y1LowCheck == 1) {
+                        if (x1HighCheck == 1) {
+                          if (y1HighCheck == 1) {
+                            // 'j' is the history/keyboard button.
+                            j = 42;
+                            //printf("button '  %d  '\n", j);
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            // 'j' is not a button.
+            if (x2LowCheck == 0) {
+              j = 0;
+            }
+            if (y2LowCheck == 0) {
+              j = 0;
+            }
+            if (x2HighCheck == 0) {
+              j = 0;
+            }
+            if (y2HighCheck == 0) {
+              j = 0;
+            }
+            if (x1LowCheck == 0) {
+              j = 0;
+            }
+            if (y1LowCheck == 0) {
+              j = 0;
+            }
+            if (x1HighCheck == 0) {
+              j = 0;
+            }
+            if (y1HighCheck == 0) {
+              j = 0;
+            }
+          } // Closes 'if j == 0' check for 'j == 42' history button.
+
+          // charKeyInput[intKeyInputIterator];
+          // the character array from 'eventCode == 2' for keyboard input where the calculation is completed and written to the text window.
+
+          buttonPressCheck = 1;
+          //printf("j:%d\n", j);
+          //printf("    j %d  input:%c  charSkip: %d\n", j, keyInput, charSkip);
+          //printf("Backspace 'charKeyInput[%d]' %c\n", intKeyInputIterator, keyInput);
+
+          // 'screenCheckZero' 0.) small screen size.
+          if (screenCheckZero == 1) {
+            // key inputs are: keyInputX11 == 22 || keyInputX11 == 54
+            // 'screenSizeZero' and '...One' button clicks for 'j'
+            //    'del'                          'c'
+            if ( ( j == 2 || j == 17) ) {
+              charSkip = 1;
+            }
+            // If the input text window is full, skip until 'Backspace' or 'c' clear.
+            if (charSkip == 0) {
+              continue;
+            }
+            if (j == 0) {
+              keyInput = '\0'; // ASCII 0
+            }
+            // 'Shift' and '9' or '0' = '(' or ')
+            else if (j == 1) {
+              // Change 'keyInput' between '(' and ')' for the button press.
+              if (previousKeyStart == 0) {
+                keyInput = 40;
+                previousKeyStart = 40;
+              }
+              else if (previousKeyStart == 40) {
+                keyInput = 41;
+                previousKeyStart = 1;
+              }
+              //printf("keyInput %c  previousKeyStart %c\n", keyInput, previousKeyStart);
+              //previousKeyInputX11 = 50;
+            }
+            // 'Backspace' or 'del'
+            else if (j == 2) {
+              keyInputX11 = 22;
+            }
+            // 'Shift' and '5' = '%'
+            else if (j == 3) {
+              keyInput = 37;
+              //previousKeyInputX11 = 50;
+            }
+            // '/'
+            else if (j == 4) {
+              keyInput = 47;
+            }
+
+            // '7'
+            else if (j == 5) {
+              keyInput = 55;
+            }
+            // '8'
+            else if (j == 6) {
+              keyInput = 56;
+            }
+            // '9'
+            else if (j == 7) {
+              keyInput = 57;
+            }
+            // 'Shift' and '8' = '*'
+            else if (j == 8) {
+              keyInput = 42;
+              //previousKeyInputX11 = 50;
+            }
+
+            // '4'
+            else if (j == 9) {
+              keyInput = 52;
+            }
+            // '5'
+            else if (j == 10) {
+              keyInput = 53;
+            }
+            // '6'
+            else if (j == 11) {
+              keyInput = 54;
+            }
+            // '-'
+            else if (j == 12) {
+              keyInput = 45;
+            }
+
+            // '1'
+            else if (j == 13) {
+              keyInput = 49;
+            }
+            // '2'
+            else if (j == 14) {
+              keyInput = 50;
+            }
+            // '3'
+            else if (j == 15) {
+              keyInput = 51;
+            }
+            // 'Shift' and '=' '+'
+            else if (j == 16) {
+              keyInput = 43;
+              //previousKeyInputX11 = ;
+            }
+
+            // 'c'
+            else if (j == 17) {
+              keyInput = 99;
+              //charKeyInput = malloc(255 * sizeof(char));
+              intKeyInputIterator = 0;
+            }
+            // '0'
+            else if (j == 18) {
+              keyInput = 48;
+            }
+            // '.'
+            else if (j == 19) {
+              keyInput = 46;
+            }
+            // '='
+            else if (j == 20) {
+              keyInput = 61;
+            }
+          }
+          // 'screenCheckOne' 1.) larger screen size.
+          else if (screenCheckOne == 1) {
+            // key inputs are: keyInputX11 == 22 || keyInputX11 == 54
+            // 'screenSizeZero' and '...One' button clicks for 'j'
+            //    'del'        'c'
+            if (j == 6 || j == 37) {
+              charSkip = 1;
+            }
+            // If the input text window is full, skip until 'Backspace' or 'c' clear.
+            if (charSkip == 0) {
+              continue;
+            }
+            // '<>'
+            if (j == 1) {
+              keyInput = 48;
+            }
+            // 'rad'
+            else if (j == 2) {
+              keyInput = 48;
+            }
+            // 'sqrt'
+            else if (j == 3) {
+              keyInput = 48;
+            }
+            // '|x|'
+            else if (j == 4) {
+              keyInput = 48;
+            }
+            // 'Shift' and '9' or '0' = '(' or ')'
+            else if (j == 5) {
+              // Change 'keyInput' between '(' and ')' for the button press.
+              if (previousKeyStart == 0) {
+                keyInput = 40;
+                previousKeyStart = 40;
+              }
+              else if (previousKeyStart == 40) {
+                keyInput = 41;
+                previousKeyStart = 0;
+              }
+              //printf("keyInput %c  previousKeyStart %c\n", keyInput, previousKeyStart);
+              //previousKeyInputX11 = 50;
+            }
+            // 'Backspace' or 'del'
+            else if (j == 6) {
+              keyInputX11 = 22;
+            }
+            // 'Shift' and '5' = '%'
+            else if (j == 7) {
+              keyInput = 37;
+              //previousKeyInputX11 = 50;
+            }
+            // '/'
+            else if (j == 8) {
+              keyInput = 47;
+            }
+
+            // 'sin'
+            else if (j == 9) {
+              keyInput = 48;
+            }
+            // 'cos'
+            else if (j == 10) {
+              keyInput = 48;
+            }
+            // 'tan'
+            else if (j == 11) {
+              keyInput = 48;
+            }
+            // 'pi'
+            else if (j == 12) {
+              keyInput = 48;
+            }
+            // '7'
+            else if (j == 13) {
+              keyInput = 55;
+            }
+            // '8'
+            else if (j == 14) {
+              keyInput = 56;
+            }
+            // '9'
+            else if (j == 15) {
+              keyInput = 57;
+            }
+            // 'Shift' and '8' '*'
+            else if (j == 16) {
+              keyInput = 42;
+              //previousKeyInputX11 = 50;
+            }
+
+            // 'ln'
+            else if (j == 17) {
+              keyInput = 48;
+            }
+            // 'log'
+            else if (j == 18) {
+              keyInput = 48;
+            }
+            // '1/x'
+            else if (j == 19) {
+              keyInput = 48;
+            }
+            // 'e'
+            else if (j == 20) {
+              keyInput = 48;
+            }
+            // '4'
+            else if (j == 21) {
+              keyInput = 52;
+            }
+            // '5'
+            else if (j == 22) {
+              keyInput = 53;
+            }
+            // '6'
+            else if (j == 23) {
+              keyInput = 54;
+            }
+            // ''-'
+            else if (j == 24) {
+              keyInput = 45;
+            }
+
+            // 'e^2'
+            else if (j == 25) {
+              keyInput = 48;
+            }
+            // 'x^2'
+            else if (j == 26) {
+              keyInput = 48;
+            }
+            // 'x^x'
+            else if (j == 27) {
+              keyInput = 48;
+            }
+            // 'x^x'
+            else if (j == 28) {
+              keyInput = 48;
+            }
+            // '1'
+            else if (j == 29) {
+              keyInput = 49;
+            }
+            // '2'
+            else if (j == 30) {
+              keyInput = 50;
+            }
+            // '3'
+            else if (j == 31) {
+              keyInput = 51;
+            }
+            // 'Shift' and '=' '+'
+            else if (j == 32) {
+              keyInput = 43;
+              //previousKeyInputX11 = ;
+            }
+
+            // 'o'
+            else if (j == 33) {
+              keyInput = 48;
+            }
+            // 'o'
+            else if (j == 34) {
+              keyInput = 48;
+            }
+            // 'o'
+            else if (j == 35) {
+              keyInput = 48;
+            }
+            // 'o'
+            else if (j == 36) {
+              keyInput = 48;
+            }
+            // 'c'
+            else if (j == 37) {
+              keyInput = 99;
+              //charKeyInput = malloc(255 * sizeof(char));
+              intKeyInputIterator = 0;
+            }
+            // '0'
+            else if (j == 38) {
+              keyInput = 48;
+            }
+            // '.'
+            else if (j == 39) {
+              keyInput = 46;
+            }
+            // '='
+            else if (j == 40) {
+              keyInput = 61;
+            }
+          }
+
+  //
+          if (j == 42) {
+            // 'write()' the button's background.
+            historyButtonPolyfill[8] = gcID.one + gcIDFour;
+            historyButtonPolyfillWrite = write(sock, historyButtonPolyfill, sizeof(historyButtonPolyfill));
+            if (historyCheck == 0) {
+              // Redefine the 'clearArea' opcode 61 packet to the current specifications.
+              // XY coordinates.
+              clearArea[8] = historyButton[12];
+              clearArea[9] = historyButton[13];
+              clearArea[10] = historyButton[14];
+              clearArea[11] = historyButton[15];
+              // Width and height.
+              clearArea[12] = historyButton[16];
+              clearArea[13] = historyButton[17];
+              clearArea[14] = historyButton[18];
+              clearArea[15] = historyButton[19];
+              clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+              historyCheck = 1;
+              //printf("write the history button\n");
+
+              // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
+              i = 0;      // x
+              m = 10;     // radius
+              j = m;      // y = R (radius)
+              k = 1 - j;  // P = 1 - R
+              // The loop draws points 0-j at the same time for each 1/8 of the circle.
+              // Offset centers the circle.
+              xOffset = 12;
+              yOffset = -7;
+
+              while (i <= j) {
+                // Visually starts drawing at the bottom of the circle since
+                // screen coordinates 'y' are drawn upside down but it's the
+                // top of the circle mathematically.
+                if (k < 0) {
+                  k = k + ((2 * i) + 1);
+                }
+                else if (k >= 0) {
+                  j--;
+                  k = k + ((2 * (i - j)) + 1);
+                }
+                //printf("x %d  y %d  p %d\n", i, j, k);
+                //printf("i %d\n", i);
+                // They are numbered clockwise.
+                // 1) (x, -y)
+                polyPoint[12] = (historyButton[12] + xOffset) + i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // These two arcs are not skipped
+                // 2) (y, -x)
+                polyPoint[12] = (historyButton[12] + xOffset) + j;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) - i;
+                polyPoint[15] = buttonText[1][15];
+                //polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 3) (y, x)
+                polyPoint[12] = (historyButton[12] + xOffset) + j;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) + i;
+                polyPoint[15] = buttonText[1][15];
+                //polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+
+                // 'write()' the arrow using the last coordinate of the third 1/8.
+                if (i == j) {
+                  // First point.
+                  polyLine[12] = polyPoint[12] - 2;
+                  polyLine[13] = polyPoint[13];
+                  polyLine[14] = polyPoint[14] - 2;
+                  polyLine[15] = polyPoint[15];
+                  // Second point.
+                  polyLine[16] = polyPoint[12] + 1;
+                  polyLine[17] = polyPoint[13];
+                  polyLine[18] = polyPoint[14] - 5;
+                  polyLine[19] = polyPoint[15];
+                  // Third point.
+                  polyLine[20] = polyPoint[12] + 3;
+                  polyLine[21] = polyPoint[13];
+                  polyLine[22] = polyPoint[14] - 1;
+                  polyLine[23] = polyPoint[15];
+                  polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                }
+
+                // 4) (x, y)
+                polyPoint[12] = (historyButton[12] + xOffset) + i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 5) (-x, y)
+                polyPoint[12] = (historyButton[12] + xOffset) - i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 6) (-y, -x)
+                polyPoint[12] = (historyButton[12] + xOffset) - j;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) + i;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 7) (-y, -x)
+                polyPoint[12] = (historyButton[12] + xOffset) - j;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) - i;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                // 8) (-x, -y)
+                polyPoint[12] = (historyButton[12] + xOffset) - i;
+                polyPoint[13] = buttonText[1][13];
+                polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+                polyPoint[15] = buttonText[1][15];
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                i++;
+              }
+
+              // gcIDSeven; - smaller font.
+              // 'write()' the 'h'.
+              historyText[12] = historyButton[12] + 7;                   // X
+              historyText[13] = historyButton[13];
+              historyText[14] = historyButton[14] + 18;                   // + 22.5; // Y
+              historyText[15] = historyButton[15];
+              historyText[16] = 1;                                   // length of the string
+              historyText[17] = 0;                                   // horizontal shift between characters
+              historyText[18] = 'h';                                 // The text strings (STRING8).
+              historyText[19] = 0;
+              buttonTextWrite = write(sock, historyText, sizeof(historyText));
+
+              // 'historyWindow' slide in animation.
+              // x, y
+              historyWindow[12] = 0;
+              historyWindow[13] = 0;
+              historyWindow[14] = buttonBorder[8][14];
+              historyWindow[15] = buttonBorder[8][15];
+              // height, width + n to cover the borders.
+              historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
+              historyWindow[19] = buttonBorder[4][19];
+              // Clear the window before.
+              clearArea[8] = 0;
+              clearArea[9] = 0;
+              clearArea[10] = historyWindow[14];
+              clearArea[11] = historyWindow[15];
+              //
+              //
+              clearArea[14] = historyWindow[18];
+              clearArea[15] = historyWindow[19];
+
+              i = 0;
+              j = (buttonBorder[4][16] * 4) + 20 + 2;
+              //while (i < ( (buttonBorder[4][16] * 4) + 20 + 1) ) {      // 5
+              // Increasing the number and modulo division by a decimal place determines speed.
+              while (i < 25000) {
+                if (i % 100 == 0) {
+                  // Clears the entire width of the history window.
+                // might have to clear sections instead of the entire window
+                  //clearArea[12] = (buttonBorder[4][16] * 4) + 20 + 2;
+                  clearArea[12] = j+5;
+                  clearArea[13] = buttonBorder[4][17];
+                  clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
 
 
-                historyWindow[16] = j; // (buttonBorder[4][16] * i) + 20 + 1
-                historyWindow[17] = buttonBorder[4][17];
-                historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
+                  historyWindow[16] = j; // (buttonBorder[4][16] * i) + 20 + 1
+                  historyWindow[17] = buttonBorder[4][17];
+                  historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
 
 
-                // Rewrite the buttons 7, 11, 15, 6, 10, 14, 5, 9, 13
-                // char historyWindowButton[9];
-                // History window x coordinate is less than the 'nth' column x coordinate (left side of button).
-                subsetButtonPolyfill[8] = gcID.one + gcIDFour;
-                m = 0;
-                n = 0;
-                k = 0;
-                // 7, 11, 15
-                if ( historyWindow[16] < (buttonPolyfill[7][12] + buttonPolyfill[7][16]) ) {
+                  // Rewrite the buttons 7, 11, 15, 6, 10, 14, 5, 9, 13
+                  // char historyWindowButton[9];
+                  // History window x coordinate is less than the 'nth' column x coordinate (left side of button).
+                  subsetButtonPolyfill[8] = gcID.one + gcIDFour;
                   m = 0;
-                  n = 3;
+                  n = 0;
+                  k = 0;
+                  // 7, 11, 15
+                  if ( historyWindow[16] < (buttonPolyfill[7][12] + buttonPolyfill[7][16]) ) {
+                    m = 0;
+                    n = 3;
+                  }
+                  if (historyWindow[16] < (buttonPolyfill[6][12] + buttonPolyfill[7][16])) {
+                    m = 3;
+                    n = 6;
+                  }
+                  if (historyWindow[16] < (buttonPolyfill[5][12] + buttonPolyfill[7][16])) {
+                    m = 6;
+                    n = 9;
+                  }
+
+                  while (m < n) {
+                    k = historyWindowButton[m];
+                    subsetButtonPolyfill[12] = buttonPolyfill[k][12];
+                    subsetButtonPolyfill[13] = buttonPolyfill[k][13];
+                    subsetButtonPolyfill[14] = buttonPolyfill[k][14];
+                    subsetButtonPolyfill[15] = buttonPolyfill[k][15];
+                    subsetButtonPolyfill[16] = buttonPolyfill[k][16];
+                    subsetButtonPolyfill[17] = buttonPolyfill[k][17];
+                    subsetButtonPolyfill[18] = buttonPolyfill[k][18];
+                    subsetButtonPolyfill[19] = buttonPolyfill[k][19];
+
+                    subsetButtonBorder[12] = buttonBorder[k][12];
+                    subsetButtonBorder[13] = buttonBorder[k][13];
+                    subsetButtonBorder[14] = buttonBorder[k][14];
+                    subsetButtonBorder[15] = buttonBorder[k][15];
+                    subsetButtonBorder[16] = buttonBorder[k][16];
+                    subsetButtonBorder[17] = buttonBorder[k][17];
+                    subsetButtonBorder[18] = buttonBorder[k][18];
+                    subsetButtonBorder[19] = buttonBorder[k][19];
+
+                    subsetButtonText[12] = buttonText[k][12];
+                    subsetButtonText[13] = buttonText[k][13];
+                    subsetButtonText[14] = buttonText[k][14];
+                    subsetButtonText[15] = buttonText[k][15];
+                    subsetButtonText[16] = buttonText[k][16];
+                    subsetButtonText[17] = buttonText[k][17];
+                    subsetButtonText[18] = buttonText[k][18];
+                    subsetButtonText[19] = buttonText[k][19];
+
+                    buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
+                    borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
+                    buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
+                    m++;
+                  }
+                  if (j == 0) {
+                    break;
+                  }
+                  j--;
+                  //printf("j %d  x %d %d\n", j, historyWindow[16], historyWindow[17]);
                 }
-                if (historyWindow[16] < (buttonPolyfill[6][12] + buttonPolyfill[7][16])) {
-                  m = 3;
-                  n = 6;
-                }
-                if (historyWindow[16] < (buttonPolyfill[5][12] + buttonPolyfill[7][16])) {
-                  m = 6;
-                  n = 9;
-                }
-
-                while (m < n) {
-                  k = historyWindowButton[m];
-                  subsetButtonPolyfill[12] = buttonPolyfill[k][12];
-                  subsetButtonPolyfill[13] = buttonPolyfill[k][13];
-                  subsetButtonPolyfill[14] = buttonPolyfill[k][14];
-                  subsetButtonPolyfill[15] = buttonPolyfill[k][15];
-                  subsetButtonPolyfill[16] = buttonPolyfill[k][16];
-                  subsetButtonPolyfill[17] = buttonPolyfill[k][17];
-                  subsetButtonPolyfill[18] = buttonPolyfill[k][18];
-                  subsetButtonPolyfill[19] = buttonPolyfill[k][19];
-
-                  subsetButtonBorder[12] = buttonBorder[k][12];
-                  subsetButtonBorder[13] = buttonBorder[k][13];
-                  subsetButtonBorder[14] = buttonBorder[k][14];
-                  subsetButtonBorder[15] = buttonBorder[k][15];
-                  subsetButtonBorder[16] = buttonBorder[k][16];
-                  subsetButtonBorder[17] = buttonBorder[k][17];
-                  subsetButtonBorder[18] = buttonBorder[k][18];
-                  subsetButtonBorder[19] = buttonBorder[k][19];
-
-                  subsetButtonText[12] = buttonText[k][12];
-                  subsetButtonText[13] = buttonText[k][13];
-                  subsetButtonText[14] = buttonText[k][14];
-                  subsetButtonText[15] = buttonText[k][15];
-                  subsetButtonText[16] = buttonText[k][16];
-                  subsetButtonText[17] = buttonText[k][17];
-                  subsetButtonText[18] = buttonText[k][18];
-                  subsetButtonText[19] = buttonText[k][19];
-
-                  buttonPolyfillWrite = write(sock, subsetButtonPolyfill, sizeof(subsetButtonPolyfill));
-                  borderRectangleWrite = write(sock, subsetButtonBorder, sizeof(subsetButtonBorder));
-                  buttonTextWrite = write(sock, subsetButtonText, sizeof(subsetButtonText));
-                  m++;
-                }
-                if (j == 0) {
-                  break;
-                }
-                j--;
-                //printf("j %d  x %d %d\n", j, historyWindow[16], historyWindow[17]);
-              }
-              // Delays the graphic by consuming resources. Depends on 'X11' compared with
-              // a different resource equation and assumes OS scaling.
-              polyPoint[12] = 0;
-              polyPoint[13] = 0;
-              polyPoint[14] = 0;
-              polyPoint[15] = 0;
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              //printf("i %d\n", i);
-              i++;
-            }
-            // Remove the delay graphic polyPoint 'write()'.
-            // Might not exist but X11 probably uses memory to count.
-            clearArea[8] = 0;
-            clearArea[9] = 0;
-            clearArea[10] = 0;
-            clearArea[11] = 0;
-            clearArea[12] = 1;
-            clearArea[13] = 0;
-            clearArea[14] = 1;
-            clearArea[15] = 0;
-            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-          }
-          else if (historyCheck == 1) {
-            // Clear the previous button symbol.
-            // XY coordinates.
-            clearArea[8] = historyButton[12];
-            clearArea[9] = historyButton[13];
-            clearArea[10] = historyButton[14];
-            clearArea[11] = historyButton[15];
-            // Width and height.
-            clearArea[12] = historyButton[16];
-            clearArea[13] = historyButton[17];
-            clearArea[14] = historyButton[18];
-            clearArea[15] = historyButton[19];
-            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-            // 'write()' the 'keyInput' to the user input window using 'textBorder' X and Y.
-            //printf("keyInputText[12]: %d  keyInputText[13]: %d\n", textBorder[12] - 15 + textBorder[16], textBorder[13] + textBorder[17]);
-            // Overflow for the y coordinate
-            if ((textBorder[14] + 22.5) > 255) {
-              keyInputText[14] = (textBorder[14] + 55) - 255;
-              keyInputText[15] = textBorder[15] + 1 ;
-            }
-            else {
-              keyInputText[14] = textBorder[14] + 55;
-              keyInputText[15] = textBorder[15];
-            }
-            historyCheck = 0;
-            // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
-            i = 0;      // x
-            m = 10;     // radius
-            j = m;      // y = R (radius)
-            k = 1 - j;  // P = 1 - R
-            // The loop draws points 0-j at the same time for each 1/8 of the circle.
-            // Offset centers the circle.
-            xOffset = 12;
-            yOffset = -7;
-
-            while (i <= j) {
-              // Visually starts drawing at the bottom of the circle since
-              // screen coordinates 'y' are drawn upside down but it's the
-              // top of the circle mathematically.
-              if (k < 0) {
-                k = k + ((2 * i) + 1);
-              }
-              else if (k >= 0) {
-                j--;
-                k = k + ((2 * (i - j)) + 1);
-              }
-              //printf("x %d  y %d  p %d\n", i, j, k);
-              //printf("i %d\n", i);
-              // The 1/8 arcs are numbered clockwise and
-              // these arcs are skipped:
-              //   2) (y, -x)
-              //   3) (y, x)
-              //   6) (-y, -x)
-              //   7) (-y, -x)
-
-              // 'write()' the horizontal lines using the first
-              // point from 1-8 and 4-5. The third point is repeated
-              // to reuse 'polyLine' char[] from the history button.
-              if (i == 5) {
-                // 1) (x, -y)
-                // First point.
-                polyLine[12] = (historyButton[12] + xOffset) + i;
-                polyLine[13] = buttonText[1][13];
-                polyLine[14] = (buttonText[1][14] + yOffset) - j;
-                polyLine[15] = buttonText[1][15];
-                // 8) (-x, -y)
-                // Second point.
-                polyLine[16] = (historyButton[12] + xOffset) - i;
-                polyLine[17] = buttonText[1][13];
-                polyLine[18] = (buttonText[1][14] + yOffset) - j;
-                polyLine[19] = buttonText[1][15];
-                // Third point.
-                polyLine[20] = polyLine[16];
-                polyLine[21] = polyLine[17];
-                polyLine[22] = polyLine[18];
-                polyLine[23] = polyLine[19];
-                polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-                // 4) (x, y)
-                // First point.
-                polyLine[12] = (historyButton[12] + xOffset) + i;
-                polyLine[13] = buttonText[1][13];
-                polyLine[14] = (buttonText[1][14] + yOffset) + j;
-                polyLine[15] = buttonText[1][15];
-                // 5) (-x, y)
-                // Second point.
-                polyLine[16] = (historyButton[12] + xOffset) - i;
-                polyLine[17] = buttonText[1][13];
-                polyLine[18] = (buttonText[1][14] + yOffset) + j;
-                polyLine[19] = buttonText[1][15];
-                // Third point.
-                polyLine[20] = polyLine[16];
-                polyLine[21] = polyLine[17];
-                polyLine[22] = polyLine[18];
-                polyLine[23] = polyLine[19];
-                polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-              }
-              // 'write()' the 1/8 corners for 1,4,5,8 and
-              // vertical and horizontal lines.
-              if (i > 4) {
-                // 1) (x, -y)
-                polyPoint[12] = (historyButton[12] + xOffset) + i;
-                polyPoint[13] = buttonText[1][13];
-                polyPoint[14] = (buttonText[1][14] + yOffset) - j;
-                polyPoint[15] = buttonText[1][15];
+                // Delays the graphic by consuming resources. Depends on 'X11' compared with
+                // a different resource equation and assumes OS scaling.
+                polyPoint[12] = 0;
+                polyPoint[13] = 0;
+                polyPoint[14] = 0;
+                polyPoint[15] = 0;
                 polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-                // 1 and 4 right vertical line coordinate 'write()'.
-                if (i == j) {
+                //printf("i %d\n", i);
+                i++;
+              }
+              // Remove the delay graphic polyPoint 'write()'.
+              // Might not exist but X11 probably uses memory to count.
+              clearArea[8] = 0;
+              clearArea[9] = 0;
+              clearArea[10] = 0;
+              clearArea[11] = 0;
+              clearArea[12] = 1;
+              clearArea[13] = 0;
+              clearArea[14] = 1;
+              clearArea[15] = 0;
+              clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+            }
+            else if (historyCheck == 1) {
+              // Clear the previous button symbol.
+              // XY coordinates.
+              clearArea[8] = historyButton[12];
+              clearArea[9] = historyButton[13];
+              clearArea[10] = historyButton[14];
+              clearArea[11] = historyButton[15];
+              // Width and height.
+              clearArea[12] = historyButton[16];
+              clearArea[13] = historyButton[17];
+              clearArea[14] = historyButton[18];
+              clearArea[15] = historyButton[19];
+              clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+              // 'write()' the 'keyInput' to the user input window using 'textBorder' X and Y.
+              //printf("keyInputText[12]: %d  keyInputText[13]: %d\n", textBorder[12] - 15 + textBorder[16], textBorder[13] + textBorder[17]);
+              // Overflow for the y coordinate
+              if ((textBorder[14] + 22.5) > 255) {
+                keyInputText[14] = (textBorder[14] + 55) - 255;
+                keyInputText[15] = textBorder[15] + 1 ;
+              }
+              else {
+                keyInputText[14] = textBorder[14] + 55;
+                keyInputText[15] = textBorder[15];
+              }
+              historyCheck = 0;
+              // Calculates the coordinates for one 45 degree arc and mirrors for the other 7.
+              i = 0;      // x
+              m = 10;     // radius
+              j = m;      // y = R (radius)
+              k = 1 - j;  // P = 1 - R
+              // The loop draws points 0-j at the same time for each 1/8 of the circle.
+              // Offset centers the circle.
+              xOffset = 12;
+              yOffset = -7;
+
+              while (i <= j) {
+                // Visually starts drawing at the bottom of the circle since
+                // screen coordinates 'y' are drawn upside down but it's the
+                // top of the circle mathematically.
+                if (k < 0) {
+                  k = k + ((2 * i) + 1);
+                }
+                else if (k >= 0) {
+                  j--;
+                  k = k + ((2 * (i - j)) + 1);
+                }
+                //printf("x %d  y %d  p %d\n", i, j, k);
+                //printf("i %d\n", i);
+                // The 1/8 arcs are numbered clockwise and
+                // these arcs are skipped:
+                //   2) (y, -x)
+                //   3) (y, x)
+                //   6) (-y, -x)
+                //   7) (-y, -x)
+
+                // 'write()' the horizontal lines using the first
+                // point from 1-8 and 4-5. The third point is repeated
+                // to reuse 'polyLine' char[] from the history button.
+                if (i == 5) {
+                  // 1) (x, -y)
                   // First point.
-                  polyLine[12] = polyPoint[12];
-                  polyLine[13] = polyPoint[13];
-                  polyLine[14] = polyPoint[14];
-                  polyLine[15] = polyPoint[15];
-                }
-                // 4) (x, y)
-                polyPoint[12] = (historyButton[12] + xOffset) + i;
-                polyPoint[13] = buttonText[1][13];
-                polyPoint[14] = (buttonText[1][14] + yOffset) + j;
-                polyPoint[15] = buttonText[1][15];
-                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-                // 1 and 4 right vertical line coordinate 'write()' uses the last coordinate.
-                if (i == j) {
+                  polyLine[12] = (historyButton[12] + xOffset) + i;
+                  polyLine[13] = buttonText[1][13];
+                  polyLine[14] = (buttonText[1][14] + yOffset) - j;
+                  polyLine[15] = buttonText[1][15];
+                  // 8) (-x, -y)
                   // Second point.
-                  polyLine[16] = polyPoint[12];
-                  polyLine[17] = polyPoint[13];
-                  polyLine[18] = polyPoint[14];
-                  polyLine[19] = polyPoint[15];
+                  polyLine[16] = (historyButton[12] + xOffset) - i;
+                  polyLine[17] = buttonText[1][13];
+                  polyLine[18] = (buttonText[1][14] + yOffset) - j;
+                  polyLine[19] = buttonText[1][15];
                   // Third point.
-                  polyLine[20] = polyPoint[12];
-                  polyLine[21] = polyPoint[13];
-                  polyLine[22] = polyPoint[14];
-                  polyLine[23] = polyPoint[15];
+                  polyLine[20] = polyLine[16];
+                  polyLine[21] = polyLine[17];
+                  polyLine[22] = polyLine[18];
+                  polyLine[23] = polyLine[19];
+                  polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                  // 4) (x, y)
+                  // First point.
+                  polyLine[12] = (historyButton[12] + xOffset) + i;
+                  polyLine[13] = buttonText[1][13];
+                  polyLine[14] = (buttonText[1][14] + yOffset) + j;
+                  polyLine[15] = buttonText[1][15];
+                  // 5) (-x, y)
+                  // Second point.
+                  polyLine[16] = (historyButton[12] + xOffset) - i;
+                  polyLine[17] = buttonText[1][13];
+                  polyLine[18] = (buttonText[1][14] + yOffset) + j;
+                  polyLine[19] = buttonText[1][15];
+                  // Third point.
+                  polyLine[20] = polyLine[16];
+                  polyLine[21] = polyLine[17];
+                  polyLine[22] = polyLine[18];
+                  polyLine[23] = polyLine[19];
                   polyLineWrite = write(sock, polyLine, sizeof(polyLine));
                 }
-                // 5) (-x, y)
-                polyPoint[12] = (historyButton[12] + xOffset) - i;
-                polyPoint[13] = buttonText[1][13];
-                polyPoint[14] = (buttonText[1][14] + yOffset) + j;
-                polyPoint[15] = buttonText[1][15];
-                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-                // 5 and 8 left vertical line coordinate 'write()'.
-                if (i == j) {
-                  // First point.
-                  polyLine[12] = polyPoint[12];
-                  polyLine[13] = polyPoint[13];
-                  polyLine[14] = polyPoint[14];
-                  polyLine[15] = polyPoint[15];
+                // 'write()' the 1/8 corners for 1,4,5,8 and
+                // vertical and horizontal lines.
+                if (i > 4) {
+                  // 1) (x, -y)
+                  polyPoint[12] = (historyButton[12] + xOffset) + i;
+                  polyPoint[13] = buttonText[1][13];
+                  polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+                  polyPoint[15] = buttonText[1][15];
+                  polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                  // 1 and 4 right vertical line coordinate 'write()'.
+                  if (i == j) {
+                    // First point.
+                    polyLine[12] = polyPoint[12];
+                    polyLine[13] = polyPoint[13];
+                    polyLine[14] = polyPoint[14];
+                    polyLine[15] = polyPoint[15];
+                  }
+                  // 4) (x, y)
+                  polyPoint[12] = (historyButton[12] + xOffset) + i;
+                  polyPoint[13] = buttonText[1][13];
+                  polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+                  polyPoint[15] = buttonText[1][15];
+                  polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                  // 1 and 4 right vertical line coordinate 'write()' uses the last coordinate.
+                  if (i == j) {
+                    // Second point.
+                    polyLine[16] = polyPoint[12];
+                    polyLine[17] = polyPoint[13];
+                    polyLine[18] = polyPoint[14];
+                    polyLine[19] = polyPoint[15];
+                    // Third point.
+                    polyLine[20] = polyPoint[12];
+                    polyLine[21] = polyPoint[13];
+                    polyLine[22] = polyPoint[14];
+                    polyLine[23] = polyPoint[15];
+                    polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                  }
+                  // 5) (-x, y)
+                  polyPoint[12] = (historyButton[12] + xOffset) - i;
+                  polyPoint[13] = buttonText[1][13];
+                  polyPoint[14] = (buttonText[1][14] + yOffset) + j;
+                  polyPoint[15] = buttonText[1][15];
+                  polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                  // 5 and 8 left vertical line coordinate 'write()'.
+                  if (i == j) {
+                    // First point.
+                    polyLine[12] = polyPoint[12];
+                    polyLine[13] = polyPoint[13];
+                    polyLine[14] = polyPoint[14];
+                    polyLine[15] = polyPoint[15];
+                  }
+                  // 8) (-x, -y)
+                  polyPoint[12] = (historyButton[12] + xOffset) - i;
+                  polyPoint[13] = buttonText[1][13];
+                  polyPoint[14] = (buttonText[1][14] + yOffset) - j;
+                  polyPoint[15] = buttonText[1][15];
+                  polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                  // 5 and 8 left vertical line coordinate 'write()'.
+                  if (i == j) {
+                    // Second point.
+                    polyLine[16] = polyPoint[12];
+                    polyLine[17] = polyPoint[13];
+                    polyLine[18] = polyPoint[14];
+                    polyLine[19] = polyPoint[15];
+                    // Third point.
+                    polyLine[20] = polyPoint[12];
+                    polyLine[21] = polyPoint[13];
+                    polyLine[22] = polyPoint[14];
+                    polyLine[23] = polyPoint[15];
+                    polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                  }
                 }
-                // 8) (-x, -y)
-                polyPoint[12] = (historyButton[12] + xOffset) - i;
-                polyPoint[13] = buttonText[1][13];
-                polyPoint[14] = (buttonText[1][14] + yOffset) - j;
-                polyPoint[15] = buttonText[1][15];
-                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-                // 5 and 8 left vertical line coordinate 'write()'.
-                if (i == j) {
-                  // Second point.
-                  polyLine[16] = polyPoint[12];
-                  polyLine[17] = polyPoint[13];
-                  polyLine[18] = polyPoint[14];
-                  polyLine[19] = polyPoint[15];
-                  // Third point.
-                  polyLine[20] = polyPoint[12];
-                  polyLine[21] = polyPoint[13];
-                  polyLine[22] = polyPoint[14];
-                  polyLine[23] = polyPoint[15];
-                  polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-                }
+                i++;
               }
-              i++;
-            }
 
-            // 'write()' the 'screen' and 'keyboard' for the button.
-            // 'screen' first point.
-            polyLine[12] = (historyButton[12] + xOffset) - 2;
-            polyLine[13] = buttonText[1][13];
-            polyLine[14] = (buttonText[1][14] + yOffset) - 5;
-            polyLine[15] = buttonText[1][15];
-            // 8) (-x, -y)
-            // Second point.
-            polyLine[16] = (historyButton[12] + xOffset) + 3;
-            polyLine[17] = buttonText[1][13];
-            polyLine[18] = (buttonText[1][14] + yOffset) - 5;
-            polyLine[19] = buttonText[1][15];
-            // Third point.
-            polyLine[20] = polyLine[16];
-            polyLine[21] = polyLine[17];
-            polyLine[22] = polyLine[18];
-            polyLine[23] = polyLine[19];
-            polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-            i = 0;
-            j = 0;
-            while (i < 5) {
-              // 'write()' the 'keyboard' for the button.
-              //printf("i %d  j %d\n", i, j);
-              // First point.
-              polyLine[12] = (historyButton[12] + xOffset) + (i-1);
+              // 'write()' the 'screen' and 'keyboard' for the button.
+              // 'screen' first point.
+              polyLine[12] = (historyButton[12] + xOffset) - 2;
               polyLine[13] = buttonText[1][13];
-              polyLine[14] = (buttonText[1][14] + yOffset) + (j-1); // -1;
+              polyLine[14] = (buttonText[1][14] + yOffset) - 5;
               polyLine[15] = buttonText[1][15];
               // 8) (-x, -y)
               // Second point.
-              polyLine[16] = (historyButton[12] + xOffset) + (i-1);
+              polyLine[16] = (historyButton[12] + xOffset) + 3;
               polyLine[17] = buttonText[1][13];
-              polyLine[18] = (buttonText[1][14] + yOffset) + j;
+              polyLine[18] = (buttonText[1][14] + yOffset) - 5;
               polyLine[19] = buttonText[1][15];
-              // Third point is repeated.
+              // Third point.
               polyLine[20] = polyLine[16];
               polyLine[21] = polyLine[17];
               polyLine[22] = polyLine[18];
               polyLine[23] = polyLine[19];
               polyLineWrite = write(sock, polyLine, sizeof(polyLine));
-              // 'break' during after the second row 'write()'.
-              if (i == 3 && j == 3) {
-                break;
+              i = 0;
+              j = 0;
+              while (i < 5) {
+                // 'write()' the 'keyboard' for the button.
+                //printf("i %d  j %d\n", i, j);
+                // First point.
+                polyLine[12] = (historyButton[12] + xOffset) + (i-1);
+                polyLine[13] = buttonText[1][13];
+                polyLine[14] = (buttonText[1][14] + yOffset) + (j-1); // -1;
+                polyLine[15] = buttonText[1][15];
+                // 8) (-x, -y)
+                // Second point.
+                polyLine[16] = (historyButton[12] + xOffset) + (i-1);
+                polyLine[17] = buttonText[1][13];
+                polyLine[18] = (buttonText[1][14] + yOffset) + j;
+                polyLine[19] = buttonText[1][15];
+                // Third point is repeated.
+                polyLine[20] = polyLine[16];
+                polyLine[21] = polyLine[17];
+                polyLine[22] = polyLine[18];
+                polyLine[23] = polyLine[19];
+                polyLineWrite = write(sock, polyLine, sizeof(polyLine));
+                // 'break' during after the second row 'write()'.
+                if (i == 3 && j == 3) {
+                  break;
+                }
+                // Repeats the second row incrementing 'y' coordinate with 'j'.
+                if (i == 3) {
+                  j = 3;
+                  i = 0;
+                }
+                // Increase 'i' or the 'x' coordiante.
+                else {
+                  i++;
+                  i++;
+                  i++;
+                }
               }
-              // Repeats the second row incrementing 'y' coordinate with 'j'.
-              if (i == 3) {
-                j = 3;
-                i = 0;
+              // 'historyWindow' slide out animation.
+              // x, y
+              historyWindow[12] = 0;
+              historyWindow[13] = 0;
+              historyWindow[14] = buttonBorder[8][14];
+              historyWindow[15] = buttonBorder[8][15];
+              // width, height  + n to cover the borders.
+              historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
+              historyWindow[19] = buttonBorder[4][19];
+              i = 0;
+              j = 0;
+              //while (i < ( (buttonBorder[4][16] * 4) + 20 + 1) ) {      // 5
+              // Increasing the number and modulo division by a decimal place determines speed.
+              while (i < 25000) {
+                if (i % 100 == 0) {
+                  historyWindow[16] = j; // (buttonBorder[4][16] * i) + 20 + 1
+                  historyWindow[17] = buttonBorder[4][17];
+                  historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
+                  if (j == ( (buttonBorder[4][16] * 4) + 20 + 2) ) {
+                    break;
+                  }
+                  j++;
+                  //printf("j %d  x %d %d\n", j, historyWindow[16], historyWindow[17]);
+                }
+                // Delays the graphic by consuming resources. Depends on 'X11' compared with
+                // a different resource equation and assumes OS scaling.
+                polyPoint[12] = 0;
+                polyPoint[13] = 0;
+                polyPoint[14] = 0;
+                polyPoint[15] = 0;
+                polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
+                //printf("i %d\n", i);
+                i++;
               }
-              // Increase 'i' or the 'x' coordiante.
-              else {
-                i++;
-                i++;
-                i++;
-              }
-            }
-            // 'historyWindow' slide out animation.
+              // Remove the delay graphic polyPoint 'write()'.
+              // Might not exist but X11 probably uses memory to count.
+              clearArea[8] = 0;
+              clearArea[9] = 0;
+              clearArea[10] = 0;
+              clearArea[11] = 0;
+              clearArea[12] = 1;
+              clearArea[13] = 0;
+              clearArea[14] = 1;
+              clearArea[15] = 0;
+              clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+            }  // Closes the 'screenCheckZero'
+          }    // Closes the 'j' == 42
+        }      // Closes the (button == 1)
+        else if (button == 4 || button == 5) {
+
+///////////////////////////
+// todo
+// - the y coordinate overflow <- for resizing screen
+
+// - subtract x-coordinate
+// - scroll up/down button
+// - clear history button
+// - eventCode 6 hover write the text
+// minor todo - extract text from .log <- useful for restarting application.
+
+          // 'write()' the 'charKeyInputAnswer[i]' in the history window.
+          if (historyCheck == 0) {
+            // Clear the previous 'historyWindow' contents and 'write()'
+            // Redefine the 'clearArea' opcode 61 packet to the current specifications.
+            // XY coordinates.
+            clearArea[8] = historyWindow[12];
+            clearArea[9] = historyWindow[13];
+            clearArea[10] = historyWindow[14];
+            clearArea[11] = historyWindow[15];
+            // Width and height.
+            clearArea[12] = historyWindow[16];
+            clearArea[13] = historyWindow[17];
+            clearArea[14] = historyWindow[18];
+            clearArea[15] = historyWindow[19];
+            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
             // x, y
             historyWindow[12] = 0;
             historyWindow[13] = 0;
             historyWindow[14] = buttonBorder[8][14];
             historyWindow[15] = buttonBorder[8][15];
             // width, height  + n to cover the borders.
+            historyWindow[16] = (buttonBorder[4][16] * 4) + 20 + 2;
+            historyWindow[17] = buttonBorder[4][17];
             historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
             historyWindow[19] = buttonBorder[4][19];
+            historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
+            // 'i' increments the length of all of the arithmatic 'charKeyInputAnswerLength'.
             i = 0;
-            j = 0;
-            //while (i < ( (buttonBorder[4][16] * 4) + 20 + 1) ) {      // 5
-            // Increasing the number and modulo division by a decimal place determines speed.
-            while (i < 25000) {
-              if (i % 100 == 0) {
-                historyWindow[16] = j; // (buttonBorder[4][16] * i) + 20 + 1
-                historyWindow[17] = buttonBorder[4][17];
-                historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
-                if (j == ( (buttonBorder[4][16] * 4) + 20 + 2) ) {
-                  break;
-                }
-                j++;
-                //printf("j %d  x %d %d\n", j, historyWindow[16], historyWindow[17]);
+            //printf("not 0? %d  \n", keyInputAnswerCharLength);
+            // When the amount of expressions exceed the vertical window.
+            // Increments 'i' using length from 'keyInputAnswerLength[]' via 'm'.
+            // The scroll up or down functionality is repeated in 'eventCode == 4' on
+            // button press '4' or '5' indicating input from the scroll wheel.
+            if (keyInputAnswerCharLength != 0) {
+              // 'scrollM' tracks the number of increasing starting 'm' to increment the starting length 'i'.
+              // Similar to 'newM' used to increment the scroll wheel.
+              // Scroll up and reveal previous calculations.
+              //printf("scrollM %d  newM %d\n", scrollM, newM);
+              if (button == 5 && scrollM < newM) {
+                scrollM++;
               }
-              // Delays the graphic by consuming resources. Depends on 'X11' compared with
-              // a different resource equation and assumes OS scaling.
-              polyPoint[12] = 0;
-              polyPoint[13] = 0;
-              polyPoint[14] = 0;
-              polyPoint[15] = 0;
-              polyPointWrite = write(sock, polyPoint, sizeof(polyPoint));
-              //printf("i %d\n", i);
-              i++;
+              // Scroll down and reveal more new calculations.
+              else if (button == 4 && scrollM > 0) {
+                scrollM--;
+              }
+              m = scrollM;
+              previousNewM = m-1;
+              // Calculates the increased starting 'i'.
+              while (previousNewM >= 0) {
+                //printf("  i %d  len %d  m %d    %c\n", i, keyInputAnswerLength[m], m, charKeyInputAnswer[i]);
+                i = (i + keyInputAnswerLength[previousNewM]);
+                previousNewM--;
+              }
             }
-            // Remove the delay graphic polyPoint 'write()'.
-            // Might not exist but X11 probably uses memory to count.
-            clearArea[8] = 0;
-            clearArea[9] = 0;
-            clearArea[10] = 0;
-            clearArea[11] = 0;
-            clearArea[12] = 1;
-            clearArea[13] = 0;
-            clearArea[14] = 1;
-            clearArea[15] = 0;
-            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
-          }  // Closes the 'screenCheckZero'
-        }    // Closes the 'j' == 42
+            else {
+              i = 0;
+              m = 0;
+            }
+            //printf("i %d  total len %d\n", i, charKeyInputAnswerLength);
+            //printf("input  i %d  m %d  newM %d  \n", i, m, newM);
+
+            // Initial 'y' coordinate. Incremented after every arithmatic in the loop.
+            // Overflow for the initial y coordinate
+            if ((historyWindow[14] + 20 ) > 255) {
+              keyInputText[14] = ( historyWindow[14] + 20 ) - 255;
+              keyInputText[15] = historyWindow[15] + 1 ;
+            }
+            else {
+              keyInputText[14] = historyWindow[14] + 20;
+              keyInputText[15] = historyWindow[15];
+            }
+            // 'm' and 'n' are responsible for tracking current length and increasing y coordinate.
+            n = 1;
+            // 'i' increments the length of all of the arithmatic 'charKeyInputAnswerLength'.
+            //i = 0;
+            // Decreasing space between characters.
+            j = 10;
+            // Equation is 'historyWindow' right x coordinate minus the length of the char spacing.
+            k = (10 * keyInputAnswerLength[m]) + 15;
+            // 'write()' the history input/output arithmatic 'charKeyInputAnswer[]' in the 'historyWindow'.
+            while (i < charKeyInputAnswerLength) {
+              // x coordinate plus 'historyWindow' width minus the current expression's length * 10, plus 'j' for character spacing.
+              previousKeyInput12 = (historyWindow[12] + historyWindow[16] - k) + j;
+              //previousKeyInput12 = historyWindow[12] + j;
+              previousKeyInput13 = historyWindow[13] + historyWindow[17];
+
+              // Overflow for the decreasing x coordinate.
+              if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+                keyInputText[12] = previousKeyInput12 - 255;
+                keyInputText[13] = previousKeyInput13 + 1;
+              }
+              else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+                keyInputText[12] = previousKeyInput12;
+                keyInputText[13] = previousKeyInput13;
+              }
+              else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+                keyInputText[12] = previousKeyInput12 + 255;
+                keyInputText[13] = previousKeyInput13 - 1;
+              }
+              else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+                keyInputText[12] = previousKeyInput12 + 510;
+                keyInputText[13] = previousKeyInput13 - 2;
+              }
+              else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+                keyInputText[12] = previousKeyInput12 + 765;
+                keyInputText[13] = previousKeyInput13 - 3;
+              }
+              else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+                keyInputText[12] = previousKeyInput12 + 1020;
+                keyInputText[13] = previousKeyInput13 - 4;
+              }
+              else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+                keyInputText[12] = previousKeyInput12 + 1275;
+                keyInputText[13] = previousKeyInput13 - 5;
+              }
+              else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+                keyInputText[12] = previousKeyInput12 + 1530;
+                keyInputText[13] = previousKeyInput13 - 6;
+              }
+              else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+                keyInputText[12] = previousKeyInput12 + 1785;
+                keyInputText[13] = previousKeyInput13 - 7;
+              }
+              else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+                keyInputText[12] = previousKeyInput12 + 2040;
+                keyInputText[13] = previousKeyInput13 - 8;
+              }
+              else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+                keyInputText[12] = previousKeyInput12 + 2295;
+                keyInputText[13] = previousKeyInput13 - 9;
+              }
+              // 'write()' if the text coordinate is greater than the left most text window boundary.
+              // Left most text window boundary.
+              if ( (keyInputText[13] > historyWindow[13]) || (keyInputText[13] == historyWindow[13] && keyInputText[12] >= historyWindow[12]) ) {
+                //printf("text %d %d  x coord %d %d\n", keyInputText[14], keyInputText[15], (historyWindow[14] + historyWindow[18]) - 255, 1);
+                //printf("y lim %d %d\n", historyWindow[14] + historyWindow[18] - 255, keyInputText[15]);
+                //printf("2nd lim %d %d\n", ((historyWindow[14] + historyWindow[18]) - 20) - 255, keyInputText[15] );
+                if ( (keyInputText[15] < 1) || (keyInputText[15] == 1 && keyInputText[14] <= ((historyWindow[14] + historyWindow[18]) - 255))) {
+                  // Penultimate vertical coordinate limit is used on the next calculation to move the previous calculations upward.
+                  if ((keyInputText[15] == 1 && keyInputText[14] >= ( (historyWindow[14] + historyWindow[18]) - 20) - 255) ) {
+                    keyInputAnswerCharLength = m;
+                  }
+                  // Vertical coordinate limit.
+                  // The text string.
+                  keyInputText[18] = charKeyInputAnswer[i];
+                  //printf("%d %c  x %d\n", i, charKeyInputAnswer[i]);
+                  keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+                }
+              }
+              else {
+                //printf("  charSkip\n");
+                // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
+                //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
+              //charSkip = 0;
+
+              }
+              // Increases the y coordinate when the current expression's length 'n' equals
+              // that expression's length previously recorded on input with 'keyInputAnswerLength[m]'.
+              // 'm' is increased and 'n' is reset as '0'. Space 'j' is also reset to '0'.
+              //       m   0  1  2  3  4
+              // '...l[m]' 5  7  6  ....
+              //       n   5  7  6  ....
+              if ( n == keyInputAnswerLength[m] ) {
+                //printf("i %d  n %d  %d\n", i, n, keyInputAnswerLength[m]);
+                //printf("    n %d  m %d  len %d\n", n, m, keyInputAnswerLength[m]);
+                m++;
+                // 'm' is ordered '1-n' height of the window. 'historyWindow' shifts text upward when
+                // 'scrollM' is greater than 0 and the difference 'm - scrollM' retains the vertical spacing.
+                if (scrollM > 0) {
+                  if ((historyWindow[14] + 20 + ((m - scrollM) * 20) ) > 255) {
+                    keyInputText[14] = ( historyWindow[14] + 20 + ((m - scrollM) * 20) ) - 255;
+                    keyInputText[15] = historyWindow[15] + 1 ;
+                  }
+                  else {
+                    keyInputText[14] = historyWindow[14] + 20 + ((m - scrollM) * 20);
+                    keyInputText[15] = historyWindow[15];
+                  }
+                }
+                else {
+                  if ((historyWindow[14] + 20 + (m * 20) ) > 255) {
+                    keyInputText[14] = ( historyWindow[14] + 20 + (m * 20) ) - 255;
+                    keyInputText[15] = historyWindow[15] + 1 ;
+                  }
+                  else {
+                    keyInputText[14] = historyWindow[14] + 20 + (m * 20);
+                    keyInputText[15] = historyWindow[15];
+                  }
+                }
+                // char spacing '10' * the length of the next expression.
+                k = (10 * keyInputAnswerLength[m]) + 15;
+                j = 0;
+                n = 0;
+              }
+              // Length of the current arithmatic (starts at '1').
+              n++;
+              // Entire historical char[].
+              i++;
+              // Space incrementer.
+              j = j + 10;
+            }
+          }
+        }   // Closes the 'if (button == 4 || button == 5)'
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         // Redefine the 'clearArea' opcode 61 packet to the current specifications.
         // XY coordinates.
@@ -8505,136 +8714,222 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j++;
           }
 
-        // 'write()' the 'charKeyInputAnswer[i]' in the history window.
-        //if (historyCheck == 1) {
 
-// todo the y coordinate overflow
-// 'charSkipVertical' to move the words up one slot in the
-//     historyWindow when text reaches y coordinate + height
-// eventCode 6 hover write the text
 
-          // Initial 'y' coordinate. Incremented after every arithmatic in the loop.
-        // Overflow for the initial y coordinate
-          if ((historyWindow[14] + 20 ) > 255) {
-            keyInputText[14] = ( historyWindow[14] + 20 ) - 255;
-            keyInputText[15] = historyWindow[15] + 1 ;
-          }
-          else {
-            keyInputText[14] = historyWindow[14] + 20;
-            keyInputText[15] = historyWindow[15];
-          }
 
-          // 'i' increments the length of all of the arithmatic 'charKeyInputAnswerLength'.
-          i = 0;
-          // 'm' and 'n' are responsible for tracking current length and increasing y coordinate.
-          m = 0;
-          n = 1;
-          // Decreasing space between characters.
-          j = 10;
-          // Equation is 'historyWindow' right x coordinate minus the length of the char spacing.
-          k = (10 * keyInputAnswerLength[0]) + 15;
-          // 'write()' the history input/output arithmatic 'charKeyInputAnswer[]' in the 'historyWindow'.
-          while (i < charKeyInputAnswerLength) {
-            // x coordinate plus 'historyWindow' width minus the current expression's length * 10, plus 'j' for character spacing.
-            previousKeyInput12 = (historyWindow[12] + historyWindow[16] - k) + j;
-            //previousKeyInput12 = historyWindow[12] + j;
-            previousKeyInput13 = historyWindow[13] + historyWindow[17];
 
-            // Overflow for the decreasing x coordinate.
-            if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
-              keyInputText[12] = previousKeyInput12 - 255;
-              keyInputText[13] = previousKeyInput13 + 1;
-            }
-            else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
-              keyInputText[12] = previousKeyInput12;
-              keyInputText[13] = previousKeyInput13;
-            }
-            else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
-              keyInputText[12] = previousKeyInput12 + 255;
-              keyInputText[13] = previousKeyInput13 - 1;
-            }
-            else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
-              keyInputText[12] = previousKeyInput12 + 510;
-              keyInputText[13] = previousKeyInput13 - 2;
-            }
-            else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
-              keyInputText[12] = previousKeyInput12 + 765;
-              keyInputText[13] = previousKeyInput13 - 3;
-            }
-            else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
-              keyInputText[12] = previousKeyInput12 + 1020;
-              keyInputText[13] = previousKeyInput13 - 4;
-            }
-            else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
-              keyInputText[12] = previousKeyInput12 + 1275;
-              keyInputText[13] = previousKeyInput13 - 5;
-            }
-            else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
-              keyInputText[12] = previousKeyInput12 + 1530;
-              keyInputText[13] = previousKeyInput13 - 6;
-            }
-            else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
-              keyInputText[12] = previousKeyInput12 + 1785;
-              keyInputText[13] = previousKeyInput13 - 7;
-            }
-            else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
-              keyInputText[12] = previousKeyInput12 + 2040;
-              keyInputText[13] = previousKeyInput13 - 8;
-            }
-            else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
-              keyInputText[12] = previousKeyInput12 + 2295;
-              keyInputText[13] = previousKeyInput13 - 9;
-            }
-            // 'write()' if the text coordinate is greater than the left most text window boundary.
-            // Left most text window boundary.
-            if ((keyInputText[13] > historyWindow[13]) || (keyInputText[13] == historyWindow[13] && keyInputText[12] >= historyWindow[12]) ) {
-              // The text string.
-              keyInputText[18] = charKeyInputAnswer[i];
-              //printf("%d %c  x %d\n", i, charKeyInputAnswer[i]);
-              keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+
+
+///////////////////////////
+          // 'write()' the 'charKeyInputAnswer[i]' in the history window.
+          if (historyCheck == 0) {
+
+
+            // Clear the previous 'historyWindow' contents and 'write()'
+            // Redefine the 'clearArea' opcode 61 packet to the current specifications.
+            // XY coordinates.
+            clearArea[8] = historyWindow[12];
+            clearArea[9] = historyWindow[13];
+            clearArea[10] = historyWindow[14];
+            clearArea[11] = historyWindow[15];
+            // Width and height.
+            clearArea[12] = historyWindow[16];
+            clearArea[13] = historyWindow[17];
+            clearArea[14] = historyWindow[18];
+            clearArea[15] = historyWindow[19];
+            clearAreaWrite = write(sock, clearArea, sizeof(clearArea));
+            // x, y
+            historyWindow[12] = 0;
+            historyWindow[13] = 0;
+            historyWindow[14] = buttonBorder[8][14];
+            historyWindow[15] = buttonBorder[8][15];
+            // width, height  + n to cover the borders.
+            historyWindow[16] = (buttonBorder[4][16] * 4) + 20 + 2;
+            historyWindow[17] = buttonBorder[4][17];
+            historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
+            historyWindow[19] = buttonBorder[4][19];
+            historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
+            // 'i' increments the length of all of the arithmatic 'charKeyInputAnswerLength'.
+            i = 0;
+            //printf("not 0? %d  \n", keyInputAnswerCharLength);
+            // When the amount of expressions exceed the vertical window.
+            // Increments 'i' using length from 'keyInputAnswerLength[]' via 'm'.
+            // The scroll up or down functionality is repeated in 'eventCode == 4' on
+            // button press '4' or '5' indicating input from the scroll wheel.
+            if (keyInputAnswerCharLength != 0) {
+              // 'scrollM' tracks the number of increasing starting 'm' to increment the starting length 'i'.
+              // Similar to 'newM' used to increment the scroll wheel.
+              scrollM++;
+              newM = scrollM;
+              m = scrollM;
+              previousNewM = m-1;
+              // Calculates the increased starting 'i'.
+              while (previousNewM >= 0) {
+                //printf("  i %d  len %d  m %d    %c\n", i, keyInputAnswerLength[m], m, charKeyInputAnswer[i]);
+                i = (i + keyInputAnswerLength[previousNewM]);
+                previousNewM--;
+              }
             }
             else {
-              //printf("  charSkip\n");
-              // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
-              //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
-
-  // to prevent writing past the left boundary charSkip = 0;
-
+              i = 0;
+              m = 0;
             }
-            // Increases the y coordinate when the current expression's length 'n' equals
-            // that expression's length previously recorded on input with 'keyInputAnswerLength[m]'.
-            // 'm' is increased and 'n' is reset as '0'. Space 'j' is also reset to '0'.
-            //       m   0  1  2  3  4
-            // '...l[m]' 5  7  6  ....
-            //       n   5  7  6  ....
-            if ( n == keyInputAnswerLength[m] ) {
-              //printf("  n %d  m %d  len %d\n", n, m, keyInputAnswerLength[m]);
-              m++;
-              if ((historyWindow[14] + 20 + (m * 20) ) > 255) {
-                keyInputText[14] = ( historyWindow[14] + 20 + (m * 20) ) - 255;
-                keyInputText[15] = historyWindow[15] + 1 ;
+            //printf("i %d  total len %d\n", i, charKeyInputAnswerLength);
+            //printf("input  i %d  m %d  newM %d  \n", i, m, newM);
+
+            // Initial 'y' coordinate. Incremented after every arithmatic in the loop.
+            // Overflow for the initial y coordinate
+            if ((historyWindow[14] + 20 ) > 255) {
+              keyInputText[14] = ( historyWindow[14] + 20 ) - 255;
+              keyInputText[15] = historyWindow[15] + 1 ;
+            }
+            else {
+              keyInputText[14] = historyWindow[14] + 20;
+              keyInputText[15] = historyWindow[15];
+            }
+            // 'm' and 'n' are responsible for tracking current length and increasing y coordinate.
+            n = 1;
+            // 'i' increments the length of all of the arithmatic 'charKeyInputAnswerLength'.
+            //i = 0;
+            // Decreasing space between characters.
+            j = 10;
+            // Equation is 'historyWindow' right x coordinate minus the length of the char spacing.
+            k = (10 * keyInputAnswerLength[m]) + 15;
+            // 'write()' the history input/output arithmatic 'charKeyInputAnswer[]' in the 'historyWindow'.
+            while (i < charKeyInputAnswerLength) {
+              // x coordinate plus 'historyWindow' width minus the current expression's length * 10, plus 'j' for character spacing.
+              previousKeyInput12 = (historyWindow[12] + historyWindow[16] - k) + j;
+              //previousKeyInput12 = historyWindow[12] + j;
+              previousKeyInput13 = historyWindow[13] + historyWindow[17];
+
+              // Overflow for the decreasing x coordinate.
+              if (previousKeyInput12 > 255 && previousKeyInput12 < 511) {
+                keyInputText[12] = previousKeyInput12 - 255;
+                keyInputText[13] = previousKeyInput13 + 1;
+              }
+              else if (previousKeyInput12 >= 0 && previousKeyInput12 < 256) {
+                keyInputText[12] = previousKeyInput12;
+                keyInputText[13] = previousKeyInput13;
+              }
+              else if ( previousKeyInput12 < 0 && previousKeyInput12 > -256 ) {
+                keyInputText[12] = previousKeyInput12 + 255;
+                keyInputText[13] = previousKeyInput13 - 1;
+              }
+              else if ( previousKeyInput12 < -255 && previousKeyInput12 > -511 ) {
+                keyInputText[12] = previousKeyInput12 + 510;
+                keyInputText[13] = previousKeyInput13 - 2;
+              }
+              else if ( previousKeyInput12 < -510 && previousKeyInput12 > -766 ) {
+                keyInputText[12] = previousKeyInput12 + 765;
+                keyInputText[13] = previousKeyInput13 - 3;
+              }
+              else if ( previousKeyInput12 < -765 && previousKeyInput12 > -1021 ) {
+                keyInputText[12] = previousKeyInput12 + 1020;
+                keyInputText[13] = previousKeyInput13 - 4;
+              }
+              else if ( previousKeyInput12 < -1020 && previousKeyInput12 > -1276 ) {
+                keyInputText[12] = previousKeyInput12 + 1275;
+                keyInputText[13] = previousKeyInput13 - 5;
+              }
+              else if ( previousKeyInput12 < -1275 && previousKeyInput12 > -1531 ) {
+                keyInputText[12] = previousKeyInput12 + 1530;
+                keyInputText[13] = previousKeyInput13 - 6;
+              }
+              else if ( previousKeyInput12 < -1530 && previousKeyInput12 > -1786 ) {
+                keyInputText[12] = previousKeyInput12 + 1785;
+                keyInputText[13] = previousKeyInput13 - 7;
+              }
+              else if ( previousKeyInput12 < -1785 && previousKeyInput12 > -2041 ) {
+                keyInputText[12] = previousKeyInput12 + 2040;
+                keyInputText[13] = previousKeyInput13 - 8;
+              }
+              else if ( previousKeyInput12 < -2040 && previousKeyInput12 > -2296 ) {
+                keyInputText[12] = previousKeyInput12 + 2295;
+                keyInputText[13] = previousKeyInput13 - 9;
+              }
+              // 'write()' if the text coordinate is greater than the left most text window boundary.
+              // Left most text window boundary.
+              if ( (keyInputText[13] > historyWindow[13]) || (keyInputText[13] == historyWindow[13] && keyInputText[12] >= historyWindow[12]) ) {
+                //printf("text %d %d  x coord %d %d\n", keyInputText[14], keyInputText[15], (historyWindow[14] + historyWindow[18]) - 255, 1);
+                //printf("y lim %d %d\n", historyWindow[14] + historyWindow[18] - 255, keyInputText[15]);
+                //printf("2nd lim %d %d\n", ((historyWindow[14] + historyWindow[18]) - 20) - 255, keyInputText[15] );
+                if ( (keyInputText[15] < 1) || (keyInputText[15] == 1 && keyInputText[14] <= ((historyWindow[14] + historyWindow[18]) - 255))) {
+                  // Penultimate vertical coordinate limit is used on the next calculation to move the previous calculations upward.
+                  if ((keyInputText[15] == 1 && keyInputText[14] >= ( (historyWindow[14] + historyWindow[18]) - 20) - 255) ) {
+                    keyInputAnswerCharLength = m;
+                  }
+                  // Vertical coordinate limit.
+                  // The text string.
+                  keyInputText[18] = charKeyInputAnswer[i];
+                  //printf("%d %c  x %d\n", i, charKeyInputAnswer[i]);
+                  keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+                }
               }
               else {
-                keyInputText[14] = historyWindow[14] + 20 + (m * 20);
-                keyInputText[15] = historyWindow[15];
+                //printf("  charSkip\n");
+                // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
+                //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
+              //charSkip = 0;
+
               }
-              // char spacing '10' * the length of the next expression.
-              k = (10 * keyInputAnswerLength[m]) + 15;
-              j = 0;
-              n = 0;
+              // Increases the y coordinate when the current expression's length 'n' equals
+              // that expression's length previously recorded on input with 'keyInputAnswerLength[m]'.
+              // 'm' is increased and 'n' is reset as '0'. Space 'j' is also reset to '0'.
+              //       m   0  1  2  3  4
+              // '...l[m]' 5  7  6  ....
+              //       n   5  7  6  ....
+              if ( n == keyInputAnswerLength[m] ) {
+                //printf("i %d  n %d  %d\n", i, n, keyInputAnswerLength[m]);
+                //printf("    n %d  m %d  len %d\n", n, m, keyInputAnswerLength[m]);
+                m++;
+                // 'm' is ordered '1-n' height of the window. 'historyWindow' shifts text upward when
+                // 'scrollM' is greater than 0 and the difference 'm - scrollM' retains the vertical spacing.
+                if (scrollM > 0) {
+                  if ((historyWindow[14] + 20 + ((m - scrollM) * 20) ) > 255) {
+                    keyInputText[14] = ( historyWindow[14] + 20 + ((m - scrollM) * 20) ) - 255;
+                    keyInputText[15] = historyWindow[15] + 1 ;
+                  }
+                  else {
+                    keyInputText[14] = historyWindow[14] + 20 + ((m - scrollM) * 20);
+                    keyInputText[15] = historyWindow[15];
+                  }
+                }
+                else {
+                  if ((historyWindow[14] + 20 + (m * 20) ) > 255) {
+                    keyInputText[14] = ( historyWindow[14] + 20 + (m * 20) ) - 255;
+                    keyInputText[15] = historyWindow[15] + 1 ;
+                  }
+                  else {
+                    keyInputText[14] = historyWindow[14] + 20 + (m * 20);
+                    keyInputText[15] = historyWindow[15];
+                  }
+                }
+                // char spacing '10' * the length of the next expression.
+                k = (10 * keyInputAnswerLength[m]) + 15;
+                j = 0;
+                n = 0;
+              }
+              // Length of the current arithmatic (starts at '1').
+              n++;
+              // Entire historical char[].
+              i++;
+              // Space incrementer.
+              j = j + 10;
             }
-            // Length of the current arithmatic (starts at '1').
-            n++;
-            // Entire historical char[].
-            i++;
-            // Space incrementer.
-            j = j + 10;
-          }
-        //} // Closes the 'if (historyCheck == 1)'
+          } // Closes the 'if (historyCheck == 0)'
+          //
 
-        //
 
-        // For the text box input window.
+
+
+
+
+
+
+
+
+
+          // For the text box input window.
           // 'write()' the 'answer' and set 'charKeyInput' as only the 'answer'.
           // Overflow for the y coordinate
           if ((textBorder[14] + 22.5) > 255) {
@@ -8836,8 +9131,17 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           keyInput = '\0';
           intKeyInputIterator++;
         }
+      } // Closes 'if (buttonClickCheck == 0)'
+
+
+
+
+
+
+
+
+
         ///////////////////////////
-      }
     }            // 'while(1)' close
   }              // 'if'       packet 'read()' bracket
 }                // 'socket()' closed in serverConnect();
