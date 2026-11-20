@@ -1925,10 +1925,59 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
   historyWindowButton[7] = 9;
   historyWindowButton[8] = 13;
 
+  // History window scroll functionality.
   int newM = 0;
   int previousNewM = 0;
-  int keyInputAnswerCharLength = 0;
   int scrollM = 0;
+  int keyInputAnswerCharLength = 0;
+  int visibleCalculations = 0;
+  int totalCalculations = 0;
+  // Maximum calculations for char[255]: ~51 - char[] might be resized.
+  int scrollButtonHeight = 0;
+
+  // Scroll button.
+  // scroll button border.
+  char scrollButton[20];
+  scrollButton[0] = subsetButtonBorder[0];
+  scrollButton[1] = subsetButtonBorder[1];
+  scrollButton[2] = subsetButtonBorder[2];
+  scrollButton[3] = subsetButtonBorder[3];
+  scrollButton[4] = subsetButtonBorder[4];
+  scrollButton[5] = subsetButtonBorder[5];
+  scrollButton[6] = subsetButtonBorder[6];
+  scrollButton[7] = subsetButtonBorder[7];
+  scrollButton[8] = subsetButtonBorder[8];
+  scrollButton[9] = subsetButtonBorder[9];
+  scrollButton[10] = subsetButtonBorder[10];
+  scrollButton[11] = subsetButtonBorder[11];
+  // XY coordinates.
+  scrollButton[12] = buttonBorder[1][12] - 35;
+  scrollButton[13] = buttonBorder[1][13];
+  scrollButton[14] = buttonBorder[1][14] + 12.5;
+  scrollButton[15] = buttonBorder[1][15];
+  // Height and width.
+  scrollButton[16] = 25;
+  scrollButton[17] = 0;
+  scrollButton[18] = 25;
+  scrollButton[19] = 0;
+  borderRectangleWrite = write(sock, scrollButton, sizeof(scrollButton));
+
+  // Scroll button background fill.
+  char scrollButtonPolyfill[20];
+  scrollButtonPolyfill[0] = subsetButtonPolyfill[0];
+  scrollButtonPolyfill[1] = subsetButtonPolyfill[1];
+  scrollButtonPolyfill[2] = subsetButtonPolyfill[2];
+  scrollButtonPolyfill[3] = subsetButtonPolyfill[3];
+  scrollButtonPolyfill[4] = subsetButtonPolyfill[4];
+  scrollButtonPolyfill[5] = subsetButtonPolyfill[5];
+  scrollButtonPolyfill[6] = subsetButtonPolyfill[6];
+  scrollButtonPolyfill[7] = subsetButtonPolyfill[7];
+  scrollButtonPolyfill[8] = gcID.one + gcIDFour;
+  scrollButtonPolyfill[9] = subsetButtonPolyfill[9];
+  scrollButtonPolyfill[10] = subsetButtonPolyfill[10];
+  scrollButtonPolyfill[11] = subsetButtonPolyfill[11];
+
+  int scrollButtonPolyfillWrite;
 ////
 
   if (geometryRead[0] == 1) {
@@ -5255,10 +5304,10 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
           //printf("mouseX = %d\n", mouseX);
           //printf("mouseY = %d\n", mouseY);
           // Drawing window from the top left (or right).
-          //printf("    X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
-          //printf("    X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
-          //printf("    Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
-          //printf("    Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
+          printf("    X1 responseWindowInput[24] = %d\n", responseWindowInput[24]);
+          printf("    X2 responseWindowInput[25] = %d\n", responseWindowInput[25]);
+          printf("    Y1 responseWindowInput[26] = %d\n", responseWindowInput[26]);
+          printf("    Y2 responseWindowInput[27] = %d\n", responseWindowInput[27]);
 
           // The below 'while' loop calculates the coordinate borders for n buttons.
           // Tested on new char 4 columns of * 5 rows = '20'.
@@ -6538,8 +6587,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
 // todo
 // - the y coordinate overflow <- for resizing screen
 
-// - subtract x-coordinate
-// - scroll up/down button
 // - clear history button
 // - eventCode 6 hover write the text
 // minor todo - extract text from .log <- useful for restarting application.
@@ -6570,6 +6617,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             historyWindow[18] = (buttonBorder[4][18] * 3) + 20 + 2; // Number of buttons plus the two vertical gaps.
             historyWindow[19] = buttonBorder[4][19];
             historyWindowWrite = write(sock, historyWindow, sizeof(historyWindow));
+
             // 'i' increments the length of all of the arithmatic 'charKeyInputAnswerLength'.
             i = 0;
             //printf("not 0? %d  \n", keyInputAnswerCharLength);
@@ -6582,6 +6630,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // Similar to 'newM' used to increment the scroll wheel.
               // Scroll up and reveal previous calculations.
               //printf("scrollM %d  newM %d\n", scrollM, newM);
+              // 'newM' is the amount of calculations set in the other expression 'write()' loop.
               if (button == 5 && scrollM < newM) {
                 scrollM++;
               }
@@ -6605,6 +6654,30 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             //printf("i %d  total len %d\n", i, charKeyInputAnswerLength);
             //printf("input  i %d  m %d  newM %d  \n", i, m, newM);
 
+            // todo xy overflow
+            // Decrease scroll button size every 'n' 'scrollM'
+            // Button height and y coordinate is based on number of calculations over the window
+        // doesnt totally work unless convert to int and divide or use powers of two
+        // maximum calculations: 51
+            scrollButtonHeight = (historyWindow[18] / (totalCalculations - visibleCalculations));
+            scrollButtonPolyfill[12] = historyWindow[12] + historyWindow[16] - 10;
+            scrollButtonPolyfill[13] = historyWindow[13];
+            //printf("visibleCalculations %d  totalCalculations %d\n", visibleCalculations, totalCalculations);
+
+            if (historyWindow[14] + ( scrollButtonHeight * scrollM ) > 255) {
+              scrollButtonPolyfill[14] = (historyWindow[14] + ( scrollButtonHeight * scrollM )) - 255;
+              scrollButtonPolyfill[15] = historyWindow[15] + 1;
+            }
+            else {
+              scrollButtonPolyfill[14] = historyWindow[14] + ( scrollButtonHeight * scrollM );
+              scrollButtonPolyfill[15] = historyWindow[15];
+            }
+            //printf("scrollM %d  div %d %d  window %d\n", scrollM, scrollButtonPolyfill[14], scrollButtonPolyfill[15], historyWindow[18]);
+            scrollButtonPolyfill[16] = 10;
+            scrollButtonPolyfill[17] = 0;
+            scrollButtonPolyfill[18] = scrollButtonHeight;
+            scrollButtonPolyfill[19] = 0;
+            scrollButtonPolyfillWrite = write(sock, scrollButtonPolyfill, sizeof(scrollButtonPolyfill));
             // Initial 'y' coordinate. Incremented after every arithmatic in the loop.
             // Overflow for the initial y coordinate
             if ((historyWindow[14] + 20 ) > 255) {
@@ -6622,7 +6695,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // Decreasing space between characters.
             j = 10;
             // Equation is 'historyWindow' right x coordinate minus the length of the char spacing.
-            k = (10 * keyInputAnswerLength[m]) + 15;
+            k = (10 * keyInputAnswerLength[m]) + 25;
             // 'write()' the history input/output arithmatic 'charKeyInputAnswer[]' in the 'historyWindow'.
             while (i < charKeyInputAnswerLength) {
               // x coordinate plus 'historyWindow' width minus the current expression's length * 10, plus 'j' for character spacing.
@@ -6684,16 +6757,18 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                 if ( (keyInputText[15] < 1) || (keyInputText[15] == 1 && keyInputText[14] <= ((historyWindow[14] + historyWindow[18]) - 255))) {
                   // Penultimate vertical coordinate limit is used on the next calculation to move the previous calculations upward.
                   if ((keyInputText[15] == 1 && keyInputText[14] >= ( (historyWindow[14] + historyWindow[18]) - 20) - 255) ) {
-                    keyInputAnswerCharLength = m;
+                    //keyInputAnswerCharLength = m;
                   }
                   // Vertical coordinate limit.
                   // The text string.
                   keyInputText[18] = charKeyInputAnswer[i];
                   //printf("%d %c  x %d\n", i, charKeyInputAnswer[i]);
                   keyInputTextWrite = write(sock, keyInputText, sizeof(keyInputText));
+
                 }
               }
               else {
+
                 //printf("  charSkip\n");
                 // Don't add characters to 'charKeyInput[i]' when 'keyInputText' coordinates are less than the text input window on the next
                 //  'eventCode == 2' keyboard press or 'eventCode == 4' button press.
@@ -6733,7 +6808,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                   }
                 }
                 // char spacing '10' * the length of the next expression.
-                k = (10 * keyInputAnswerLength[m]) + 15;
+                k = (10 * keyInputAnswerLength[m]) + 25;
                 j = 0;
                 n = 0;
               }
@@ -6746,28 +6821,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
           }
         }   // Closes the 'if (button == 4 || button == 5)'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         // Redefine the 'clearArea' opcode 61 packet to the current specifications.
         // XY coordinates.
         if (textBorder[12]+1 > 255) {
@@ -8714,12 +8767,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             j++;
           }
 
-
-
-
-
-
-
 ///////////////////////////
           // 'write()' the 'charKeyInputAnswer[i]' in the history window.
           if (historyCheck == 0) {
@@ -8794,7 +8841,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             // Decreasing space between characters.
             j = 10;
             // Equation is 'historyWindow' right x coordinate minus the length of the char spacing.
-            k = (10 * keyInputAnswerLength[m]) + 15;
+            k = (10 * keyInputAnswerLength[m]) + 25;
             // 'write()' the history input/output arithmatic 'charKeyInputAnswer[]' in the 'historyWindow'.
             while (i < charKeyInputAnswerLength) {
               // x coordinate plus 'historyWindow' width minus the current expression's length * 10, plus 'j' for character spacing.
@@ -8858,6 +8905,14 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                   if ((keyInputText[15] == 1 && keyInputText[14] >= ( (historyWindow[14] + historyWindow[18]) - 20) - 255) ) {
                     keyInputAnswerCharLength = m;
                   }
+                  if ((keyInputText[15] == 1 && keyInputText[14] >= ( (historyWindow[14] + historyWindow[18]) - 20) - 255) ) {
+                    // Number of visible calculations.
+                    if ((keyInputText[15] == 1 && keyInputText[14] <= ( historyWindow[14] + historyWindow[18]) - 255) ) {
+                      if (visibleCalculations == 0) {
+                        visibleCalculations = m;
+                      }
+                    }
+                  }
                   // Vertical coordinate limit.
                   // The text string.
                   keyInputText[18] = charKeyInputAnswer[i];
@@ -8879,6 +8934,11 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
               // '...l[m]' 5  7  6  ....
               //       n   5  7  6  ....
               if ( n == keyInputAnswerLength[m] ) {
+                // Total number of calculations.
+                if (m >= totalCalculations) {
+                  totalCalculations++;
+                  //printf("totalCalculations %d\n", totalCalculations);
+                }
                 //printf("i %d  n %d  %d\n", i, n, keyInputAnswerLength[m]);
                 //printf("    n %d  m %d  len %d\n", n, m, keyInputAnswerLength[m]);
                 m++;
@@ -8905,7 +8965,7 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
                   }
                 }
                 // char spacing '10' * the length of the next expression.
-                k = (10 * keyInputAnswerLength[m]) + 15;
+                k = (10 * keyInputAnswerLength[m]) + 25;
                 j = 0;
                 n = 0;
               }
@@ -8918,16 +8978,6 @@ void drawWindow(struct fourInt windowID, struct fourInt gcID, struct fourInt par
             }
           } // Closes the 'if (historyCheck == 0)'
           //
-
-
-
-
-
-
-
-
-
-
 
           // For the text box input window.
           // 'write()' the 'answer' and set 'charKeyInput' as only the 'answer'.
