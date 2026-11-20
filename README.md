@@ -1,28 +1,42 @@
-First 'charKeyInput' is now 255 * sizeof()
-used to get resized several times without calloc() when removing characters but are commented out.
-Might be screen size related.
-- charKeyInput = malloc(
+- In progress GUI feature: history window
 
--     if (geometryRead[0] == 1) {
+Shortcuts (ctrl + f)
+-   if (geometryRead[0] == 1) {
 
 -   // 'write()' if the text coordinate is greater than the left most text window boundary.
 
+-   if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 1)) {
 
-2.)
+todo
 
-    - history window (temporarily extend text input window)
+-  minor change - eventCode == 6 hover commented out the scrollButton 'write()' minimum and
+-                 it wrote the button regardless of 'totalCalculations' length - might break other stuff
 
-      - history button turns into a number button -> screenSizeZero -> sliding window over the button 5-7, 9-11, 13-15, 17-19
-                                                                     - click previous expression as a button to arithmatic more numbers
-                                                                     - clear history button 'c'
-                                                                     - click number button to return to regular screen and history button orientation
-                                                  -> screenSizeOne  -> drop down info window with an 'x' button to return to regular screen
-
+- eventCode == 4 and 6 the button rectangle is not re 'write()'
+-   also hover on the historyButton is still on when the window is out.
 
 
-if (keyInput == 61 && (intKeyInputIterator < 14 && intKeyInputIterator > 1)) {
 
-FOIL
+- clear history button in window
+
+- minor todo - extract text from .log <- useful for restarting application.
+
+
+- the y coordinate overflow and the screenSize change
+
+
+
+- copy window 'write()' to eventCode 22 and 12 if (historyCheck == 0)
+
+- click previous expression as a button to arithmatic more numbers
+
+- clear history button 'c'
+
+- click number button to return to regular screen and history button orientation
+
+- 'screenSizeOne' -> drop down info window
+
+- FOIL
 
 keyInput -> charKeyInput -> write()
 
@@ -47,10 +61,14 @@ if (previousKeyStart == 1) {
 
       - Starting '0' is removed when the screen resizes.
 
-  - Remove space button and off button mouse click repeating characters
+  - Input error i.e. '1 + ' and 'enter' returns 'a' <- should be nothing
 
   - Pressing 'Enter' after the '0' and '1' character elements without '=' or '-' resets the character array.
 
+
+First 'charKeyInput' is now 255 * sizeof()
+used to get resized several times without calloc() when removing characters but are commented out.
+- charKeyInput = malloc(
 
 
 # calculator
@@ -170,6 +188,10 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
 
 - GUI issues
 
+  - screenSizeZero (and probably the other ones) should be +- 1 for the borders height and width
+
+    - might be random 'polygon' button 'write()' without a 'border' 'write()'
+
   - Text buttons - 'screenCheckZero' and sometimes 'screenCheckOne' multiple characters don't resize with the window.
 
   - initial screensize '0' and 'eventCode == 12' buttons are off by several coordinates
@@ -186,7 +208,7 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
 
 - GUI features
 
-  - Change the non-decimal button color and '=' button color
+  - Change the non-integer button color and '=' button color
 
   - Repeating '=' i.e. 2 * 2 = 4    or answer * (n)
                        4 * 2 = 8
@@ -194,7 +216,7 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
                       16 * 2 = 32
 
 
-  - Replace button polygons with polylines.
+  - Replace button polygons with points and polylines.
 
     - Rounded corners that increase in size with use to mimic the passage of time.
 
