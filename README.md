@@ -12,15 +12,20 @@ todo
 -  minor change - eventCode == 6 hover commented out the scrollButton 'write()' minimum and
 -                 it wrote the button regardless of 'totalCalculations' length - might break other stuff
 
-- eventCode == 4 and 6 the button rectangle is not re 'write()'
--   also hover on the historyButton is still on when the window is out.
+-  eventCode == 4 and 6 the screenSizeOne button rectangle has to be the the same size as the buttons 'write()'
+-    also hover on the historyButton is still on when the window is out.
+
+
 
 
 
 - clear history button in window
 
-- minor todo - extract text from .log <- useful for restarting application.
+- hold and drag scrollWheel button
 
+
+
+- minor todo - extract text from .log <- useful for restarting application.
 
 - the y coordinate overflow and the screenSize change
 
@@ -521,10 +526,12 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
       // Clicking the button returns '0-9' or the other calculator inputs.
     ```
 
-- Data structures and algorithms 'window.c'.
+- Data structures and algorithms I
 
     ```
       // Intermediate screen size 1.) implementation:
+      //
+      // "window.c"
       //
       // Change button background when hovered 'eventCode == 6'.
       // Decreased button redrawing from all 40 to +-8 and improved user experience.
@@ -576,7 +583,121 @@ gcc main.c binaryFunctions.c arithmatic.c userInput.c -o binary && ./binary
       // Redraw all buttons when not hovered.
     ```
 
+- Data Structures and Algorithms II
+
+```
+
+      // Scroll Wheel History Window
+      //
+      // OS: linux and no library X11 server
+      //
+      // "window.c"
+      //
+      // Problem: Display historical calculations of unknown length and number using libraryless GCC
+      // based on graphic user interface (GUI) window and coordinate position via scroll wheel.
+      //
+      // Input constraints: End user enters integers for calculation of unknown length (len) and number (n). Minimum
+      // character len is five (i.e. 1+1=2) and maximum is abstracted at 12 (100+100=200). Practical calculations n are limited
+      // by the size of the fixed character array set at 255 with the maximum amount (255 / 5 minimum len) approximately 51.
+      //
+      // Length (len) > 4
+      //         len  < 12
+      //
+      // Unknown number (n) > 0
+      //                 n  < 51
+      //
+      // Display constraints: Previous arithmatic inputs are displayed with an extended history window. 
+      // History window is extracted on mouse click while size depends on the dimensions of the
+      // application's screen that changes the button configuration and coordinates.
+      //
+      // Data structure: All of the expression's characters are recorded in a character array 'j[i]' and each
+      // length is recorded during calculation. A different array 'k' tracks the expression's length where 'm' is
+      // an iterating value that corresponds to the expression.
+      //
+      // Below is a graph with an example expression length in the y-axis and array 'k[m]' as the x-axis:
+
+      //
+      //        Example array
+      //
+      // 12                          
+      // 11                          2
+      // 10                          0
+      // 9                           0
+      // 8                           =
+    L // 7                   1       1
+    e // 6                   3   1   0
+    n // 5               2   =   0   0
+    g // 4               =   3   =   +
+    t // 3               1   +   5   1
+    h // 2               +   1   +   0
+      // 1               1   0   5   0
+      // 0____________________________
+      //        m        0   1   2   3
+      //  '...k[m]'      5   7   6   12
+
+
+      // Example array 'k[m]':
+      //
+      //   k[0] 1+1=2
+      //   k[1] 10+3=13
+      //   k[2] 5+5=10
+      //   k[3] 100+100=200
+
+
+      // Text Writing Loop
+
+      // There are two loops to write the text from array 'j[i]'. The first loop [O(len/n)] uses one integer and records
+      // the start of the expression and another integer records the end to access each expression's length. The array
+      // size is unknown and lacks a termination character with a definite position. Another loop [O(n)] uses the total length
+      // cumulative integer to write the text every time a new calculation is added or GUI feature moved. The horizontal
+      // coordinates of the input text are right justified through the expression's length '[m]' times a spacing variable
+      // and subtracted from the right edge of the window. The length of each expression while increasing 'i' is tracked
+      // with a character counter 'n'. When 'n' reaches that expression's length from the other array 'k[m]', 'n' is reset
+      // to '0' and the vertical coordinate for the next text is increased.
+      //
+      // The arithmatic expressions in 'j[i]' from the previous graph are written to the screen and the methods are visualized below:
+
+      //             Coordinate loop
+      //
+      //    n=k[m] |           18
+      //           |           17
+      //           |           16
+      //           |           15
+      //           |           14
+      //           |           13
+      //    n=k[m] |       12
+      //           |       11
+      //           |       10
+      //    i      |       9
+      // (y-axis)  |       8
+      //           |       7
+      //           |       6
+      //    n=k[m] |   5
+      //           |   4
+      //           |   3
+      //           |   2           ....
+      //           |   1           ....
+      //           |_____________________
+      //               '   '   '   '   '
+      //           m   0   1   2   3   4
+      //     '...k[m]' 5   7   6   ....
+      //           n   5   7   6   ....
+      //
+      //                m (x-axis)
+      //
+      //
+      // Another variable tracks the number of input expressions after the historical window's vertical
+      // limit is reached. This variable is used when the mouse wheel button is activated to change
+      // both the GUI scroll button coordinate and visible expressions.
+
+```
+
 - There are more details in "./src/window.c" at the 'drawWindow()' function.
+
+- History window in screen size zero:
+
+![History window](./HistoryWindowScreenSizeZero.gif)
+
 
 ```
 Probably a good CS 300 binary class.
@@ -859,7 +980,6 @@ Example answer:
     i++;
   }
 ```
-
 
 - C and hardware notes from "binaryChar.c".
 
